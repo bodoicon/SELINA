@@ -108,6 +108,7 @@ export default function HoaHoiGameCanvasApp() {
   const [flowerCreateMessage, setFlowerCreateMessage] = useState("");
   const [savingFlower, setSavingFlower] = useState(false);
   const [newFlowerUploadMessage, setNewFlowerUploadMessage] = useState("");
+  const [historyLogs, setHistoryLogs] = useState([]);
 
   useEffect(() => {
     loadAllData();
@@ -117,7 +118,7 @@ export default function HoaHoiGameCanvasApp() {
     setLoading(true);
     setPageMessage("");
 
-    const [membersRes, flowersRes, ownershipsRes] = await Promise.all([
+    const [membersRes, flowersRes, ownershipsRes, historyRes] = await Promise.all([
       supabase
         .from("members")
         .select("id, name, created_at, member_flowers(flower_id)")
@@ -127,13 +128,15 @@ export default function HoaHoiGameCanvasApp() {
         .select("id, name, group_name, icon_url, created_at")
         .order("name", { ascending: true }),
       supabase.from("member_flowers").select("id, member_id, flower_id, created_at"),
+      supabase.from("action_logs").select("id, action_type, actor_name, target_type, target_name, details, created_at").order("created_at", { ascending: false }).limit(50),
     ]);
 
-    if (membersRes.error || flowersRes.error || ownershipsRes.error) {
+    if (membersRes.error || flowersRes.error || ownershipsRes.error || historyRes.error) {
       setPageMessage(
         membersRes.error?.message ||
           flowersRes.error?.message ||
           ownershipsRes.error?.message ||
+          historyRes.error?.message ||
           "Không tải được dữ liệu từ Supabase."
       );
       setLoading(false);
@@ -158,6 +161,17 @@ export default function HoaHoiGameCanvasApp() {
     );
 
     setOwnerships((ownershipsRes.data || []).map(normalizeOwnershipRow));
+    setHistoryLogs(
+      (historyRes.data || []).map((log) => ({
+        id: String(log.id),
+        actionType: log.action_type || "",
+        actorName: log.actor_name || "Hệ thống",
+        targetType: log.target_type || "",
+        targetName: log.target_name || "",
+        details: log.details || "",
+        createdAt: log.created_at || "",
+      }))
+    );
     setLoading(false);
   }
 
@@ -254,6 +268,13 @@ export default function HoaHoiGameCanvasApp() {
     }
 
     const inserted = { id: String(data.id), name: data.name, group: data.group_name, iconUrl: data.icon_url || "" };
+    await logAction({
+      actionType: "add_flower",
+      actorName: "Quản trị hội",
+      targetType: "flower",
+      targetName: inserted.name,
+      details: `Thêm hoa mới vào nhóm ${inserted.group}`,
+    });
     await loadAllData();
     setNewFlowerName("");
     setNewFlowerIconUrl("");
@@ -369,7 +390,30 @@ export default function HoaHoiGameCanvasApp() {
     setNewMemberName("");
     setUpdateMessage(`Đã cập nhật ${optimisticRows.length} loại hoa mới cho ${member.name}.`);
 
+    await logAction({
+      actionType: "update_ownership",
+      actorName: member.name,
+      targetType: "member",
+      targetName: member.name,
+      details: `Thêm ${optimisticRows.length} hoa: ${uniqueSelectedFlowerIds
+        .map((id) => flowers.find((f) => String(f.id) === String(id))?.name || id)
+        .join(", ")}`,
+    });
+
     await loadAllData();
+  }
+
+  async function logAction({ actionType, actorName = "Hệ thống", targetType, targetName, details = "" }) {
+    const { error } = await supabase.from("action_logs").insert([
+      {
+        action_type: actionType,
+        actor_name: actorName,
+        target_type: targetType,
+        target_name: targetName,
+        details,
+      },
+    ]);
+    return { error };
   }
 
   async function renameMember(memberId, newName) {
@@ -388,6 +432,13 @@ export default function HoaHoiGameCanvasApp() {
       return { ok: false, message: `Không sửa được tên thành viên: ${error.message}` };
     }
 
+    await logAction({
+      actionType: "rename_member",
+      actorName: "Quản trị hội",
+      targetType: "member",
+      targetName: trimmed,
+      details: `Đổi tên thành viên từ ${members.find((m) => String(m.id) === String(memberId))?.name || "(không rõ)"} thành ${trimmed}`,
+    });
     await loadAllData();
     return { ok: true, message: "Đã cập nhật tên thành viên." };
   }
@@ -419,6 +470,13 @@ export default function HoaHoiGameCanvasApp() {
       return { ok: false, message: `Không sửa được hoa: ${error.message}` };
     }
 
+    await logAction({
+      actionType: "edit_flower",
+      actorName: "Quản trị hội",
+      targetType: "flower",
+      targetName: trimmedName,
+      details: `Cập nhật thông tin hoa ${currentFlower?.name || ""}`,
+    });
     await loadAllData();
     return { ok: true, message: "Đã cập nhật thông tin hoa." };
   }
@@ -502,12 +560,13 @@ export default function HoaHoiGameCanvasApp() {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-4">
-          <TabsList className="grid w-full min-w-max grid-cols-5 gap-2 overflow-x-auto md:min-w-0">
+          <TabsList className="grid w-full min-w-max grid-cols-6 gap-2 overflow-x-auto md:min-w-0">
             <TabsTrigger value="dashboard">Tổng quan</TabsTrigger>
             <TabsTrigger value="members">Thành viên</TabsTrigger>
             <TabsTrigger value="flowers">Hoa</TabsTrigger>
             <TabsTrigger value="update">Cập nhật sở hữu</TabsTrigger>
             <TabsTrigger value="addflower">Thêm hoa mới</TabsTrigger>
+            <TabsTrigger value="history">Lịch sử</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
@@ -943,6 +1002,53 @@ export default function HoaHoiGameCanvasApp() {
                     </div>
                   </CardContent>
                 </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-4">
+            <Card className="rounded-3xl border-0 shadow-sm">
+              <CardHeader>
+                <CardTitle>Bảng lịch sử thao tác</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <p className="text-sm text-slate-600">Đang tải lịch sử...</p>
+                ) : historyLogs.length === 0 ? (
+                  <p className="text-sm text-slate-600">Chưa có lịch sử thao tác.</p>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-slate-50 text-left text-slate-600">
+                        <tr>
+                          <th className="px-4 py-3 font-medium">Thời gian</th>
+                          <th className="px-4 py-3 font-medium">Người thao tác</th>
+                          <th className="px-4 py-3 font-medium">Hành động</th>
+                          <th className="px-4 py-3 font-medium">Đối tượng</th>
+                          <th className="px-4 py-3 font-medium">Chi tiết</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {historyLogs.map((log) => (
+                          <tr key={log.id} className="border-t align-top">
+                            <td className="px-4 py-3 whitespace-nowrap text-slate-500">
+                              {log.createdAt ? new Date(log.createdAt).toLocaleString("vi-VN") : "-"}
+                            </td>
+                            <td className="px-4 py-3 font-medium">{log.actorName || "-"}</td>
+                            <td className="px-4 py-3">
+                              <Badge variant="outline" className="rounded-full">{log.actionType || "-"}</Badge>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium">{log.targetName || "-"}</div>
+                              <div className="text-xs text-slate-500">{log.targetType || "-"}</div>
+                            </td>
+                            <td className="px-4 py-3 text-slate-600">{log.details || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

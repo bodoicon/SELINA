@@ -150,6 +150,8 @@ export default function HoaHoiGameCanvasApp() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginMessage, setLoginMessage] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState("connecting");
+  const [realtimeMessage, setRealtimeMessage] = useState("");
 
   const isAdmin = useMemo(() => {
     const email = user?.email?.toLowerCase() || "";
@@ -178,8 +180,63 @@ export default function HoaHoiGameCanvasApp() {
   }, []);
 
   useEffect(() => {
-    loadAllData();
-  }, []);
+  loadAllData();
+
+  let reloadTimer;
+
+  const refreshFromRealtime = (payload) => {
+    console.log("Realtime event:", payload);
+    clearTimeout(reloadTimer);
+    reloadTimer = setTimeout(() => {
+      loadAllData();
+    }, 300);
+  };
+
+  const channel = supabase.channel(`realtime-${Date.now()}`);
+
+  channel
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "members" },
+      refreshFromRealtime
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "flowers" },
+      refreshFromRealtime
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "member_flowers" },
+      refreshFromRealtime
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "action_logs" },
+      refreshFromRealtime
+    )
+    .subscribe((status) => {
+      const normalized = String(status || "unknown").toLowerCase();
+      console.log("Realtime status:", normalized);
+      setRealtimeStatus(normalized);
+
+      if (normalized === "subscribed") {
+        setRealtimeMessage("");
+      } else if (
+        normalized === "channel_error" ||
+        normalized === "timed_out" ||
+        normalized === "closed"
+      ) {
+        setRealtimeMessage(`Realtime chưa hoạt động: ${normalized}`);
+      }
+    });
+
+  return () => {
+    clearTimeout(reloadTimer);
+    supabase.removeChannel(channel);
+  };
+}, []);
+
 
   async function loadAllData() {
     setLoading(true);
@@ -247,6 +304,8 @@ export default function HoaHoiGameCanvasApp() {
       setLoginMessage(`Đăng nhập thất bại: ${error.message}`);
       return;
     }
+
+    setUser(data.user || null);
 
     const signedInEmail = data.user?.email?.toLowerCase() || "";
     const allowed = ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(signedInEmail);
@@ -652,6 +711,18 @@ export default function HoaHoiGameCanvasApp() {
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Badge
+              variant="outline"
+              className={`rounded-full px-3 py-1 text-sm ${
+                realtimeStatus === "subscribed"
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : realtimeStatus === "channel_error" || realtimeStatus === "timed_out" || realtimeStatus === "closed"
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+              }`}
+            >
+              Realtime: {realtimeStatus}
+            </Badge>
             <Button variant="outline" className="rounded-2xl" onClick={loadAllData} disabled={loading}>
               <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               Tải lại dữ liệu
@@ -664,6 +735,7 @@ export default function HoaHoiGameCanvasApp() {
           </div>
 
           {pageMessage ? <div className="mt-4 rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{pageMessage}</div> : null}
+          {realtimeMessage ? <div className="mt-4 rounded-2xl border bg-red-50 p-3 text-sm text-red-700">{realtimeMessage}</div> : null}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

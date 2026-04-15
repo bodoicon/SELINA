@@ -137,6 +137,7 @@ export default function HoaHoiGameCanvasApp() {
   const [flowerCreateMessage, setFlowerCreateMessage] = useState("");
   const [savingFlower, setSavingFlower] = useState(false);
   const [newFlowerUploadMessage, setNewFlowerUploadMessage] = useState("");
+
   const [historyLogs, setHistoryLogs] = useState([]);
   const [memberFlowerCounts, setMemberFlowerCounts] = useState({});
 
@@ -149,16 +150,17 @@ export default function HoaHoiGameCanvasApp() {
     setPageMessage("");
 
     const [membersRes, flowersRes, ownershipsRes, historyRes] = await Promise.all([
-      supabase
-        .from("members")
-        .select("id, name, created_at")
-        .order("name", { ascending: true }),
+      supabase.from("members").select("id, name, created_at").order("name", { ascending: true }),
       supabase
         .from("flowers")
         .select("id, name, group_name, icon_url, created_at")
         .order("name", { ascending: true }),
       fetchAllOwnershipRows(),
-      supabase.from("action_logs").select("id, action_type, actor_name, target_type, target_name, details, created_at").order("created_at", { ascending: false }).limit(50),
+      supabase
+        .from("action_logs")
+        .select("id, action_type, actor_name, target_type, target_name, details, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
 
     if (membersRes.error || flowersRes.error || ownershipsRes.error || historyRes.error) {
@@ -209,23 +211,28 @@ export default function HoaHoiGameCanvasApp() {
         createdAt: log.created_at || "",
       }))
     );
+
     setLoading(false);
   }
 
   const ownersByFlower = useMemo(() => {
     const map = new Map();
     flowers.forEach((flower) => map.set(String(flower.id), []));
+
     ownerships.forEach(({ memberId, flowerId }) => {
       const member = members.find((m) => String(m.id) === String(memberId));
       if (!member) return;
+
       const flowerKey = String(flowerId);
       if (!map.has(flowerKey)) map.set(flowerKey, []);
+
       const currentOwners = map.get(flowerKey) || [];
       if (!currentOwners.includes(member.name)) {
         currentOwners.push(member.name);
       }
       map.set(flowerKey, currentOwners);
     });
+
     return map;
   }, [flowers, members, ownerships]);
 
@@ -277,11 +284,40 @@ export default function HoaHoiGameCanvasApp() {
       .slice(0, 3);
   }, [members, memberFlowerCounts]);
 
+  const memberProgressMap = useMemo(() => {
+    const total = flowers.length || 0;
+    const result = {};
+
+    members.forEach((member) => {
+      const ownedCount = memberFlowerCounts[String(member.id)] || 0;
+      result[String(member.id)] = {
+        ownedCount,
+        total,
+        percent: total ? Math.round((ownedCount / total) * 100) : 0,
+      };
+    });
+
+    return result;
+  }, [members, flowers, memberFlowerCounts]);
+
   function toggleFlowerSelection(flowerId) {
     setSelectedFlowerIds((prev) => {
       const key = String(flowerId);
       return prev.includes(key) ? prev.filter((id) => id !== key) : [...prev, key];
     });
+  }
+
+  async function logAction({ actionType, actorName = "Hệ thống", targetType, targetName, details = "" }) {
+    const { error } = await supabase.from("action_logs").insert([
+      {
+        action_type: actionType,
+        actor_name: actorName,
+        target_type: targetType,
+        target_name: targetName,
+        details,
+      },
+    ]);
+    return { error };
   }
 
   async function addFlowerToDatabase() {
@@ -312,7 +348,13 @@ export default function HoaHoiGameCanvasApp() {
       return;
     }
 
-    const inserted = { id: String(data.id), name: data.name, group: data.group_name, iconUrl: data.icon_url || "" };
+    const inserted = {
+      id: String(data.id),
+      name: data.name,
+      group: data.group_name,
+      iconUrl: data.icon_url || "",
+    };
+
     await logAction({
       actionType: "add_flower",
       actorName: "Quản trị hội",
@@ -320,6 +362,7 @@ export default function HoaHoiGameCanvasApp() {
       targetName: inserted.name,
       details: `Thêm hoa mới vào nhóm ${inserted.group}`,
     });
+
     await loadAllData();
     setNewFlowerName("");
     setNewFlowerIconUrl("");
@@ -364,7 +407,7 @@ export default function HoaHoiGameCanvasApp() {
       return { error: `Không tạo được thành viên mới: ${error.message}` };
     }
 
-    const insertedMember = { id: String(data.id), name: data.name, ownedCount: 0 };
+    const insertedMember = { id: String(data.id), name: data.name };
     await loadAllData();
     return { member: insertedMember };
   }
@@ -448,30 +491,20 @@ export default function HoaHoiGameCanvasApp() {
     await loadAllData();
   }
 
-  async function logAction({ actionType, actorName = "Hệ thống", targetType, targetName, details = "" }) {
-    const { error } = await supabase.from("action_logs").insert([
-      {
-        action_type: actionType,
-        actor_name: actorName,
-        target_type: targetType,
-        target_name: targetName,
-        details,
-      },
-    ]);
-    return { error };
-  }
-
   async function renameMember(memberId, newName) {
     const trimmed = newName.trim();
     if (!trimmed) {
       return { ok: false, message: "Tên thành viên không được để trống." };
     }
 
-    const duplicated = members.some((m) => String(m.id) !== String(memberId) && m.name.toLowerCase() === trimmed.toLowerCase());
+    const duplicated = members.some(
+      (m) => String(m.id) !== String(memberId) && m.name.toLowerCase() === trimmed.toLowerCase()
+    );
     if (duplicated) {
       return { ok: false, message: "Tên thành viên đã tồn tại." };
     }
 
+    const oldName = members.find((m) => String(m.id) === String(memberId))?.name || "(không rõ)";
     const { error } = await supabase.from("members").update({ name: trimmed }).eq("id", memberId);
     if (error) {
       return { ok: false, message: `Không sửa được tên thành viên: ${error.message}` };
@@ -482,8 +515,9 @@ export default function HoaHoiGameCanvasApp() {
       actorName: "Quản trị hội",
       targetType: "member",
       targetName: trimmed,
-      details: `Đổi tên thành viên từ ${members.find((m) => String(m.id) === String(memberId))?.name || "(không rõ)"} thành ${trimmed}`,
+      details: `Đổi tên thành viên từ ${oldName} thành ${trimmed}`,
     });
+
     await loadAllData();
     return { ok: true, message: "Đã cập nhật tên thành viên." };
   }
@@ -497,7 +531,9 @@ export default function HoaHoiGameCanvasApp() {
       return { ok: false, message: "Tên hoa không được để trống." };
     }
 
-    const duplicated = flowers.some((f) => String(f.id) !== String(flowerId) && f.name.toLowerCase() === trimmedName.toLowerCase());
+    const duplicated = flowers.some(
+      (f) => String(f.id) !== String(flowerId) && f.name.toLowerCase() === trimmedName.toLowerCase()
+    );
     if (duplicated) {
       return { ok: false, message: "Tên hoa đã tồn tại." };
     }
@@ -522,6 +558,7 @@ export default function HoaHoiGameCanvasApp() {
       targetName: trimmedName,
       details: `Cập nhật thông tin hoa ${currentFlower?.name || ""}`,
     });
+
     await loadAllData();
     return { ok: true, message: "Đã cập nhật thông tin hoa." };
   }
@@ -651,7 +688,9 @@ export default function HoaHoiGameCanvasApp() {
                             </div>
                             <p className="mt-1 text-sm text-slate-600">Chưa có ai trong hội sở hữu</p>
                           </div>
-                          <Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge>
+                          <Badge variant="outline" className={groupBadgeClass(flower.group)}>
+                            {flower.group}
+                          </Badge>
                         </div>
                       </div>
                     ))}
@@ -679,6 +718,11 @@ export default function HoaHoiGameCanvasApp() {
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {filteredMembers.map((member) => {
                     const ownedCount = memberFlowerCounts[String(member.id)] || 0;
+                    const memberProgress = memberProgressMap[String(member.id)] || {
+                      ownedCount: 0,
+                      total: flowers.length || 0,
+                      percent: 0,
+                    };
 
                     return (
                       <Card key={member.id} className="rounded-3xl shadow-sm">
@@ -703,8 +747,23 @@ export default function HoaHoiGameCanvasApp() {
                             </div>
                           </div>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-3">
                           <p className="text-sm text-slate-600">Thành viên này hiện đang sở hữu {ownedCount} loại hoa.</p>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs text-slate-500">
+                              <span>Tiến độ sưu tập</span>
+                              <span>{memberProgress.percent}%</span>
+                            </div>
+                            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                              <div
+                                className="h-full rounded-full bg-slate-900 transition-all"
+                                style={{ width: `${memberProgress.percent}%` }}
+                              />
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              {memberProgress.ownedCount}/{memberProgress.total} loại hoa
+                            </p>
+                          </div>
                         </CardContent>
                       </Card>
                     );
@@ -892,7 +951,9 @@ export default function HoaHoiGameCanvasApp() {
                                       Hiện có {ownersByFlower.get(String(flower.id))?.length || 0} người sở hữu
                                     </p>
                                   </div>
-                                  <Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge>
+                                  <Badge variant="outline" className={groupBadgeClass(flower.group)}>
+                                    {flower.group}
+                                  </Badge>
                                 </div>
                               </div>
                             </label>
@@ -1040,7 +1101,9 @@ export default function HoaHoiGameCanvasApp() {
                                 {ownersByFlower.get(String(flower.id))?.length || 0} người đang sở hữu
                               </p>
                             </div>
-                            <Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge>
+                            <Badge variant="outline" className={groupBadgeClass(flower.group)}>
+                              {flower.group}
+                            </Badge>
                           </div>
                         </div>
                       ))}
@@ -1081,7 +1144,9 @@ export default function HoaHoiGameCanvasApp() {
                             </td>
                             <td className="px-4 py-3 font-medium">{log.actorName || "-"}</td>
                             <td className="px-4 py-3">
-                              <Badge variant="outline" className="rounded-full">{log.actionType || "-"}</Badge>
+                              <Badge variant="outline" className="rounded-full">
+                                {log.actionType || "-"}
+                              </Badge>
                             </td>
                             <td className="px-4 py-3">
                               <div className="font-medium">{log.targetName || "-"}</div>
@@ -1204,7 +1269,12 @@ function EditFlowerForm({ flower, onSave }) {
       </div>
       <div className="space-y-2">
         <Label>Icon hoa (URL)</Label>
-        <Input value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} className="rounded-2xl" placeholder="https://.../icon.png" />
+        <Input
+          value={iconUrl}
+          onChange={(e) => setIconUrl(e.target.value)}
+          className="rounded-2xl"
+          placeholder="https://.../icon.png"
+        />
       </div>
       <div className="space-y-2">
         <Label>Upload ảnh icon</Label>

@@ -380,7 +380,7 @@ export default function HoaHoiGameCanvasApp() {
         <div className="rounded-3xl bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Quản lý hoa hội game</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Quản Lý Hoa Hội SELINA</h1>
               <p className="mt-2 text-sm text-slate-600">
                 Bản này đã kết nối Supabase. Ai có link đều có thể xem và cập nhật dữ liệu chung.
               </p>

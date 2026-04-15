@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, Plus, Users, Flower2, Database, AlertCircle, RefreshCw } from "lucide-react";
+import { Search, Plus, Users, Flower2, Database, AlertCircle, RefreshCw, Trophy } from "lucide-react";
 
 const FLOWER_GROUPS = ["Lục", "Lam", "Tím", "Vàng", "Đỏ"];
 
@@ -21,6 +21,18 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRld2F4dnN4Ymt0Y2V4ZHV2Zmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTIxMjksImV4cCI6MjA5MTcyODEyOX0.0VpLpXpR_gGk7p5RiCEL0bK4_EnhAUoqhLpieTL-4zI";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const GROUP_STYLES = {
+  "Lục": "border-green-200 bg-green-50 text-green-700",
+  "Lam": "border-blue-200 bg-blue-50 text-blue-700",
+  "Tím": "border-violet-200 bg-violet-50 text-violet-700",
+  "Vàng": "border-amber-200 bg-amber-50 text-amber-700",
+  "Đỏ": "border-red-200 bg-red-50 text-red-700",
+};
+
+function groupBadgeClass(group) {
+  return GROUP_STYLES[group] || "border-slate-200 bg-slate-50 text-slate-700";
+}
 
 function flowerLabel(flower) {
   return flower.name;
@@ -55,6 +67,7 @@ export default function HoaHoiGameCanvasApp() {
   const [savingOwnership, setSavingOwnership] = useState(false);
 
   const [newFlowerName, setNewFlowerName] = useState("");
+  const [newFlowerIconUrl, setNewFlowerIconUrl] = useState("");
   const [newFlowerGroup, setNewFlowerGroup] = useState("Lục");
   const [flowerCreateMessage, setFlowerCreateMessage] = useState("");
   const [savingFlower, setSavingFlower] = useState(false);
@@ -72,7 +85,10 @@ export default function HoaHoiGameCanvasApp() {
         .from("members")
         .select("id, name, created_at, member_flowers(flower_id)")
         .order("name", { ascending: true }),
-      supabase.from("flowers").select("id, name, group_name, created_at").order("name", { ascending: true }),
+      supabase
+        .from("flowers")
+        .select("id, name, group_name, icon_url, created_at")
+        .order("name", { ascending: true }),
       supabase.from("member_flowers").select("id, member_id, flower_id, created_at"),
     ]);
 
@@ -94,37 +110,35 @@ export default function HoaHoiGameCanvasApp() {
         ownedCount: Array.isArray(m.member_flowers) ? m.member_flowers.length : 0,
       }))
     );
-    setFlowers((flowersRes.data || []).map((f) => ({ id: String(f.id), name: f.name, group: f.group_name })));
+
+    setFlowers(
+      (flowersRes.data || []).map((f) => ({
+        id: String(f.id),
+        name: f.name,
+        group: f.group_name,
+        iconUrl: f.icon_url || "",
+      }))
+    );
+
     setOwnerships((ownershipsRes.data || []).map(normalizeOwnershipRow));
     setLoading(false);
   }
 
-    const ownershipMap = useMemo(() => {
-    const map = new Map();
-    members.forEach((member) => map.set(String(member.id), new Set()));
-    ownerships.forEach(({ memberId, flowerId }) => {
-      const memberKey = String(memberId);
-      const flowerKey = String(flowerId);
-      if (!map.has(memberKey)) map.set(memberKey, new Set());
-      map.get(memberKey).add(flowerKey);
-    });
-    return map;
-  }, [members, ownerships]);
-
   const ownersByFlower = useMemo(() => {
     const map = new Map();
-    flowers.forEach((flower) => map.set(flower.id, []));
+    flowers.forEach((flower) => map.set(String(flower.id), []));
     ownerships.forEach(({ memberId, flowerId }) => {
-      const member = members.find((m) => m.id === memberId);
+      const member = members.find((m) => String(m.id) === String(memberId));
       if (!member) return;
-      if (!map.has(flowerId)) map.set(flowerId, []);
-      map.get(flowerId).push(member.name);
+      const flowerKey = String(flowerId);
+      if (!map.has(flowerKey)) map.set(flowerKey, []);
+      map.get(flowerKey).push(member.name);
     });
     return map;
   }, [flowers, members, ownerships]);
 
   const missingFlowers = useMemo(() => {
-    return flowers.filter((flower) => !ownersByFlower.get(flower.id)?.length);
+    return flowers.filter((flower) => !ownersByFlower.get(String(flower.id))?.length);
   }, [flowers, ownersByFlower]);
 
   const filteredMissingFlowers = useMemo(() => {
@@ -151,19 +165,27 @@ export default function HoaHoiGameCanvasApp() {
   }, [flowers, updateSearch, updateGroupFilter]);
 
   const summary = useMemo(() => {
-    const ownedFlowerIds = new Set(ownerships.map((x) => x.flowerId));
+    const ownedFlowerIds = new Set(ownerships.map((x) => String(x.flowerId)));
     return {
       totalMembers: members.length,
       totalFlowers: flowers.length,
       ownedFlowers: ownedFlowerIds.size,
       missingFlowers: flowers.length - ownedFlowerIds.size,
+      completionRate: flowers.length ? Math.round((ownedFlowerIds.size / flowers.length) * 100) : 0,
     };
   }, [members, flowers, ownerships]);
 
+  const topMembers = useMemo(() => {
+    return [...members]
+      .sort((a, b) => (b.ownedCount || 0) - (a.ownedCount || 0))
+      .slice(0, 3);
+  }, [members]);
+
   function toggleFlowerSelection(flowerId) {
-    setSelectedFlowerIds((prev) =>
-      prev.includes(flowerId) ? prev.filter((id) => id !== flowerId) : [...prev, flowerId]
-    );
+    setSelectedFlowerIds((prev) => {
+      const key = String(flowerId);
+      return prev.includes(key) ? prev.filter((id) => id !== key) : [...prev, key];
+    });
   }
 
   async function addFlowerToDatabase() {
@@ -184,8 +206,8 @@ export default function HoaHoiGameCanvasApp() {
     setSavingFlower(true);
     const { data, error } = await supabase
       .from("flowers")
-      .insert([{ name, group_name: newFlowerGroup }])
-      .select("id, name, group_name")
+      .insert([{ name, group_name: newFlowerGroup, icon_url: newFlowerIconUrl.trim() || null }])
+      .select("id, name, group_name, icon_url")
       .single();
     setSavingFlower(false);
 
@@ -194,9 +216,10 @@ export default function HoaHoiGameCanvasApp() {
       return;
     }
 
-    const inserted = { id: String(data.id), name: data.name, group: data.group_name };
+    const inserted = { id: String(data.id), name: data.name, group: data.group_name, iconUrl: data.icon_url || "" };
     await loadAllData();
     setNewFlowerName("");
+    setNewFlowerIconUrl("");
     setNewFlowerGroup("Lục");
     setFlowerCreateMessage(`Đã thêm hoa mới: ${flowerLabel(inserted)}.`);
   }
@@ -237,7 +260,7 @@ export default function HoaHoiGameCanvasApp() {
       return { error: `Không tạo được thành viên mới: ${error.message}` };
     }
 
-    const insertedMember = { id: String(data.id), name: data.name };
+    const insertedMember = { id: String(data.id), name: data.name, ownedCount: 0 };
     await loadAllData();
     return { member: insertedMember };
   }
@@ -296,9 +319,7 @@ export default function HoaHoiGameCanvasApp() {
       .upsert(additions, { onConflict: "member_id,flower_id", ignoreDuplicates: true });
 
     if (error) {
-      setOwnerships((prev) =>
-        prev.filter((row) => !String(row.id).startsWith(`temp-${member.id}-`))
-      );
+      setOwnerships((prev) => prev.filter((row) => !String(row.id).startsWith(`temp-${member.id}-`)));
       setSavingOwnership(false);
       setUpdateMessage(`Không lưu được cập nhật sở hữu: ${error.message}`);
       return;
@@ -319,7 +340,7 @@ export default function HoaHoiGameCanvasApp() {
       return { ok: false, message: "Tên thành viên không được để trống." };
     }
 
-    const duplicated = members.some((m) => m.id !== memberId && m.name.toLowerCase() === trimmed.toLowerCase());
+    const duplicated = members.some((m) => String(m.id) !== String(memberId) && m.name.toLowerCase() === trimmed.toLowerCase());
     if (duplicated) {
       return { ok: false, message: "Tên thành viên đã tồn tại." };
     }
@@ -339,7 +360,7 @@ export default function HoaHoiGameCanvasApp() {
       return { ok: false, message: "Tên hoa không được để trống." };
     }
 
-    const duplicated = flowers.some((f) => f.id !== flowerId && f.name.toLowerCase() === trimmed.toLowerCase());
+    const duplicated = flowers.some((f) => String(f.id) !== String(flowerId) && f.name.toLowerCase() === trimmed.toLowerCase());
     if (duplicated) {
       return { ok: false, message: "Tên hoa đã tồn tại." };
     }
@@ -388,8 +409,51 @@ export default function HoaHoiGameCanvasApp() {
           <StatCard icon={<AlertCircle className="h-5 w-5" />} title="Hội còn thiếu" value={summary.missingFlowers} />
         </div>
 
+        <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle>Tỉ lệ hoàn thành bộ sưu tập</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between text-sm text-slate-600">
+                <span>Hội đã sưu tầm</span>
+                <span>{summary.completionRate}%</span>
+              </div>
+              <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full bg-slate-900 transition-all" style={{ width: `${summary.completionRate}%` }} />
+              </div>
+              <p className="text-sm text-slate-600">
+                Đã có {summary.ownedFlowers}/{summary.totalFlowers} loại hoa trong cơ sở dữ liệu.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-3xl border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5" /> Top sưu tầm
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {topMembers.length === 0 ? (
+                <p className="text-sm text-slate-600">Chưa có dữ liệu thành viên.</p>
+              ) : (
+                topMembers.map((member, index) => (
+                  <div key={member.id} className="flex items-center justify-between rounded-2xl border p-3">
+                    <div>
+                      <p className="font-medium">#{index + 1} {member.name}</p>
+                      <p className="text-sm text-slate-500">{member.ownedCount || 0} loại hoa</p>
+                    </div>
+                    <Badge variant="secondary">Top {index + 1}</Badge>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         <Tabs defaultValue="dashboard" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 gap-2 md:grid-cols-5">
+          <TabsList className="grid w-full min-w-max grid-cols-5 gap-2 overflow-x-auto md:min-w-0">
             <TabsTrigger value="dashboard">Tổng quan</TabsTrigger>
             <TabsTrigger value="members">Thành viên</TabsTrigger>
             <TabsTrigger value="flowers">Hoa</TabsTrigger>
@@ -428,10 +492,13 @@ export default function HoaHoiGameCanvasApp() {
                       <div key={flower.id} className="rounded-2xl border bg-slate-50 p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="font-semibold">{flowerLabel(flower)}</p>
+                            <div className="flex items-center gap-3">
+                              <FlowerThumbnail flower={flower} />
+                              <p className="font-semibold">{flowerLabel(flower)}</p>
+                            </div>
                             <p className="mt-1 text-sm text-slate-600">Chưa có ai trong hội sở hữu</p>
                           </div>
-                          <Badge variant="outline">{flower.group}</Badge>
+                          <Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge>
                         </div>
                       </div>
                     ))}
@@ -511,14 +578,17 @@ export default function HoaHoiGameCanvasApp() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {filteredFlowers.map((flower) => {
-                    const owners = ownersByFlower.get(flower.id) || [];
+                    const owners = ownersByFlower.get(String(flower.id)) || [];
 
                     return (
                       <Card key={flower.id} className="rounded-3xl shadow-sm">
                         <CardHeader>
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <CardTitle className="text-lg">{flowerLabel(flower)}</CardTitle>
+                              <div className="flex items-center gap-3">
+                                <FlowerThumbnail flower={flower} />
+                                <CardTitle className="text-lg">{flowerLabel(flower)}</CardTitle>
+                              </div>
                               <p className="mt-1 text-sm text-slate-600">Nhóm {flower.group}</p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -545,7 +615,7 @@ export default function HoaHoiGameCanvasApp() {
                           ) : (
                             <div className="flex flex-wrap gap-2">
                               {owners.map((owner) => (
-                                <Badge key={owner} variant="outline" className="rounded-full">
+                                <Badge key={`${flower.id}-${owner}`} variant="outline" className="rounded-full">
                                   {owner}
                                 </Badge>
                               ))}
@@ -651,7 +721,7 @@ export default function HoaHoiGameCanvasApp() {
                     <ScrollArea className="h-[420px] pr-4">
                       <div className="space-y-3">
                         {selectableFlowers.map((flower) => {
-                          const checked = selectedFlowerIds.includes(flower.id);
+                          const checked = selectedFlowerIds.includes(String(flower.id));
                           return (
                             <label
                               key={flower.id}
@@ -661,12 +731,15 @@ export default function HoaHoiGameCanvasApp() {
                               <div className="flex-1">
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
-                                    <p className="font-medium">{flowerLabel(flower)}</p>
+                                    <div className="flex items-center gap-3">
+                                      <FlowerThumbnail flower={flower} size="sm" />
+                                      <p className="font-medium">{flowerLabel(flower)}</p>
+                                    </div>
                                     <p className="mt-1 text-sm text-slate-600">
-                                      Hiện có {ownersByFlower.get(flower.id)?.length || 0} người sở hữu
+                                      Hiện có {ownersByFlower.get(String(flower.id))?.length || 0} người sở hữu
                                     </p>
                                   </div>
-                                  <Badge variant="outline">{flower.group}</Badge>
+                                  <Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge>
                                 </div>
                               </div>
                             </label>
@@ -693,6 +766,15 @@ export default function HoaHoiGameCanvasApp() {
                       value={newFlowerName}
                       onChange={(e) => setNewFlowerName(e.target.value)}
                       placeholder="Ví dụ: Huyền Tinh"
+                      className="rounded-2xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Icon hoa (URL ảnh, không bắt buộc)</Label>
+                    <Input
+                      value={newFlowerIconUrl}
+                      onChange={(e) => setNewFlowerIconUrl(e.target.value)}
+                      placeholder="Ví dụ: https://.../icon.png"
                       className="rounded-2xl"
                     />
                   </div>
@@ -760,12 +842,15 @@ export default function HoaHoiGameCanvasApp() {
                         <div key={flower.id} className="rounded-2xl border p-4">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="font-medium">{flowerLabel(flower)}</p>
+                              <div className="flex items-center gap-3">
+                                <FlowerThumbnail flower={flower} />
+                                <p className="font-medium">{flowerLabel(flower)}</p>
+                              </div>
                               <p className="mt-1 text-sm text-slate-600">
-                                {ownersByFlower.get(flower.id)?.length || 0} người đang sở hữu
+                                {ownersByFlower.get(String(flower.id))?.length || 0} người đang sở hữu
                               </p>
                             </div>
-                            <Badge variant="outline">{flower.group}</Badge>
+                            <Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge>
                           </div>
                         </div>
                       ))}
@@ -777,6 +862,50 @@ export default function HoaHoiGameCanvasApp() {
           </TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+function PlaceholderFlowerIcon({ size = "md" }) {
+  const iconClass = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={iconClass} aria-hidden="true">
+      <path d="M12 21c1.6-2.8 2.4-5.2 2.4-7.2A4.4 4.4 0 0 0 10 9.4c-2.4 0-4.4 2-4.4 4.4 0 2 1 4.3 2.8 6.5" />
+      <path d="M12 21c-1.3-1.8-2.7-3-4.2-3.7" />
+      <path d="M12 21c1-1.6 2.5-3.1 4.6-4.3" />
+      <path d="M12 10.5c1.2-2.2 3.1-3.8 5.6-4.8-.1 2.8-1 5-2.7 6.5" />
+      <path d="M10.1 10.3C8.6 8 6.5 6.5 3.8 5.8c.1 2.7.9 4.8 2.5 6.2" />
+      <circle cx="12" cy="12" r="1.3" />
+    </svg>
+  );
+}
+
+function FlowerThumbnail({ flower, size = "md" }) {
+  const sizeClass = size === "sm" ? "h-9 w-9" : "h-11 w-11";
+
+  if (flower.iconUrl) {
+    return (
+      <div className={`overflow-hidden rounded-2xl border bg-white ${sizeClass}`}>
+        <img
+          src={flower.iconUrl}
+          alt={flower.name}
+          className="h-full w-full object-cover"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+            const fallback = e.currentTarget.nextElementSibling;
+            if (fallback) fallback.classList.remove("hidden");
+          }}
+        />
+        <div className="hidden h-full w-full items-center justify-center bg-slate-50 text-slate-500">
+          <PlaceholderFlowerIcon size={size} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex items-center justify-center rounded-2xl border bg-slate-50 text-slate-500 ${sizeClass}`}>
+      <PlaceholderFlowerIcon size={size} />
     </div>
   );
 }

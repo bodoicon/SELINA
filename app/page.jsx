@@ -21,6 +21,7 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRld2F4dnN4Ymt0Y2V4ZHV2Zmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTIxMjksImV4cCI6MjA5MTcyODEyOX0.0VpLpXpR_gGk7p5RiCEL0bK4_EnhAUoqhLpieTL-4zI";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const FLOWER_ICON_BUCKET = "flower-icons";
 
 const GROUP_STYLES = {
   "Lục": "border-green-200 bg-green-50 text-green-700",
@@ -44,6 +45,41 @@ function normalizeOwnershipRow(row) {
     memberId: String(row.member_id),
     flowerId: String(row.flower_id),
   };
+}
+
+async function uploadFlowerIcon(file) {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const filePath = `icons/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(FLOWER_ICON_BUCKET)
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || undefined,
+    });
+
+  if (uploadError) {
+    return { error: `Không upload được ảnh: ${uploadError.message}` };
+  }
+
+  const { data } = supabase.storage.from(FLOWER_ICON_BUCKET).getPublicUrl(filePath);
+  return { url: data.publicUrl, path: filePath };
+}
+
+function extractStoragePathFromUrl(url) {
+  if (!url || !url.includes("/storage/v1/object/public/")) return null;
+  const marker = `/storage/v1/object/public/${FLOWER_ICON_BUCKET}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  return url.slice(idx + marker.length);
+}
+
+async function deleteFlowerIconByUrl(url) {
+  const path = extractStoragePathFromUrl(url);
+  if (!path) return;
+  await supabase.storage.from(FLOWER_ICON_BUCKET).remove([path]);
 }
 
 export default function HoaHoiGameCanvasApp() {
@@ -71,6 +107,7 @@ export default function HoaHoiGameCanvasApp() {
   const [newFlowerGroup, setNewFlowerGroup] = useState("Lục");
   const [flowerCreateMessage, setFlowerCreateMessage] = useState("");
   const [savingFlower, setSavingFlower] = useState(false);
+  const [newFlowerUploadMessage, setNewFlowerUploadMessage] = useState("");
 
   useEffect(() => {
     loadAllData();
@@ -220,6 +257,7 @@ export default function HoaHoiGameCanvasApp() {
     await loadAllData();
     setNewFlowerName("");
     setNewFlowerIconUrl("");
+    setNewFlowerUploadMessage("");
     setNewFlowerGroup("Lục");
     setFlowerCreateMessage(`Đã thêm hoa mới: ${flowerLabel(inserted)}.`);
   }
@@ -354,24 +392,35 @@ export default function HoaHoiGameCanvasApp() {
     return { ok: true, message: "Đã cập nhật tên thành viên." };
   }
 
-  async function renameFlower(flowerId, newName) {
-    const trimmed = newName.trim();
-    if (!trimmed) {
+  async function renameFlower(flowerId, payload) {
+    const trimmedName = payload.name.trim();
+    const nextIconUrl = payload.iconUrl.trim();
+    const currentFlower = flowers.find((f) => String(f.id) === String(flowerId));
+
+    if (!trimmedName) {
       return { ok: false, message: "Tên hoa không được để trống." };
     }
 
-    const duplicated = flowers.some((f) => String(f.id) !== String(flowerId) && f.name.toLowerCase() === trimmed.toLowerCase());
+    const duplicated = flowers.some((f) => String(f.id) !== String(flowerId) && f.name.toLowerCase() === trimmedName.toLowerCase());
     if (duplicated) {
       return { ok: false, message: "Tên hoa đã tồn tại." };
     }
 
-    const { error } = await supabase.from("flowers").update({ name: trimmed }).eq("id", flowerId);
+    if (currentFlower?.iconUrl && !nextIconUrl) {
+      await deleteFlowerIconByUrl(currentFlower.iconUrl);
+    }
+
+    const { error } = await supabase
+      .from("flowers")
+      .update({ name: trimmedName, icon_url: nextIconUrl || null })
+      .eq("id", flowerId);
+
     if (error) {
-      return { ok: false, message: `Không sửa được tên hoa: ${error.message}` };
+      return { ok: false, message: `Không sửa được hoa: ${error.message}` };
     }
 
     await loadAllData();
-    return { ok: true, message: "Đã cập nhật tên hoa." };
+    return { ok: true, message: "Đã cập nhật thông tin hoa." };
   }
 
   return (
@@ -603,7 +652,7 @@ export default function HoaHoiGameCanvasApp() {
                                   <DialogHeader>
                                     <DialogTitle>Sửa tên hoa</DialogTitle>
                                   </DialogHeader>
-                                  <EditFlowerForm flower={flower} onSave={(newName) => renameFlower(flower.id, newName)} />
+                                  <EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} />
                                 </DialogContent>
                               </Dialog>
                             </div>
@@ -777,6 +826,43 @@ export default function HoaHoiGameCanvasApp() {
                       placeholder="Ví dụ: https://.../icon.png"
                       className="rounded-2xl"
                     />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        className="rounded-2xl"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setNewFlowerUploadMessage("Đang upload ảnh...");
+                          const result = await uploadFlowerIcon(file);
+                          if (result.error) {
+                            setNewFlowerUploadMessage(result.error);
+                          } else {
+                            setNewFlowerIconUrl(result.url);
+                            setNewFlowerUploadMessage("Đã upload ảnh và gắn vào icon hoa.");
+                          }
+                          e.target.value = "";
+                        }}
+                      />
+                      {newFlowerIconUrl ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="rounded-2xl"
+                          onClick={async () => {
+                            await deleteFlowerIconByUrl(newFlowerIconUrl);
+                            setNewFlowerIconUrl("");
+                            setNewFlowerUploadMessage("Đã xoá icon hiện tại khỏi form.");
+                          }}
+                        >
+                          Xoá icon
+                        </Button>
+                      ) : null}
+                    </div>
+                    {newFlowerUploadMessage ? (
+                      <p className="text-xs text-slate-500">{newFlowerUploadMessage}</p>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
                     <Label>Nhóm hoa</Label>
@@ -954,8 +1040,10 @@ function EditMemberForm({ member, onSave }) {
 
 function EditFlowerForm({ flower, onSave }) {
   const [name, setName] = useState(flower.name);
+  const [iconUrl, setIconUrl] = useState(flower.iconUrl || "");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -963,18 +1051,62 @@ function EditFlowerForm({ flower, onSave }) {
         <Label>Tên hoa</Label>
         <Input value={name} onChange={(e) => setName(e.target.value)} className="rounded-2xl" />
       </div>
-      <Button
-        className="w-full rounded-2xl"
-        disabled={saving}
-        onClick={async () => {
-          setSaving(true);
-          const result = await onSave(name);
-          setSaving(false);
-          setMessage(result.message);
-        }}
-      >
-        {saving ? "Đang lưu..." : "Lưu tên hoa"}
-      </Button>
+      <div className="space-y-2">
+        <Label>Icon hoa (URL)</Label>
+        <Input value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} className="rounded-2xl" placeholder="https://.../icon.png" />
+      </div>
+      <div className="space-y-2">
+        <Label>Upload ảnh icon</Label>
+        <Input
+          type="file"
+          accept="image/*"
+          className="rounded-2xl"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            setUploading(true);
+            setMessage("Đang upload ảnh...");
+            const result = await uploadFlowerIcon(file);
+            setUploading(false);
+            if (result.error) {
+              setMessage(result.error);
+            } else {
+              setIconUrl(result.url);
+              setMessage("Đã upload icon hoa.");
+            }
+            e.target.value = "";
+          }}
+        />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="rounded-2xl"
+          disabled={!iconUrl || uploading || saving}
+          onClick={async () => {
+            if (iconUrl) {
+              await deleteFlowerIconByUrl(iconUrl);
+            }
+            setIconUrl("");
+            setMessage("Đã xoá icon hiện tại.");
+          }}
+        >
+          Xoá icon
+        </Button>
+        <Button
+          className="rounded-2xl"
+          disabled={saving || uploading}
+          onClick={async () => {
+            setSaving(true);
+            const result = await onSave({ name, iconUrl });
+            setSaving(false);
+            setMessage(result.message);
+          }}
+        >
+          {saving ? "Đang lưu..." : "Lưu thông tin hoa"}
+        </Button>
+      </div>
       {message ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{message}</div> : null}
     </div>
   );

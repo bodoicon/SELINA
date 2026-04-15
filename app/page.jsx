@@ -75,7 +75,10 @@ export default function HoaHoiGameCanvasApp() {
 
     if (membersRes.error || flowersRes.error || ownershipsRes.error) {
       setPageMessage(
-        membersRes.error?.message || flowersRes.error?.message || ownershipsRes.error?.message || "Không tải được dữ liệu từ Supabase."
+        membersRes.error?.message ||
+          flowersRes.error?.message ||
+          ownershipsRes.error?.message ||
+          "Không tải được dữ liệu từ Supabase."
       );
       setLoading(false);
       return;
@@ -181,7 +184,7 @@ export default function HoaHoiGameCanvasApp() {
     }
 
     const inserted = { id: data.id, name: data.name, group: data.group_name };
-    setFlowers((prev) => [...prev, inserted].sort((a, b) => a.name.localeCompare(b.name, "vi")));
+    await loadAllData();
     setNewFlowerName("");
     setNewFlowerGroup("Lục");
     setFlowerCreateMessage(`Đã thêm hoa mới: ${flowerLabel(inserted)}.`);
@@ -189,40 +192,43 @@ export default function HoaHoiGameCanvasApp() {
 
   async function getOrCreateMember() {
     const trimmedNewMemberName = newMemberName.trim();
-    const useNewMember = trimmedNewMemberName.length > 0;
     const useExistingMember = selectedExistingMemberId !== "none";
+    const useNewMember = !useExistingMember && trimmedNewMemberName.length > 0;
 
-    if (!useNewMember && !useExistingMember) {
+    if (!useExistingMember && !useNewMember) {
       return { error: "Hãy chọn thành viên cũ hoặc nhập tên thành viên mới." };
     }
 
-    if (useNewMember) {
-      const existing = members.find((m) => m.name.toLowerCase() === trimmedNewMemberName.toLowerCase());
-      if (existing) {
-        return { member: existing };
+    if (useExistingMember) {
+      const member = members.find((m) => String(m.id) === selectedExistingMemberId);
+      if (!member) {
+        return { error: "Không tìm thấy thành viên đã chọn." };
       }
-
-      const { data, error } = await supabase
-        .from("members")
-        .insert([{ name: trimmedNewMemberName }])
-        .select("id, name")
-        .single();
-
-      if (error) {
-        return { error: `Không tạo được thành viên mới: ${error.message}` };
-      }
-
-      const insertedMember = { id: data.id, name: data.name };
-      setMembers((prev) => [...prev, insertedMember].sort((a, b) => a.name.localeCompare(b.name, "vi")));
-      return { member: insertedMember };
+      return { member };
     }
 
-    const member = members.find((m) => String(m.id) === selectedExistingMemberId);
-    if (!member) {
-      return { error: "Không tìm thấy thành viên đã chọn." };
+    const normalizedNewName = trimmedNewMemberName.replace(/\s+/g, " ").trim().toLowerCase();
+    const existing = members.find(
+      (m) => m.name.replace(/\s+/g, " ").trim().toLowerCase() === normalizedNewName
+    );
+
+    if (existing) {
+      return { member: existing };
     }
 
-    return { member };
+    const { data, error } = await supabase
+      .from("members")
+      .insert([{ name: trimmedNewMemberName }])
+      .select("id, name")
+      .single();
+
+    if (error) {
+      return { error: `Không tạo được thành viên mới: ${error.message}` };
+    }
+
+    const insertedMember = { id: data.id, name: data.name };
+    await loadAllData();
+    return { member: insertedMember };
   }
 
   async function saveOwnershipUpdate() {
@@ -246,33 +252,36 @@ export default function HoaHoiGameCanvasApp() {
       ownerships.filter((o) => o.memberId === member.id).map((o) => o.flowerId)
     );
 
-    const additions = selectedFlowerIds
-      .filter((flowerId) => !alreadyOwned.has(flowerId))
-      .map((flowerId) => ({ member_id: member.id, flower_id: flowerId }));
+    const uniqueSelectedFlowerIds = [...new Set(selectedFlowerIds)];
+    const additions = uniqueSelectedFlowerIds.map((flowerId) => ({
+      member_id: member.id,
+      flower_id: flowerId,
+    }));
 
-    if (additions.length === 0) {
-      setSavingOwnership(false);
-      setUpdateMessage(`${member.name} đã có sẵn toàn bộ các hoa được chọn.`);
-      return;
-    }
+    const optimisticNewCount = uniqueSelectedFlowerIds.filter((flowerId) => !alreadyOwned.has(flowerId)).length;
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("member_flowers")
-      .insert(additions)
-      .select("id, member_id, flower_id");
-
-    setSavingOwnership(false);
+      .upsert(additions, { onConflict: "member_id,flower_id", ignoreDuplicates: true });
 
     if (error) {
+      setSavingOwnership(false);
       setUpdateMessage(`Không lưu được cập nhật sở hữu: ${error.message}`);
       return;
     }
 
-    setOwnerships((prev) => [...prev, ...(data || []).map(normalizeOwnershipRow)]);
+    await loadAllData();
+    setSavingOwnership(false);
     setSelectedFlowerIds([]);
     setSelectedExistingMemberId("none");
     setNewMemberName("");
-    setUpdateMessage(`Đã cập nhật ${additions.length} loại hoa mới cho ${member.name}.`);
+
+    if (optimisticNewCount === 0) {
+      setUpdateMessage(`${member.name} đã có sẵn toàn bộ các hoa được chọn.`);
+      return;
+    }
+
+    setUpdateMessage(`Đã cập nhật ${optimisticNewCount} loại hoa mới cho ${member.name}.`);
   }
 
   async function renameMember(memberId, newName) {
@@ -291,7 +300,7 @@ export default function HoaHoiGameCanvasApp() {
       return { ok: false, message: `Không sửa được tên thành viên: ${error.message}` };
     }
 
-    setMembers((prev) => prev.map((m) => (m.id === memberId ? { ...m, name: trimmed } : m)));
+    await loadAllData();
     return { ok: true, message: "Đã cập nhật tên thành viên." };
   }
 
@@ -311,7 +320,7 @@ export default function HoaHoiGameCanvasApp() {
       return { ok: false, message: `Không sửa được tên hoa: ${error.message}` };
     }
 
-    setFlowers((prev) => prev.map((f) => (f.id === flowerId ? { ...f, name: trimmed } : f)));
+    await loadAllData();
     return { ok: true, message: "Đã cập nhật tên hoa." };
   }
 
@@ -338,7 +347,9 @@ export default function HoaHoiGameCanvasApp() {
               ))}
             </div>
           </div>
-          {pageMessage ? <div className="mt-4 rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{pageMessage}</div> : null}
+          {pageMessage ? (
+            <div className="mt-4 rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{pageMessage}</div>
+          ) : null}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -419,7 +430,7 @@ export default function HoaHoiGameCanvasApp() {
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {filteredMembers.map((member) => {
                     const ownedIds = ownershipMap.get(member.id) || new Set();
-                    const ownedFlowers = flowers.filter((flower) => ownedIds.has(flower.id));
+                    const ownedCount = ownedIds.size;
 
                     return (
                       <Card key={member.id} className="rounded-3xl shadow-sm">
@@ -427,7 +438,7 @@ export default function HoaHoiGameCanvasApp() {
                           <div className="flex items-center justify-between gap-3">
                             <CardTitle className="text-xl">{member.name}</CardTitle>
                             <div className="flex items-center gap-2">
-                              <Badge variant="secondary">{ownedFlowers.length} hoa</Badge>
+                              <Badge variant="secondary">{ownedCount} hoa</Badge>
                               <Dialog>
                                 <DialogTrigger asChild>
                                   <Button variant="outline" size="sm" className="rounded-2xl">
@@ -445,9 +456,7 @@ export default function HoaHoiGameCanvasApp() {
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-sm text-slate-600">
-                            Thành viên này hiện đang sở hữu {ownedFlowers.length} loại hoa.
-                          </p>
+                          <p className="text-sm text-slate-600">Thành viên này hiện đang sở hữu {ownedCount} loại hoa.</p>
                         </CardContent>
                       </Card>
                     );
@@ -532,7 +541,15 @@ export default function HoaHoiGameCanvasApp() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Chọn thành viên cũ</Label>
-                    <Select value={selectedExistingMemberId} onValueChange={setSelectedExistingMemberId}>
+                    <Select
+                      value={selectedExistingMemberId}
+                      onValueChange={(value) => {
+                        setSelectedExistingMemberId(value);
+                        if (value !== "none") {
+                          setNewMemberName("");
+                        }
+                      }}
+                    >
                       <SelectTrigger className="rounded-2xl">
                         <SelectValue placeholder="Chọn tên thành viên" />
                       </SelectTrigger>
@@ -551,7 +568,12 @@ export default function HoaHoiGameCanvasApp() {
                     <Label>Hoặc tạo thành viên mới</Label>
                     <Input
                       value={newMemberName}
-                      onChange={(e) => setNewMemberName(e.target.value)}
+                      onChange={(e) => {
+                        setNewMemberName(e.target.value);
+                        if (e.target.value.trim()) {
+                          setSelectedExistingMemberId("none");
+                        }
+                      }}
                       placeholder="Nhập tên thành viên mới"
                       className="rounded-2xl"
                     />

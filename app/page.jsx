@@ -28,9 +28,9 @@ function flowerLabel(flower) {
 
 function normalizeOwnershipRow(row) {
   return {
-    id: row.id,
-    memberId: row.member_id,
-    flowerId: row.flower_id,
+    id: String(row.id),
+    memberId: String(row.member_id),
+    flowerId: String(row.flower_id),
   };
 }
 
@@ -68,7 +68,10 @@ export default function HoaHoiGameCanvasApp() {
     setPageMessage("");
 
     const [membersRes, flowersRes, ownershipsRes] = await Promise.all([
-      supabase.from("members").select("id, name, created_at").order("name", { ascending: true }),
+      supabase
+        .from("members")
+        .select("id, name, created_at, member_flowers(flower_id)")
+        .order("name", { ascending: true }),
       supabase.from("flowers").select("id, name, group_name, created_at").order("name", { ascending: true }),
       supabase.from("member_flowers").select("id, member_id, flower_id, created_at"),
     ]);
@@ -84,18 +87,26 @@ export default function HoaHoiGameCanvasApp() {
       return;
     }
 
-    setMembers((membersRes.data || []).map((m) => ({ id: m.id, name: m.name })));
-    setFlowers((flowersRes.data || []).map((f) => ({ id: f.id, name: f.name, group: f.group_name })));
+    setMembers(
+      (membersRes.data || []).map((m) => ({
+        id: String(m.id),
+        name: m.name,
+        ownedCount: Array.isArray(m.member_flowers) ? m.member_flowers.length : 0,
+      }))
+    );
+    setFlowers((flowersRes.data || []).map((f) => ({ id: String(f.id), name: f.name, group: f.group_name })));
     setOwnerships((ownershipsRes.data || []).map(normalizeOwnershipRow));
     setLoading(false);
   }
 
-  const ownershipMap = useMemo(() => {
+    const ownershipMap = useMemo(() => {
     const map = new Map();
-    members.forEach((member) => map.set(member.id, new Set()));
+    members.forEach((member) => map.set(String(member.id), new Set()));
     ownerships.forEach(({ memberId, flowerId }) => {
-      if (!map.has(memberId)) map.set(memberId, new Set());
-      map.get(memberId).add(flowerId);
+      const memberKey = String(memberId);
+      const flowerKey = String(flowerId);
+      if (!map.has(memberKey)) map.set(memberKey, new Set());
+      map.get(memberKey).add(flowerKey);
     });
     return map;
   }, [members, ownerships]);
@@ -183,7 +194,7 @@ export default function HoaHoiGameCanvasApp() {
       return;
     }
 
-    const inserted = { id: data.id, name: data.name, group: data.group_name };
+    const inserted = { id: String(data.id), name: data.name, group: data.group_name };
     await loadAllData();
     setNewFlowerName("");
     setNewFlowerGroup("Lục");
@@ -226,7 +237,7 @@ export default function HoaHoiGameCanvasApp() {
       return { error: `Không tạo được thành viên mới: ${error.message}` };
     }
 
-    const insertedMember = { id: data.id, name: data.name };
+    const insertedMember = { id: String(data.id), name: data.name };
     await loadAllData();
     return { member: insertedMember };
   }
@@ -249,39 +260,57 @@ export default function HoaHoiGameCanvasApp() {
 
     const member = memberResult.member;
     const alreadyOwned = new Set(
-      ownerships.filter((o) => o.memberId === member.id).map((o) => o.flowerId)
+      ownerships.filter((o) => String(o.memberId) === String(member.id)).map((o) => String(o.flowerId))
     );
 
-    const uniqueSelectedFlowerIds = [...new Set(selectedFlowerIds)];
+    const uniqueSelectedFlowerIds = [...new Set(selectedFlowerIds.map(String))];
     const additions = uniqueSelectedFlowerIds.map((flowerId) => ({
-      member_id: member.id,
-      flower_id: flowerId,
+      member_id: String(member.id),
+      flower_id: String(flowerId),
     }));
 
-    const optimisticNewCount = uniqueSelectedFlowerIds.filter((flowerId) => !alreadyOwned.has(flowerId)).length;
+    const optimisticRows = uniqueSelectedFlowerIds
+      .filter((flowerId) => !alreadyOwned.has(String(flowerId)))
+      .map((flowerId) => ({
+        id: `temp-${member.id}-${flowerId}-${Date.now()}`,
+        memberId: String(member.id),
+        flowerId: String(flowerId),
+      }));
+
+    if (optimisticRows.length === 0) {
+      setSavingOwnership(false);
+      setUpdateMessage(`${member.name} đã có sẵn toàn bộ các hoa được chọn.`);
+      return;
+    }
+
+    setOwnerships((prev) => {
+      const existingKeys = new Set(prev.map((row) => `${String(row.memberId)}-${String(row.flowerId)}`));
+      const rowsToAdd = optimisticRows.filter(
+        (row) => !existingKeys.has(`${String(row.memberId)}-${String(row.flowerId)}`)
+      );
+      return [...prev, ...rowsToAdd];
+    });
 
     const { error } = await supabase
       .from("member_flowers")
       .upsert(additions, { onConflict: "member_id,flower_id", ignoreDuplicates: true });
 
     if (error) {
+      setOwnerships((prev) =>
+        prev.filter((row) => !String(row.id).startsWith(`temp-${member.id}-`))
+      );
       setSavingOwnership(false);
       setUpdateMessage(`Không lưu được cập nhật sở hữu: ${error.message}`);
       return;
     }
 
-    await loadAllData();
     setSavingOwnership(false);
     setSelectedFlowerIds([]);
     setSelectedExistingMemberId("none");
     setNewMemberName("");
+    setUpdateMessage(`Đã cập nhật ${optimisticRows.length} loại hoa mới cho ${member.name}.`);
 
-    if (optimisticNewCount === 0) {
-      setUpdateMessage(`${member.name} đã có sẵn toàn bộ các hoa được chọn.`);
-      return;
-    }
-
-    setUpdateMessage(`Đã cập nhật ${optimisticNewCount} loại hoa mới cho ${member.name}.`);
+    await loadAllData();
   }
 
   async function renameMember(memberId, newName) {
@@ -429,8 +458,7 @@ export default function HoaHoiGameCanvasApp() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {filteredMembers.map((member) => {
-                    const ownedIds = ownershipMap.get(member.id) || new Set();
-                    const ownedCount = ownedIds.size;
+                    const ownedCount = member.ownedCount || 0;
 
                     return (
                       <Card key={member.id} className="rounded-3xl shadow-sm">

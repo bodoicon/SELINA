@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,9 +33,16 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRld2F4dnN4Ymt0Y2V4ZHV2Zmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTIxMjksImV4cCI6MjA5MTcyODEyOX0.0VpLpXpR_gGk7p5RiCEL0bK4_EnhAUoqhLpieTL-4zI";
 
 const ADMIN_EMAILS = ["lehuuhung133132@gmail.com"];
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const FLOWER_ICON_BUCKET = "flower-icons";
+const SUPABASE_STORAGE_KEY_PREFIX = "sb-";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
 
 const GROUP_STYLES = {
   Lục: "border-green-200 bg-green-50 text-green-700",
@@ -59,6 +66,77 @@ function normalizeOwnershipRow(row) {
     memberId: String(row.member_id),
     flowerId: String(row.flower_id),
   };
+}
+
+function isInvalidRefreshTokenError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return message.includes("invalid refresh token") || message.includes("refresh token not found");
+}
+
+function clearSupabaseAuthStorage() {
+  if (typeof window === "undefined") return;
+
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (key && key.startsWith(SUPABASE_STORAGE_KEY_PREFIX)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => window.localStorage.removeItem(key));
+  } catch {
+    // Bỏ qua lỗi localStorage trong môi trường preview.
+  }
+}
+
+async function getSafeCurrentUser() {
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      if (isInvalidRefreshTokenError(error)) {
+        clearSupabaseAuthStorage();
+        try {
+          await supabase.auth.signOut({ scope: "local" });
+        } catch {
+          // Không chặn UI nếu signOut local thất bại.
+        }
+        return {
+          user: null,
+          recovered: true,
+          message: "Phiên đăng nhập cũ đã hết hạn và đã được làm sạch. Bạn có thể đăng nhập lại nếu cần quyền quản trị.",
+        };
+      }
+
+      return {
+        user: null,
+        recovered: false,
+        message: `Không đọc được phiên đăng nhập: ${error.message}`,
+      };
+    }
+
+    return { user: data.user || null, recovered: false, message: "" };
+  } catch (error) {
+    if (isInvalidRefreshTokenError(error)) {
+      clearSupabaseAuthStorage();
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch {
+        // Không chặn UI nếu signOut local thất bại.
+      }
+      return {
+        user: null,
+        recovered: true,
+        message: "Phiên đăng nhập cũ đã hết hạn và đã được làm sạch. Bạn có thể đăng nhập lại nếu cần quyền quản trị.",
+      };
+    }
+
+    return {
+      user: null,
+      recovered: false,
+      message: `Không khởi tạo được xác thực: ${error?.message || "Lỗi không xác định"}`,
+    };
+  }
 }
 
 async function uploadFlowerIcon(file) {
@@ -122,6 +200,24 @@ async function fetchAllOwnershipRows() {
   return { data: allRows, error: null };
 }
 
+function runLocalSelfChecks() {
+  if (typeof window === "undefined") return;
+  if (window.__hoaSelfChecksRan) return;
+  window.__hoaSelfChecksRan = true;
+
+  console.assert(groupBadgeClass("Lục").includes("green"), "Test failed: nhóm Lục phải trả về class màu xanh.");
+  console.assert(groupBadgeClass("Khác").includes("slate"), "Test failed: nhóm lạ phải dùng class mặc định.");
+  console.assert(
+    extractStoragePathFromUrl(
+      "https://demo.supabase.co/storage/v1/object/public/flower-icons/icons/sample.png"
+    ) === "icons/sample.png",
+    "Test failed: extractStoragePathFromUrl phải tách đúng path trong bucket."
+  );
+  console.assert(extractStoragePathFromUrl("") === null, "Test failed: URL rỗng phải trả về null.");
+  console.assert(flowerLabel({ name: "Hoa Mẫu" }) === "Hoa Mẫu", "Test failed: flowerLabel phải trả về đúng tên hoa.");
+  console.assert(normalizeOwnershipRow({ id: 7, member_id: 8, flower_id: 9 }).memberId === "8", "Test failed: normalizeOwnershipRow phải chuẩn hóa memberId thành chuỗi.");
+}
+
 export default function HoaHoiGameCanvasApp() {
   const [flowers, setFlowers] = useState([]);
   const [members, setMembers] = useState([]);
@@ -166,28 +262,54 @@ export default function HoaHoiGameCanvasApp() {
     description: "",
   });
 
+  const mountedRef = useRef(false);
+
   const isAdmin = useMemo(() => {
     const email = user?.email?.toLowerCase() || "";
     return ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(email);
   }, [user]);
 
   useEffect(() => {
-    let mounted = true;
+    runLocalSelfChecks();
+  }, []);
 
-    supabase.auth.getUser().then(({ data }) => {
-      if (mounted) {
-        setUser(data.user || null);
+  useEffect(() => {
+    let active = true;
+    mountedRef.current = true;
+
+    async function initializeAuth() {
+      const result = await getSafeCurrentUser();
+      if (!active) return;
+
+      setUser(result.user || null);
+      if (result.message) {
+        setLoginMessage(result.message);
       }
-    });
+    }
+
+    initializeAuth();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!active) return;
+
+      if (session?.user) {
+        setUser(session.user);
+        return;
+      }
+
+      const fallback = await getSafeCurrentUser();
+      if (!active) return;
+      setUser(fallback.user || null);
+      if (fallback.message) {
+        setLoginMessage(fallback.message);
+      }
     });
 
     return () => {
-      mounted = false;
+      active = false;
+      mountedRef.current = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -366,7 +488,12 @@ export default function HoaHoiGameCanvasApp() {
   }
 
   async function signOutAdmin() {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      clearSupabaseAuthStorage();
+    }
+    setUser(null);
     setLoginMessage("");
     setLoginPassword("");
   }
@@ -784,69 +911,75 @@ export default function HoaHoiGameCanvasApp() {
         <div className="mx-auto max-w-7xl space-y-6">
           <div className="rounded-3xl bg-white p-6 shadow-sm">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-              <div>
+              <div className="flex-1">
                 <h1 className="text-3xl font-bold tracking-tight">Quản Lý Hoa Hội SELINA</h1>
                 <p className="mt-2 text-sm text-slate-600">
                   Thành viên chỉ có thể tra cứu thông tin. Các chức năng quản trị chỉ hiển thị cho admin đã đăng nhập.
                 </p>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm">
+                    <CircleProgress percent={summary.completionRate} size="sm" />
+                    <span className="font-medium text-slate-800">
+                      {summary.ownedFlowers}/{summary.totalFlowers} ({summary.completionRate}%)
+                    </span>
+                  </div>
+
+                  {topMembers.length > 0 ? (
+                    <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm">
+                      <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                      <span className="font-medium text-slate-800">
+                        Top: {topMembers[0].name} ({topMembers[0].ownedCount})
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
-              <Card className="w-full max-w-xl rounded-3xl border shadow-none">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
+              <Card className="w-full max-w-sm rounded-2xl border shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                     <Shield className="h-5 w-5" /> Quản trị
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2">
                   {isAdmin ? (
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="font-medium">Đã đăng nhập admin</p>
-                          <p className="text-sm text-slate-500">{user?.email}</p>
-                        </div>
-                        <Button variant="outline" className="rounded-2xl" onClick={signOutAdmin}>
-                          <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
-                        </Button>
+                    <div className="flex items-center justify-between gap-2 rounded-2xl border bg-slate-50 px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin</p>
+                        <p className="truncate text-xs text-slate-700">{user?.email}</p>
                       </div>
-                      <p className="text-sm text-slate-600">
-                        Admin mới thấy các tab: Thêm thành viên qua cập nhật sở hữu, Thêm hoa mới, và Lịch sử.
-                      </p>
+                      <Button variant="outline" size="sm" className="h-8 rounded-xl px-3" onClick={signOutAdmin}>
+                        <LogOut className="mr-1.5 h-3.5 w-3.5" /> Đăng xuất
+                      </Button>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label>Email admin</Label>
-                          <Input
-                            value={loginEmail}
-                            onChange={(e) => setLoginEmail(e.target.value)}
-                            placeholder="admin@example.com"
-                            className="rounded-2xl"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Mật khẩu</Label>
-                          <Input
-                            type="password"
-                            value={loginPassword}
-                            onChange={(e) => setLoginPassword(e.target.value)}
-                            placeholder="••••••••"
-                            className="rounded-2xl"
-                          />
-                        </div>
+                    <div className="space-y-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-slate-500">Email admin</Label>
+                        <Input
+                          value={loginEmail}
+                          onChange={(e) => setLoginEmail(e.target.value)}
+                          placeholder="admin@example.com"
+                          className="h-9 rounded-xl"
+                        />
                       </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Button onClick={signInAsAdmin} className="rounded-2xl" disabled={loggingIn}>
-                          <LogIn className="mr-2 h-4 w-4" />
-                          {loggingIn ? "Đang đăng nhập..." : "Đăng nhập admin"}
-                        </Button>
-                        <p className="text-sm text-slate-500">
-                          Tài khoản không nằm trong danh sách admin chỉ được xem.
-                        </p>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-slate-500">Mật khẩu</Label>
+                        <Input
+                          type="password"
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="h-9 rounded-xl"
+                        />
                       </div>
+                      <Button onClick={signInAsAdmin} size="sm" className="h-9 w-full rounded-xl" disabled={loggingIn}>
+                        <LogIn className="mr-1.5 h-3.5 w-3.5" />
+                        {loggingIn ? "Đang đăng nhập..." : "Đăng nhập admin"}
+                      </Button>
                       {loginMessage ? (
-                        <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">
+                        <div className="rounded-xl border bg-slate-50 px-3 py-2 text-xs text-slate-700">
                           {loginMessage}
                         </div>
                       ) : null}
@@ -854,32 +987,6 @@ export default function HoaHoiGameCanvasApp() {
                   )}
                 </CardContent>
               </Card>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <Badge
-                variant="outline"
-                className={`rounded-full px-3 py-1 text-sm ${
-                  realtimeStatus === "subscribed"
-                    ? "border-green-200 bg-green-50 text-green-700"
-                    : realtimeStatus === "channel_error" ||
-                        realtimeStatus === "timed_out" ||
-                        realtimeStatus === "closed"
-                      ? "border-red-200 bg-red-50 text-red-700"
-                      : "border-amber-200 bg-amber-50 text-amber-700"
-                }`}
-              >
-                Realtime: {realtimeStatus}
-              </Badge>
-              <Button variant="outline" className="rounded-2xl" onClick={loadAllData} disabled={loading}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                Tải lại dữ liệu
-              </Button>
-              {FLOWER_GROUPS.map((group) => (
-                <Badge key={group} variant="secondary" className="rounded-full px-3 py-1 text-sm">
-                  Nhóm {group}
-                </Badge>
-              ))}
             </div>
 
             {pageMessage ? (
@@ -899,48 +1006,6 @@ export default function HoaHoiGameCanvasApp() {
             <StatCard icon={<Flower2 className="h-5 w-5" />} title="Tổng loại hoa" value={summary.totalFlowers} />
             <StatCard icon={<Database className="h-5 w-5" />} title="Hội đã sở hữu" value={summary.ownedFlowers} />
             <StatCard icon={<AlertCircle className="h-5 w-5" />} title="Hội còn thiếu" value={summary.missingFlowers} />
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <Card className="rounded-3xl border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle>Tỉ lệ hoàn thành bộ sưu tập</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4">
-                  <CircleProgress percent={summary.completionRate} />
-                  <div className="text-sm text-slate-600">
-                    <p>Hội đã sưu tầm</p>
-                    <p className="font-medium">
-                      {summary.ownedFlowers}/{summary.totalFlowers} loại hoa ({summary.completionRate}%)
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-3xl border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5" /> Top sưu tầm
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {topMembers.length === 0 ? (
-                  <p className="text-sm text-slate-600">Chưa có dữ liệu thành viên.</p>
-                ) : (
-                  topMembers.map((member, index) => (
-                    <div key={member.id} className="flex items-center justify-between rounded-2xl border p-3">
-                      <div>
-                        <p className="font-medium">#{index + 1} {member.name}</p>
-                        <p className="text-sm text-slate-500">{member.ownedCount || 0} loại hoa</p>
-                      </div>
-                      <Badge variant="secondary">Top {index + 1}</Badge>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           <Tabs defaultValue="dashboard" className="space-y-4">
@@ -1570,19 +1635,18 @@ function FlowerThumbnail({ flower, size = "md" }) {
   );
 }
 
-function CircleProgress({ percent = 0 }) {
-  const radius = 26;
-  const stroke = 6;
+function CircleProgress({ percent = 0, size = "md" }) {
+  const radius = size === "sm" ? 20 : 26;
+  const stroke = size === "sm" ? 5 : 6;
   const normalizedRadius = radius - stroke / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - (percent / 100) * circumference;
+  const wrapperClass = size === "sm" ? "h-12 w-12" : "h-16 w-16";
+  const textClass = size === "sm" ? "text-[10px]" : "text-xs";
 
   return (
-    <div className="relative h-16 w-16">
-      <svg
-        viewBox={`0 0 ${radius * 2} ${radius * 2}`}
-        className="h-full w-full"
-      >
+    <div className={`relative ${wrapperClass}`}>
+      <svg viewBox={`0 0 ${radius * 2} ${radius * 2}`} className="h-full w-full">
         <circle
           stroke="#e5e7eb"
           fill="transparent"
@@ -1603,9 +1667,7 @@ function CircleProgress({ percent = 0 }) {
           cy={radius}
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold">
-        {percent}%
-      </div>
+      <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold">{percent}%</div>
     </div>
   );
 }

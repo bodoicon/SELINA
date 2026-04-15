@@ -321,7 +321,8 @@ export default function HoaHoiGameCanvasApp() {
           normalized === "timed_out" ||
           normalized === "closed"
         ) {
-          setRealtimeMessage(`Realtime chưa hoạt động: ${normalized}`);
+          // Canvas preview thường không giữ websocket ổn định, nên không spam lỗi lên UI.
+          setRealtimeMessage("");
         }
       });
 
@@ -393,6 +394,20 @@ export default function HoaHoiGameCanvasApp() {
     return flowers.filter((flower) => !ownersByFlower.get(String(flower.id))?.length);
   }, [flowers, ownersByFlower]);
 
+  const rareFlowers = useMemo(() => {
+    return [...flowers]
+      .filter((flower) => {
+        const count = ownersByFlower.get(String(flower.id))?.length || 0;
+        return count >= 1 && count <= 3;
+      })
+      .sort((a, b) => {
+        const countA = ownersByFlower.get(String(a.id))?.length || 0;
+        const countB = ownersByFlower.get(String(b.id))?.length || 0;
+        if (countA !== countB) return countA - countB;
+        return a.name.localeCompare(b.name, "vi");
+      });
+  }, [flowers, ownersByFlower]);
+
   const filteredMissingFlowers = useMemo(() => {
     return missingFlowers.filter(
       (flower) => dashboardGroupFilter === "all" || flower.group === dashboardGroupFilter
@@ -401,8 +416,15 @@ export default function HoaHoiGameCanvasApp() {
 
   const filteredMembers = useMemo(() => {
     const q = memberSearch.trim().toLowerCase();
-    return members.filter((member) => member.name.toLowerCase().includes(q));
-  }, [members, memberSearch]);
+
+    return [...members]
+      .map((member) => ({
+        ...member,
+        ownedCount: memberFlowerCounts[String(member.id)] || 0,
+      }))
+      .filter((member) => member.name.toLowerCase().includes(q))
+      .sort((a, b) => (b.ownedCount || 0) - (a.ownedCount || 0));
+  }, [members, memberSearch, memberFlowerCounts]);
 
   const filteredFlowers = useMemo(() => {
     const q = flowerSearch.trim().toLowerCase();
@@ -884,20 +906,16 @@ export default function HoaHoiGameCanvasApp() {
               <CardHeader>
                 <CardTitle>Tỉ lệ hoàn thành bộ sưu tập</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between text-sm text-slate-600">
-                  <span>Hội đã sưu tầm</span>
-                  <span>{summary.completionRate}%</span>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <CircleProgress percent={summary.completionRate} />
+                  <div className="text-sm text-slate-600">
+                    <p>Hội đã sưu tầm</p>
+                    <p className="font-medium">
+                      {summary.ownedFlowers}/{summary.totalFlowers} loại hoa ({summary.completionRate}%)
+                    </p>
+                  </div>
                 </div>
-                <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-full rounded-full bg-slate-900 transition-all"
-                    style={{ width: `${summary.completionRate}%` }}
-                  />
-                </div>
-                <p className="text-sm text-slate-600">
-                  Đã có {summary.ownedFlowers}/{summary.totalFlowers} loại hoa trong cơ sở dữ liệu.
-                </p>
               </CardContent>
             </Card>
 
@@ -986,6 +1004,48 @@ export default function HoaHoiGameCanvasApp() {
                   )}
                 </CardContent>
               </Card>
+
+              <Card className="rounded-3xl border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle>Hoa ít người sở hữu (1 - 3 người)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {rareFlowers.length === 0 ? (
+                    <p className="text-sm text-slate-600">Không có hoa nào thuộc nhóm này.</p>
+                  ) : (
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {rareFlowers.map((flower) => {
+                        const owners = ownersByFlower.get(String(flower.id)) || [];
+                        return (
+                          <div key={flower.id} className="rounded-2xl border bg-slate-50 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="flex items-center gap-3">
+                                  <FlowerThumbnail flower={flower} />
+                                  <p className="font-semibold">{flowerLabel(flower)}</p>
+                                </div>
+                                <p className="mt-1 text-sm text-slate-600">{owners.length} người sở hữu</p>
+                                {owners.length > 0 ? (
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {owners.map((owner) => (
+                                      <Badge key={`${flower.id}-${owner}`} variant="outline" className="rounded-full text-xs">
+                                        {owner}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </div>
+                              <Badge variant="outline" className={groupBadgeClass(flower.group)}>
+                                {flower.group}
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="members" className="space-y-4">
@@ -1041,20 +1101,14 @@ export default function HoaHoiGameCanvasApp() {
                             <p className="text-sm text-slate-600">
                               Thành viên này hiện đang sở hữu {ownedCount} loại hoa.
                             </p>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-xs text-slate-500">
-                                <span>Tiến độ sưu tập</span>
-                                <span>{memberProgress.percent}%</span>
+                            <div className="flex items-center gap-4">
+                              <CircleProgress percent={memberProgress.percent} />
+                              <div className="text-sm text-slate-600">
+                                <p>Tiến độ sưu tập</p>
+                                <p className="font-medium">
+                                  {memberProgress.ownedCount}/{memberProgress.total} ({memberProgress.percent}%)
+                                </p>
                               </div>
-                              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                                <div
-                                  className="h-full rounded-full bg-slate-900 transition-all"
-                                  style={{ width: `${memberProgress.percent}%` }}
-                                />
-                              </div>
-                              <p className="text-xs text-slate-500">
-                                {memberProgress.ownedCount}/{memberProgress.total} loại hoa
-                              </p>
                             </div>
                           </CardContent>
                         </Card>
@@ -1512,6 +1566,46 @@ function FlowerThumbnail({ flower, size = "md" }) {
   return (
     <div className={`flex items-center justify-center rounded-2xl border bg-slate-50 text-slate-500 ${sizeClass}`}>
       <PlaceholderFlowerIcon size={size} />
+    </div>
+  );
+}
+
+function CircleProgress({ percent = 0 }) {
+  const radius = 26;
+  const stroke = 6;
+  const normalizedRadius = radius - stroke / 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const strokeDashoffset = circumference - (percent / 100) * circumference;
+
+  return (
+    <div className="relative h-16 w-16">
+      <svg
+        viewBox={`0 0 ${radius * 2} ${radius * 2}`}
+        className="h-full w-full"
+      >
+        <circle
+          stroke="#e5e7eb"
+          fill="transparent"
+          strokeWidth={stroke}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+        />
+        <circle
+          stroke="#0f172a"
+          fill="transparent"
+          strokeWidth={stroke}
+          strokeDasharray={`${circumference} ${circumference}`}
+          style={{ strokeDashoffset }}
+          strokeLinecap="round"
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold">
+        {percent}%
+      </div>
     </div>
   );
 }

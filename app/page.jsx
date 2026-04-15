@@ -82,6 +82,35 @@ async function deleteFlowerIconByUrl(url) {
   await supabase.storage.from(FLOWER_ICON_BUCKET).remove([path]);
 }
 
+async function fetchAllOwnershipRows() {
+  const pageSize = 1000;
+  let from = 0;
+  let allRows = [];
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("member_flowers")
+      .select("id, member_id, flower_id, created_at")
+      .range(from, from + pageSize - 1)
+      .order("id", { ascending: true });
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    const rows = data || [];
+    allRows = [...allRows, ...rows];
+
+    if (rows.length < pageSize) {
+      break;
+    }
+
+    from += pageSize;
+  }
+
+  return { data: allRows, error: null };
+}
+
 export default function HoaHoiGameCanvasApp() {
   const [flowers, setFlowers] = useState([]);
   const [members, setMembers] = useState([]);
@@ -109,6 +138,7 @@ export default function HoaHoiGameCanvasApp() {
   const [savingFlower, setSavingFlower] = useState(false);
   const [newFlowerUploadMessage, setNewFlowerUploadMessage] = useState("");
   const [historyLogs, setHistoryLogs] = useState([]);
+  const [memberFlowerCounts, setMemberFlowerCounts] = useState({});
 
   useEffect(() => {
     loadAllData();
@@ -121,13 +151,13 @@ export default function HoaHoiGameCanvasApp() {
     const [membersRes, flowersRes, ownershipsRes, historyRes] = await Promise.all([
       supabase
         .from("members")
-        .select("id, name, created_at, member_flowers(flower_id)")
+        .select("id, name, created_at")
         .order("name", { ascending: true }),
       supabase
         .from("flowers")
         .select("id, name, group_name, icon_url, created_at")
         .order("name", { ascending: true }),
-      supabase.from("member_flowers").select("id, member_id, flower_id, created_at"),
+      fetchAllOwnershipRows(),
       supabase.from("action_logs").select("id, action_type, actor_name, target_type, target_name, details, created_at").order("created_at", { ascending: false }).limit(50),
     ]);
 
@@ -143,11 +173,18 @@ export default function HoaHoiGameCanvasApp() {
       return;
     }
 
+    const counts = {};
+    (ownershipsRes.data || []).forEach((row) => {
+      const key = String(row.member_id);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    setMemberFlowerCounts(counts);
+
     setMembers(
       (membersRes.data || []).map((m) => ({
         id: String(m.id),
         name: m.name,
-        ownedCount: Array.isArray(m.member_flowers) ? m.member_flowers.length : 0,
       }))
     );
 
@@ -183,7 +220,11 @@ export default function HoaHoiGameCanvasApp() {
       if (!member) return;
       const flowerKey = String(flowerId);
       if (!map.has(flowerKey)) map.set(flowerKey, []);
-      map.get(flowerKey).push(member.name);
+      const currentOwners = map.get(flowerKey) || [];
+      if (!currentOwners.includes(member.name)) {
+        currentOwners.push(member.name);
+      }
+      map.set(flowerKey, currentOwners);
     });
     return map;
   }, [flowers, members, ownerships]);
@@ -228,9 +269,13 @@ export default function HoaHoiGameCanvasApp() {
 
   const topMembers = useMemo(() => {
     return [...members]
+      .map((member) => ({
+        ...member,
+        ownedCount: memberFlowerCounts[String(member.id)] || 0,
+      }))
       .sort((a, b) => (b.ownedCount || 0) - (a.ownedCount || 0))
       .slice(0, 3);
-  }, [members]);
+  }, [members, memberFlowerCounts]);
 
   function toggleFlowerSelection(flowerId) {
     setSelectedFlowerIds((prev) => {
@@ -633,7 +678,7 @@ export default function HoaHoiGameCanvasApp() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {filteredMembers.map((member) => {
-                    const ownedCount = member.ownedCount || 0;
+                    const ownedCount = memberFlowerCounts[String(member.id)] || 0;
 
                     return (
                       <Card key={member.id} className="rounded-3xl shadow-sm">

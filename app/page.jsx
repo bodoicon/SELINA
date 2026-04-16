@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -174,16 +174,15 @@ async function deleteFlowerIconByUrl(url) {
 }
 
 async function fetchAllOwnershipRows() {
-  const pageSize = 1000;
+  const pageSize = 2000;
   let from = 0;
   let allRows = [];
 
   while (true) {
     const { data, error } = await supabase
       .from("member_flowers")
-      .select("id, member_id, flower_id, created_at")
-      .range(from, from + pageSize - 1)
-      .order("id", { ascending: true });
+      .select("id, member_id, flower_id")
+      .range(from, from + pageSize - 1);
 
     if (error) {
       return { data: null, error };
@@ -226,11 +225,13 @@ export default function HoaHoiGameCanvasApp() {
   const [ownerships, setOwnerships] = useState([]);
 
   const [loading, setLoading] = useState(true);
+  const [ownershipsLoading, setOwnershipsLoading] = useState(true);
   const [pageMessage, setPageMessage] = useState("");
 
   const [memberSearch, setMemberSearch] = useState("");
   const [flowerSearch, setFlowerSearch] = useState("");
-  const [dashboardGroupFilter, setDashboardGroupFilter] = useState("all");
+  const [dashboardMissingGroupFilter, setDashboardMissingGroupFilter] = useState("all");
+  const [dashboardRareGroupFilter, setDashboardRareGroupFilter] = useState("all");
 
   const [selectedExistingMemberId, setSelectedExistingMemberId] = useState("none");
   const [newMemberName, setNewMemberName] = useState("");
@@ -265,6 +266,17 @@ export default function HoaHoiGameCanvasApp() {
     title: "",
     description: "",
   });
+
+  const membersRef = useRef([]);
+  const flowersRef = useRef([]);
+
+  useEffect(() => {
+    membersRef.current = members;
+  }, [members]);
+
+  useEffect(() => {
+    flowersRef.current = flowers;
+  }, [flowers]);
 
   const isAdmin = useMemo(() => {
     const email = user?.email?.toLowerCase() || "";
@@ -307,12 +319,39 @@ export default function HoaHoiGameCanvasApp() {
     };
   }, []);
 
+  async function loadOwnershipData() {
+    setOwnershipsLoading(true);
+
+    try {
+      const ownershipsRes = await fetchAllOwnershipRows();
+
+      if (ownershipsRes.error) {
+        setPageMessage(`Không tải được dữ liệu sở hữu: ${ownershipsRes.error.message}`);
+        return;
+      }
+
+      const rows = ownershipsRes.data || [];
+      const counts = {};
+      rows.forEach((row) => {
+        const key = String(row.member_id);
+        counts[key] = (counts[key] || 0) + 1;
+      });
+
+      setMemberFlowerCounts(counts);
+      setOwnerships(rows.map(normalizeOwnershipRow));
+    } catch (error) {
+      setPageMessage(`Không tải được dữ liệu sở hữu: ${error?.message || "Lỗi không xác định"}`);
+    } finally {
+      setOwnershipsLoading(false);
+    }
+  }
+
   async function loadAllData() {
     setLoading(true);
     setPageMessage("");
 
     const timeoutPromise = new Promise((_, reject) => {
-      window.setTimeout(() => reject(new Error("Timeout khi tải dữ liệu")), 6000);
+      window.setTimeout(() => reject(new Error("Không thể kết nối dữ liệu")), 8000);
     });
 
     try {
@@ -323,7 +362,6 @@ export default function HoaHoiGameCanvasApp() {
             .from("flowers")
             .select("id, name, group_name, icon_url, created_at")
             .order("name", { ascending: true }),
-          fetchAllOwnershipRows(),
           supabase
             .from("action_logs")
             .select("id, action_type, actor_name, target_type, target_name, details, created_at")
@@ -333,13 +371,12 @@ export default function HoaHoiGameCanvasApp() {
         timeoutPromise,
       ]);
 
-      const [membersRes, flowersRes, ownershipsRes, historyRes] = result;
+      const [membersRes, flowersRes, historyRes] = result;
 
-      if (membersRes.error || flowersRes.error || ownershipsRes.error || historyRes.error) {
+      if (membersRes.error || flowersRes.error || historyRes.error) {
         setPageMessage(
           membersRes.error?.message ||
             flowersRes.error?.message ||
-            ownershipsRes.error?.message ||
             historyRes.error?.message ||
             "Không tải được dữ liệu từ Supabase."
         );
@@ -347,13 +384,6 @@ export default function HoaHoiGameCanvasApp() {
         return;
       }
 
-      const counts = {};
-      (ownershipsRes.data || []).forEach((row) => {
-        const key = String(row.member_id);
-        counts[key] = (counts[key] || 0) + 1;
-      });
-
-      setMemberFlowerCounts(counts);
       setMembers((membersRes.data || []).map((m) => ({ id: String(m.id), name: m.name })));
       setFlowers(
         (flowersRes.data || []).map((f) => ({
@@ -363,7 +393,6 @@ export default function HoaHoiGameCanvasApp() {
           iconUrl: f.icon_url || "",
         }))
       );
-      setOwnerships((ownershipsRes.data || []).map(normalizeOwnershipRow));
       setHistoryLogs(
         (historyRes.data || []).map((log) => ({
           id: String(log.id),
@@ -376,14 +405,12 @@ export default function HoaHoiGameCanvasApp() {
         }))
       );
     } catch (error) {
-      setPageMessage(
-        error?.message === "Timeout khi tải dữ liệu"
-          ? "Canvas đang treo request tới Supabase. Đây thường chỉ là giới hạn môi trường test."
-          : `Không tải được dữ liệu: ${error?.message || "Lỗi không xác định"}`
-      );
+      setPageMessage(`Không tải được dữ liệu: ${error?.message || "Lỗi không xác định"}`);
     } finally {
       setLoading(false);
     }
+
+    loadOwnershipData();
   }
 
   useEffect(() => {
@@ -405,8 +432,8 @@ export default function HoaHoiGameCanvasApp() {
       } else if (eventType === "INSERT" && table === "member_flowers") {
         const memberId = String(payload?.new?.member_id || "");
         const flowerId = String(payload?.new?.flower_id || "");
-        const memberName = members.find((m) => String(m.id) === memberId)?.name || "Một thành viên";
-        const flowerName = flowers.find((f) => String(f.id) === flowerId)?.name || "một loài hoa";
+        const memberName = membersRef.current.find((m) => String(m.id) === memberId)?.name || "Một thành viên";
+        const flowerName = flowersRef.current.find((f) => String(f.id) === flowerId)?.name || "một loài hoa";
 
         setRealtimeToast({
           visible: true,
@@ -459,7 +486,7 @@ export default function HoaHoiGameCanvasApp() {
       clearTimeout(reloadTimer);
       supabase.removeChannel(channel);
     };
-  }, [members, flowers]);
+  }, []);
 
   async function signInAsAdmin() {
     setLoginMessage("");
@@ -558,9 +585,15 @@ export default function HoaHoiGameCanvasApp() {
 
   const filteredMissingFlowers = useMemo(() => {
     return missingFlowers.filter(
-      (flower) => dashboardGroupFilter === "all" || flower.group === dashboardGroupFilter
+      (flower) => dashboardMissingGroupFilter === "all" || flower.group === dashboardMissingGroupFilter
     );
-  }, [missingFlowers, dashboardGroupFilter]);
+  }, [missingFlowers, dashboardMissingGroupFilter]);
+
+  const filteredRareFlowers = useMemo(() => {
+    return rareFlowers.filter(
+      (flower) => dashboardRareGroupFilter === "all" || flower.group === dashboardRareGroupFilter
+    );
+  }, [rareFlowers, dashboardRareGroupFilter]);
 
   const filteredMembers = useMemo(() => {
     const q = memberSearch.trim().toLowerCase();
@@ -924,25 +957,30 @@ export default function HoaHoiGameCanvasApp() {
         </div>
       ) : null}
 
-      <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),transparent_28%),radial-gradient(circle_at_right,_rgba(168,85,247,0.12),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] p-4 md:p-8">
         <div className="mx-auto max-w-7xl space-y-6">
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="relative overflow-hidden rounded-[32px] border border-white/70 bg-white/85 p-6 shadow-[0_20px_70px_-30px_rgba(15,23,42,0.35)] backdrop-blur md:p-8">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.82),transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(99,102,241,0.10),transparent_22%)]" />
+            <div className="relative flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="flex-1">
-                <h1 className="text-3xl font-bold tracking-tight">Quản Lý Hoa Hội SELINA</h1>
-                <p className="mt-2 text-sm text-slate-600">
+                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500 shadow-sm">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  Selina Flower Dashboard
+                </div>
+                <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">Quản Lý Hoa Hội SELINA</h1>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
                   Thành viên chỉ có thể tra cứu thông tin. Các chức năng quản trị chỉ hiển thị cho admin đã đăng nhập.
                 </p>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
+                <div className="mt-5 flex flex-wrap items-center gap-2.5">
                   <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm">
                     <CircleProgress percent={summary.completionRate} size="sm" />
                     <span className="font-medium text-slate-800">
-                      {summary.ownedFlowers}/{summary.totalFlowers} ({summary.completionRate}%)
+                      {ownershipsLoading ? "Đang đồng bộ..." : `${summary.ownedFlowers}/${summary.totalFlowers} (${summary.completionRate}%)`}
                     </span>
                   </div>
 
-                  {topMembers.map((member, index) => (
+                  {!ownershipsLoading && topMembers.map((member, index) => (
                     <div
                       key={member.id}
                       className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm"
@@ -962,12 +1000,12 @@ export default function HoaHoiGameCanvasApp() {
 
               <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full rounded-2xl xl:w-auto">
+                  <Button variant="outline" className="w-full rounded-2xl border-white/80 bg-white/85 shadow-[0_12px_30px_-18px_rgba(15,23,42,0.35)] backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:bg-white xl:w-auto">
                     <Shield className="mr-2 h-4 w-4" />
                     {isAdmin ? "Quản trị viên" : "Đăng nhập admin"}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="rounded-3xl sm:max-w-md">
+                <DialogContent className="overflow-hidden rounded-[28px] border border-white/70 bg-white/95 shadow-[0_24px_80px_-28px_rgba(15,23,42,0.45)] backdrop-blur sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                       <Shield className="h-5 w-5" />
@@ -1041,117 +1079,140 @@ export default function HoaHoiGameCanvasApp() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatCard icon={<Users className="h-5 w-5" />} title="Thành viên" value={summary.totalMembers} />
             <StatCard icon={<Flower2 className="h-5 w-5" />} title="Tổng loại hoa" value={summary.totalFlowers} />
-            <StatCard icon={<Database className="h-5 w-5" />} title="Hội đã sở hữu" value={summary.ownedFlowers} />
-            <StatCard icon={<AlertCircle className="h-5 w-5" />} title="Hội còn thiếu" value={summary.missingFlowers} />
+            <StatCard icon={<Database className="h-5 w-5" />} title="Hội đã sở hữu" value={ownershipsLoading ? "..." : summary.ownedFlowers} />
+            <StatCard icon={<AlertCircle className="h-5 w-5" />} title="Hội còn thiếu" value={ownershipsLoading ? "..." : summary.missingFlowers} />
           </div>
 
           <Tabs defaultValue="dashboard" className="space-y-4">
             <TabsList
-              className={`grid w-full min-w-max gap-2 overflow-x-auto md:min-w-0 ${
+              className={`grid h-auto w-full min-w-max gap-2 overflow-x-auto rounded-[24px] border border-white/70 bg-white/85 p-2 shadow-[0_12px_30px_-22px_rgba(15,23,42,0.35)] backdrop-blur md:min-w-0 ${
                 isAdmin ? "grid-cols-6" : "grid-cols-3"
               }`}
             >
-              <TabsTrigger value="dashboard">Tổng quan</TabsTrigger>
-              <TabsTrigger value="members">Thành viên</TabsTrigger>
-              <TabsTrigger value="flowers">Hoa</TabsTrigger>
-              {isAdmin ? <TabsTrigger value="update">Cập nhật sở hữu</TabsTrigger> : null}
-              {isAdmin ? <TabsTrigger value="addflower">Thêm hoa mới</TabsTrigger> : null}
-              {isAdmin ? <TabsTrigger value="history">Lịch sử</TabsTrigger> : null}
+              <TabsTrigger value="dashboard" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Tổng quan</TabsTrigger>
+              <TabsTrigger value="members" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Thành viên</TabsTrigger>
+              <TabsTrigger value="flowers" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Hoa</TabsTrigger>
+              {isAdmin ? <TabsTrigger value="update" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Cập nhật sở hữu</TabsTrigger> : null}
+              {isAdmin ? <TabsTrigger value="addflower" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Thêm hoa mới</TabsTrigger> : null}
+              {isAdmin ? <TabsTrigger value="history" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Lịch sử</TabsTrigger> : null}
             </TabsList>
 
             <TabsContent value="dashboard" className="space-y-4">
-              <Card className="rounded-3xl border-0 shadow-sm">
-                <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <CardTitle>Hoa hội còn thiếu</CardTitle>
-                  <div className="w-full md:w-56">
-                    <Select value={dashboardGroupFilter} onValueChange={setDashboardGroupFilter}>
-                      <SelectTrigger className="rounded-2xl">
-                        <SelectValue placeholder="Lọc theo nhóm" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tất cả nhóm</SelectItem>
-                        {FLOWER_GROUPS.map((group) => (
-                          <SelectItem key={group} value={group}>
-                            {group}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <p className="text-sm text-slate-600">Đang tải dữ liệu...</p>
-                  ) : filteredMissingFlowers.length === 0 ? (
-                    <p className="text-sm text-slate-600">Hiện không có hoa thiếu trong nhóm đang lọc.</p>
-                  ) : (
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                      {filteredMissingFlowers.map((flower) => (
-                        <div key={flower.id} className="rounded-2xl border bg-slate-50 p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-3">
-                                <FlowerThumbnail flower={flower} />
-                                <p className="font-semibold">{flowerLabel(flower)}</p>
-                              </div>
-                              <p className="mt-1 text-sm text-slate-600">Chưa có ai trong hội sở hữu</p>
-                            </div>
-                            <Badge variant="outline" className={groupBadgeClass(flower.group)}>
-                              {flower.group}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
+              <div className="grid gap-4 xl:grid-cols-2">
+                <Card className="rounded-[28px] border border-white/70 bg-white/88 shadow-[0_16px_45px_-26px_rgba(15,23,42,0.28)] backdrop-blur">
+                  <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <CardTitle>Hoa ít người sở hữu (1 - 3 người)</CardTitle>
+                    <div className="w-full md:w-56">
+                      <Select value={dashboardRareGroupFilter} onValueChange={setDashboardRareGroupFilter}>
+                        <SelectTrigger className="rounded-2xl">
+                          <SelectValue placeholder="Lọc theo nhóm" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tất cả nhóm</SelectItem>
+                          {FLOWER_GROUPS.map((group) => (
+                            <SelectItem key={group} value={group}>
+                              {group}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle>Hoa ít người sở hữu (1 - 3 người)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {rareFlowers.length === 0 ? (
-                    <p className="text-sm text-slate-600">Không có hoa nào thuộc nhóm này.</p>
-                  ) : (
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                      {rareFlowers.map((flower) => {
-                        const owners = ownersByFlower.get(String(flower.id)) || [];
-                        return (
-                          <div key={flower.id} className="rounded-2xl border bg-slate-50 p-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="flex items-center gap-3">
-                                  <FlowerThumbnail flower={flower} />
-                                  <p className="font-semibold">{flowerLabel(flower)}</p>
-                                </div>
-                                <p className="mt-1 text-sm text-slate-600">{owners.length} người sở hữu</p>
-                                {owners.length > 0 ? (
-                                  <div className="mt-2 flex flex-wrap gap-2">
-                                    {owners.map((owner) => (
-                                      <Badge key={`${flower.id}-${owner}`} variant="outline" className="rounded-full text-xs">
-                                        {owner}
-                                      </Badge>
-                                    ))}
+                  </CardHeader>
+                  <CardContent>
+                    {ownershipsLoading ? (
+                      <p className="text-sm text-slate-600">Đang đồng bộ dữ liệu sở hữu...</p>
+                    ) : filteredRareFlowers.length === 0 ? (
+                      <p className="text-sm text-slate-600">Không có hoa nào thuộc nhóm này.</p>
+                    ) : (
+                      <ScrollArea className="h-[520px] pr-4">
+                        <div className="space-y-3">
+                          {filteredRareFlowers.map((flower) => {
+                            const owners = ownersByFlower.get(String(flower.id)) || [];
+                            return (
+                              <div key={flower.id} className="rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <div className="flex items-center gap-3">
+                                      <FlowerThumbnail flower={flower} />
+                                      <p className="font-semibold">{flowerLabel(flower)}</p>
+                                    </div>
+                                    <p className="mt-1 text-sm text-slate-600">{owners.length} người sở hữu</p>
+                                    {owners.length > 0 ? (
+                                      <div className="mt-2 flex flex-wrap gap-2">
+                                        {owners.map((owner) => (
+                                          <Badge key={`${flower.id}-${owner}`} variant="outline" className="rounded-full text-xs">
+                                            {owner}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    ) : null}
                                   </div>
-                                ) : null}
+                                  <Badge variant="outline" className={groupBadgeClass(flower.group)}>
+                                    {flower.group}
+                                  </Badge>
+                                </div>
                               </div>
-                              <Badge variant="outline" className={groupBadgeClass(flower.group)}>
-                                {flower.group}
-                              </Badge>
-                            </div>
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-[28px] border border-white/70 bg-white/88 shadow-[0_16px_45px_-26px_rgba(15,23,42,0.28)] backdrop-blur">
+                  <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <CardTitle>Hoa hội còn thiếu</CardTitle>
+                    <div className="w-full md:w-56">
+                      <Select value={dashboardMissingGroupFilter} onValueChange={setDashboardMissingGroupFilter}>
+                        <SelectTrigger className="rounded-2xl">
+                          <SelectValue placeholder="Lọc theo nhóm" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tất cả nhóm</SelectItem>
+                          {FLOWER_GROUPS.map((group) => (
+                            <SelectItem key={group} value={group}>
+                              {group}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent>
+                    {loading || ownershipsLoading ? (
+                      <p className="text-sm text-slate-600">Đang đồng bộ danh sách hoa còn thiếu...</p>
+                    ) : filteredMissingFlowers.length === 0 ? (
+                      <p className="text-sm text-slate-600">Hiện không có hoa thiếu trong nhóm đang lọc.</p>
+                    ) : (
+                      <ScrollArea className="h-[520px] pr-4">
+                        <div className="space-y-3">
+                          {filteredMissingFlowers.map((flower) => (
+                            <div key={flower.id} className="rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="flex items-center gap-3">
+                                    <FlowerThumbnail flower={flower} />
+                                    <p className="font-semibold">{flowerLabel(flower)}</p>
+                                  </div>
+                                  <p className="mt-1 text-sm text-slate-600">Chưa có ai trong hội sở hữu</p>
+                                </div>
+                                <Badge variant="outline" className={groupBadgeClass(flower.group)}>
+                                  {flower.group}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="members" className="space-y-4">
-              <Card className="rounded-3xl border-0 shadow-sm">
+              <Card className="rounded-[28px] border border-white/70 bg-white/88 shadow-[0_16px_45px_-26px_rgba(15,23,42,0.28)] backdrop-blur">
                 <CardHeader>
                   <CardTitle>Tra cứu theo thành viên</CardTitle>
                 </CardHeader>
@@ -1175,7 +1236,7 @@ export default function HoaHoiGameCanvasApp() {
                       };
 
                       return (
-                        <Card key={member.id} className="rounded-3xl shadow-sm">
+                        <Card key={member.id} className="rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-30px_rgba(99,102,241,0.22)]">
                           <CardHeader>
                             <div className="flex items-center justify-between gap-3">
                               <CardTitle className="text-xl">{member.name}</CardTitle>
@@ -1222,7 +1283,7 @@ export default function HoaHoiGameCanvasApp() {
             </TabsContent>
 
             <TabsContent value="flowers" className="space-y-4">
-              <Card className="rounded-3xl border-0 shadow-sm">
+              <Card className="rounded-[28px] border border-white/70 bg-white/88 shadow-[0_16px_45px_-26px_rgba(15,23,42,0.28)] backdrop-blur">
                 <CardHeader>
                   <CardTitle>Tra cứu theo hoa</CardTitle>
                 </CardHeader>
@@ -1240,7 +1301,7 @@ export default function HoaHoiGameCanvasApp() {
                     {filteredFlowers.map((flower) => {
                       const owners = ownersByFlower.get(String(flower.id)) || [];
                       return (
-                        <Card key={flower.id} className="rounded-3xl shadow-sm">
+                        <Card key={flower.id} className="rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-30px_rgba(99,102,241,0.22)]">
                           <CardHeader>
                             <div className="flex items-start justify-between gap-3">
                               <div>
@@ -1293,7 +1354,7 @@ export default function HoaHoiGameCanvasApp() {
 
             {isAdmin ? (
               <TabsContent value="update" className="space-y-4">
-                <Card className="rounded-3xl border-0 shadow-sm">
+                <Card className="rounded-[28px] border border-white/70 bg-white/88 shadow-[0_16px_45px_-26px_rgba(15,23,42,0.28)] backdrop-blur">
                   <CardHeader>
                     <CardTitle>Cập nhật hoa mới thành viên vừa sở hữu</CardTitle>
                   </CardHeader>
@@ -1374,7 +1435,7 @@ export default function HoaHoiGameCanvasApp() {
                       ) : null}
                     </div>
 
-                    <Card className="rounded-3xl shadow-sm">
+                    <Card className="rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-30px_rgba(99,102,241,0.22)]">
                       <CardHeader>
                         <div className="flex items-center justify-between gap-3">
                           <CardTitle>Chọn nhiều hoa</CardTitle>
@@ -1422,7 +1483,7 @@ export default function HoaHoiGameCanvasApp() {
 
             {isAdmin ? (
               <TabsContent value="addflower" className="space-y-4">
-                <Card className="rounded-3xl border-0 shadow-sm">
+                <Card className="rounded-[28px] border border-white/70 bg-white/88 shadow-[0_16px_45px_-26px_rgba(15,23,42,0.28)] backdrop-blur">
                   <CardHeader>
                     <CardTitle>Thêm hoa mới vào cơ sở dữ liệu chung</CardTitle>
                   </CardHeader>
@@ -1509,7 +1570,7 @@ export default function HoaHoiGameCanvasApp() {
                       ) : null}
                     </div>
 
-                    <Card className="rounded-3xl shadow-sm">
+                    <Card className="rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-30px_rgba(99,102,241,0.22)]">
                       <CardHeader>
                         <div className="flex items-center justify-between gap-3">
                           <CardTitle>Danh sách hoa hiện có</CardTitle>
@@ -1525,7 +1586,7 @@ export default function HoaHoiGameCanvasApp() {
                               </DialogHeader>
                               <div className="grid gap-4 md:grid-cols-2">
                                 {FLOWER_GROUPS.map((group) => (
-                                  <div key={group} className="rounded-2xl border p-4">
+                                  <div key={group} className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
                                     <p className="font-semibold">{group}</p>
                                     <div className="mt-3 flex flex-wrap gap-2">
                                       {flowers
@@ -1546,7 +1607,7 @@ export default function HoaHoiGameCanvasApp() {
                       <CardContent>
                         <div className="grid gap-3 md:grid-cols-2">
                           {flowers.map((flower) => (
-                            <div key={flower.id} className="rounded-2xl border p-4">
+                            <div key={flower.id} className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
                               <div className="flex items-start justify-between gap-3">
                                 <div>
                                   <div className="flex items-center gap-3">
@@ -1573,7 +1634,7 @@ export default function HoaHoiGameCanvasApp() {
 
             {isAdmin ? (
               <TabsContent value="history" className="space-y-4">
-                <Card className="rounded-3xl border-0 shadow-sm">
+                <Card className="rounded-[28px] border border-white/70 bg-white/88 shadow-[0_16px_45px_-26px_rgba(15,23,42,0.28)] backdrop-blur">
                   <CardHeader>
                     <CardTitle>Bảng lịch sử thao tác</CardTitle>
                   </CardHeader>
@@ -1683,7 +1744,8 @@ function CircleProgress({ percent = 0, size = "md" }) {
 
   return (
     <div className={`relative ${wrapperClass}`}>
-      <svg viewBox={`0 0 ${radius * 2} ${radius * 2}`} className="h-full w-full">
+      <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_180deg_at_50%_50%,rgba(99,102,241,0.12),rgba(14,165,233,0.08),rgba(168,85,247,0.12))] blur-md" />
+      <svg viewBox={`0 0 ${radius * 2} ${radius * 2}`} className="relative h-full w-full">
         <circle
           stroke="#e5e7eb"
           fill="transparent"
@@ -1711,12 +1773,12 @@ function CircleProgress({ percent = 0, size = "md" }) {
 
 function StatCard({ icon, title, value }) {
   return (
-    <Card className="rounded-3xl border-0 shadow-sm">
+    <Card className="group rounded-[28px] border border-white/70 bg-white/85 shadow-[0_16px_45px_-24px_rgba(15,23,42,0.32)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-24px_rgba(79,70,229,0.28)]">
       <CardContent className="flex items-center gap-4 p-6">
-        <div className="rounded-2xl bg-slate-100 p-3">{icon}</div>
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-3 text-slate-700 transition-transform duration-300 group-hover:scale-105">{icon}</div>
         <div>
-          <p className="text-sm text-slate-600">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
+          <p className="text-sm font-medium text-slate-500">{title}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-slate-950">{value}</p>
         </div>
       </CardContent>
     </Card>

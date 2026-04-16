@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,54 +86,53 @@ function clearSupabaseAuthStorage() {
     }
     keysToRemove.forEach((key) => window.localStorage.removeItem(key));
   } catch {
-    // Bỏ qua lỗi localStorage trong môi trường preview.
+    // Ignore localStorage issues in preview/canvas.
   }
 }
 
 async function getSafeCurrentUser() {
   try {
     const { data, error } = await supabase.auth.getUser();
+
     if (error) {
       if (isInvalidRefreshTokenError(error)) {
         clearSupabaseAuthStorage();
         try {
           await supabase.auth.signOut({ scope: "local" });
         } catch {
-          // Không chặn UI nếu signOut local thất bại.
+          // ignore
         }
         return {
           user: null,
-          recovered: true,
-          message: "Phiên đăng nhập cũ đã hết hạn và đã được làm sạch. Bạn có thể đăng nhập lại nếu cần quyền quản trị.",
+          message:
+            "Phiên đăng nhập cũ đã hết hạn và đã được làm sạch. Bạn có thể đăng nhập lại nếu cần quyền quản trị.",
         };
       }
 
       return {
         user: null,
-        recovered: false,
         message: `Không đọc được phiên đăng nhập: ${error.message}`,
       };
     }
 
-    return { user: data.user || null, recovered: false, message: "" };
+    return { user: data.user || null, message: "" };
   } catch (error) {
     if (isInvalidRefreshTokenError(error)) {
       clearSupabaseAuthStorage();
       try {
         await supabase.auth.signOut({ scope: "local" });
       } catch {
-        // Không chặn UI nếu signOut local thất bại.
+        // ignore
       }
       return {
         user: null,
-        recovered: true,
-        message: "Phiên đăng nhập cũ đã hết hạn và đã được làm sạch. Bạn có thể đăng nhập lại nếu cần quyền quản trị.",
+        message:
+          "Phiên đăng nhập cũ đã hết hạn và đã được làm sạch. Bạn có thể đăng nhập lại nếu cần quyền quản trị.",
       };
     }
 
     return {
       user: null,
-      recovered: false,
       message: `Không khởi tạo được xác thực: ${error?.message || "Lỗi không xác định"}`,
     };
   }
@@ -214,8 +213,11 @@ function runLocalSelfChecks() {
     "Test failed: extractStoragePathFromUrl phải tách đúng path trong bucket."
   );
   console.assert(extractStoragePathFromUrl("") === null, "Test failed: URL rỗng phải trả về null.");
-  console.assert(flowerLabel({ name: "Hoa Mẫu" }) === "Hoa Mẫu", "Test failed: flowerLabel phải trả về đúng tên hoa.");
-  console.assert(normalizeOwnershipRow({ id: 7, member_id: 8, flower_id: 9 }).memberId === "8", "Test failed: normalizeOwnershipRow phải chuẩn hóa memberId thành chuỗi.");
+  console.assert(
+    normalizeOwnershipRow({ id: 1, member_id: 2, flower_id: 3 }).memberId === "2",
+    "Test failed: normalizeOwnershipRow phải chuyển member_id sang string."
+  );
+  console.assert(flowerLabel({ name: "Hoa Mẫu" }) === "Hoa Mẫu", "Test failed: flowerLabel phải trả về tên hoa.");
 }
 
 export default function HoaHoiGameCanvasApp() {
@@ -253,6 +255,8 @@ export default function HoaHoiGameCanvasApp() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginMessage, setLoginMessage] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
 
   const [realtimeStatus, setRealtimeStatus] = useState("connecting");
   const [realtimeMessage, setRealtimeMessage] = useState("");
@@ -261,8 +265,6 @@ export default function HoaHoiGameCanvasApp() {
     title: "",
     description: "",
   });
-
-  const mountedRef = useRef(false);
 
   const isAdmin = useMemo(() => {
     const email = user?.email?.toLowerCase() || "";
@@ -275,16 +277,12 @@ export default function HoaHoiGameCanvasApp() {
 
   useEffect(() => {
     let active = true;
-    mountedRef.current = true;
 
     async function initializeAuth() {
       const result = await getSafeCurrentUser();
       if (!active) return;
-
       setUser(result.user || null);
-      if (result.message) {
-        setLoginMessage(result.message);
-      }
+      if (result.message) setLoginMessage(result.message);
     }
 
     initializeAuth();
@@ -293,23 +291,18 @@ export default function HoaHoiGameCanvasApp() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!active) return;
-
       if (session?.user) {
         setUser(session.user);
         return;
       }
-
       const fallback = await getSafeCurrentUser();
       if (!active) return;
       setUser(fallback.user || null);
-      if (fallback.message) {
-        setLoginMessage(fallback.message);
-      }
+      if (fallback.message) setLoginMessage(fallback.message);
     });
 
     return () => {
       active = false;
-      mountedRef.current = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -318,62 +311,79 @@ export default function HoaHoiGameCanvasApp() {
     setLoading(true);
     setPageMessage("");
 
-    const [membersRes, flowersRes, ownershipsRes, historyRes] = await Promise.all([
-      supabase.from("members").select("id, name, created_at").order("name", { ascending: true }),
-      supabase
-        .from("flowers")
-        .select("id, name, group_name, icon_url, created_at")
-        .order("name", { ascending: true }),
-      fetchAllOwnershipRows(),
-      supabase
-        .from("action_logs")
-        .select("id, action_type, actor_name, target_type, target_name, details, created_at")
-        .order("created_at", { ascending: false })
-        .limit(50),
-    ]);
-
-    if (membersRes.error || flowersRes.error || ownershipsRes.error || historyRes.error) {
-      setPageMessage(
-        membersRes.error?.message ||
-          flowersRes.error?.message ||
-          ownershipsRes.error?.message ||
-          historyRes.error?.message ||
-          "Không tải được dữ liệu từ Supabase."
-      );
-      setLoading(false);
-      return;
-    }
-
-    const counts = {};
-    (ownershipsRes.data || []).forEach((row) => {
-      const key = String(row.member_id);
-      counts[key] = (counts[key] || 0) + 1;
+    const timeoutPromise = new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error("Timeout khi tải dữ liệu")), 6000);
     });
 
-    setMemberFlowerCounts(counts);
-    setMembers((membersRes.data || []).map((m) => ({ id: String(m.id), name: m.name })));
-    setFlowers(
-      (flowersRes.data || []).map((f) => ({
-        id: String(f.id),
-        name: f.name,
-        group: f.group_name,
-        iconUrl: f.icon_url || "",
-      }))
-    );
-    setOwnerships((ownershipsRes.data || []).map(normalizeOwnershipRow));
-    setHistoryLogs(
-      (historyRes.data || []).map((log) => ({
-        id: String(log.id),
-        actionType: log.action_type || "",
-        actorName: log.actor_name || "Hệ thống",
-        targetType: log.target_type || "",
-        targetName: log.target_name || "",
-        details: log.details || "",
-        createdAt: log.created_at || "",
-      }))
-    );
+    try {
+      const result = await Promise.race([
+        Promise.all([
+          supabase.from("members").select("id, name, created_at").order("name", { ascending: true }),
+          supabase
+            .from("flowers")
+            .select("id, name, group_name, icon_url, created_at")
+            .order("name", { ascending: true }),
+          fetchAllOwnershipRows(),
+          supabase
+            .from("action_logs")
+            .select("id, action_type, actor_name, target_type, target_name, details, created_at")
+            .order("created_at", { ascending: false })
+            .limit(50),
+        ]),
+        timeoutPromise,
+      ]);
 
-    setLoading(false);
+      const [membersRes, flowersRes, ownershipsRes, historyRes] = result;
+
+      if (membersRes.error || flowersRes.error || ownershipsRes.error || historyRes.error) {
+        setPageMessage(
+          membersRes.error?.message ||
+            flowersRes.error?.message ||
+            ownershipsRes.error?.message ||
+            historyRes.error?.message ||
+            "Không tải được dữ liệu từ Supabase."
+        );
+        setLoading(false);
+        return;
+      }
+
+      const counts = {};
+      (ownershipsRes.data || []).forEach((row) => {
+        const key = String(row.member_id);
+        counts[key] = (counts[key] || 0) + 1;
+      });
+
+      setMemberFlowerCounts(counts);
+      setMembers((membersRes.data || []).map((m) => ({ id: String(m.id), name: m.name })));
+      setFlowers(
+        (flowersRes.data || []).map((f) => ({
+          id: String(f.id),
+          name: f.name,
+          group: f.group_name,
+          iconUrl: f.icon_url || "",
+        }))
+      );
+      setOwnerships((ownershipsRes.data || []).map(normalizeOwnershipRow));
+      setHistoryLogs(
+        (historyRes.data || []).map((log) => ({
+          id: String(log.id),
+          actionType: log.action_type || "",
+          actorName: log.actor_name || "Hệ thống",
+          targetType: log.target_type || "",
+          targetName: log.target_name || "",
+          details: log.details || "",
+          createdAt: log.created_at || "",
+        }))
+      );
+    } catch (error) {
+      setPageMessage(
+        error?.message === "Timeout khi tải dữ liệu"
+          ? "Canvas đang treo request tới Supabase. Đây thường chỉ là giới hạn môi trường test."
+          : `Không tải được dữ liệu: ${error?.message || "Lỗi không xác định"}`
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -416,10 +426,9 @@ export default function HoaHoiGameCanvasApp() {
     };
 
     const refreshFromRealtime = (payload) => {
-      console.log("Realtime event:", payload);
       showRealtimeToast(payload);
       clearTimeout(reloadTimer);
-      reloadTimer = setTimeout(() => {
+      reloadTimer = window.setTimeout(() => {
         loadAllData();
       }, 300);
     };
@@ -433,7 +442,6 @@ export default function HoaHoiGameCanvasApp() {
       .on("postgres_changes", { event: "*", schema: "public", table: "action_logs" }, refreshFromRealtime)
       .subscribe((status) => {
         const normalized = String(status || "unknown").toLowerCase();
-        console.log("Realtime status:", normalized);
         setRealtimeStatus(normalized);
 
         if (normalized === "subscribed") {
@@ -443,7 +451,6 @@ export default function HoaHoiGameCanvasApp() {
           normalized === "timed_out" ||
           normalized === "closed"
         ) {
-          // Canvas preview thường không giữ websocket ổn định, nên không spam lỗi lên UI.
           setRealtimeMessage("");
         }
       });
@@ -452,7 +459,7 @@ export default function HoaHoiGameCanvasApp() {
       clearTimeout(reloadTimer);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [members, flowers]);
 
   async function signInAsAdmin() {
     setLoginMessage("");
@@ -462,40 +469,54 @@ export default function HoaHoiGameCanvasApp() {
     }
 
     setLoggingIn(true);
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: loginEmail.trim(),
-      password: loginPassword,
-    });
-    setLoggingIn(false);
 
-    if (error) {
-      setLoginMessage(`Đăng nhập thất bại: ${error.message}`);
-      return;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+
+      if (error) {
+        setLoginMessage(`Đăng nhập thất bại: ${error.message}`);
+        return;
+      }
+
+      const email = data.user?.email?.toLowerCase() || "";
+      const allowed = ADMIN_EMAILS.map((item) => item.toLowerCase()).includes(email);
+
+      if (!allowed) {
+        await supabase.auth.signOut({ scope: "local" });
+        setUser(null);
+        setLoginMessage("Tài khoản này không có quyền quản trị.");
+        return;
+      }
+
+      setUser(data.user || null);
+      setLoginPassword("");
+      setLoginMessage("Đăng nhập quản trị thành công.");
+      setAdminDialogOpen(false);
+    } catch (error) {
+      setLoginMessage(`Đăng nhập thất bại: ${error?.message || "Lỗi không xác định"}`);
+    } finally {
+      setLoggingIn(false);
     }
-
-    setUser(data.user || null);
-
-    const signedInEmail = data.user?.email?.toLowerCase() || "";
-    const allowed = ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(signedInEmail);
-    if (!allowed) {
-      await supabase.auth.signOut();
-      setLoginMessage("Tài khoản này không có quyền quản trị.");
-      return;
-    }
-
-    setLoginPassword("");
-    setLoginMessage("Đăng nhập quản trị thành công.");
   }
 
   async function signOutAdmin() {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+    setUser(null);
+
     try {
       await supabase.auth.signOut({ scope: "local" });
     } catch {
       clearSupabaseAuthStorage();
+    } finally {
+      setLoginMessage("");
+      setLoginPassword("");
+      setLoggingOut(false);
     }
-    setUser(null);
-    setLoginMessage("");
-    setLoginPassword("");
   }
 
   const ownersByFlower = useMemo(() => {
@@ -763,9 +784,7 @@ export default function HoaHoiGameCanvasApp() {
     }
 
     setOwnerships((prev) => {
-      const existingKeys = new Set(
-        prev.map((row) => `${String(row.memberId)}-${String(row.flowerId)}`)
-      );
+      const existingKeys = new Set(prev.map((row) => `${String(row.memberId)}-${String(row.flowerId)}`));
       const rowsToAdd = optimisticRows.filter(
         (row) => !existingKeys.has(`${String(row.memberId)}-${String(row.flowerId)}`)
       );
@@ -777,9 +796,7 @@ export default function HoaHoiGameCanvasApp() {
       .upsert(additions, { onConflict: "member_id,flower_id", ignoreDuplicates: true });
 
     if (error) {
-      setOwnerships((prev) =>
-        prev.filter((row) => !String(row.id).startsWith(`temp-${member.id}-`))
-      );
+      setOwnerships((prev) => prev.filter((row) => !String(row.id).startsWith(`temp-${member.id}-`)));
       setSavingOwnership(false);
       setUpdateMessage(`Không lưu được cập nhật sở hữu: ${error.message}`);
       return;
@@ -925,79 +942,99 @@ export default function HoaHoiGameCanvasApp() {
                     </span>
                   </div>
 
-                  {topMembers.length > 0 ? (
-                    <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm">
-                      <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                  {topMembers.map((member, index) => (
+                    <div
+                      key={member.id}
+                      className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm"
+                    >
+                      <Trophy
+                        className={`h-3.5 w-3.5 ${
+                          index === 0 ? "text-amber-500" : index === 1 ? "text-slate-400" : "text-orange-400"
+                        }`}
+                      />
                       <span className="font-medium text-slate-800">
-                        Top: {topMembers[0].name} ({topMembers[0].ownedCount})
+                        Top {index + 1}: {member.name} ({member.ownedCount})
                       </span>
                     </div>
-                  ) : null}
+                  ))}
                 </div>
               </div>
 
-              <Card className="w-full max-w-sm rounded-2xl border shadow-none">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                    <Shield className="h-5 w-5" /> Quản trị
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
+              <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full rounded-2xl xl:w-auto">
+                    <Shield className="mr-2 h-4 w-4" />
+                    {isAdmin ? "Quản trị viên" : "Đăng nhập admin"}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="rounded-3xl sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      {isAdmin ? "Tài khoản quản trị" : "Đăng nhập quản trị"}
+                    </DialogTitle>
+                  </DialogHeader>
+
                   {isAdmin ? (
-                    <div className="flex items-center justify-between gap-2 rounded-2xl border bg-slate-50 px-3 py-2">
-                      <div className="min-w-0">
+                    <div className="space-y-3">
+                      <div className="rounded-2xl border bg-slate-50 px-4 py-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin</p>
-                        <p className="truncate text-xs text-slate-700">{user?.email}</p>
+                        <p className="mt-1 break-all text-sm text-slate-700">{user?.email}</p>
                       </div>
-                      <Button variant="outline" size="sm" className="h-8 rounded-xl px-3" onClick={signOutAdmin}>
-                        <LogOut className="mr-1.5 h-3.5 w-3.5" /> Đăng xuất
+                      <Button
+                        variant="outline"
+                        className="w-full rounded-2xl"
+                        onClick={async () => {
+                          await signOutAdmin();
+                          setAdminDialogOpen(false);
+                        }}
+                        disabled={loggingOut}
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        {loggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-slate-500">Email admin</Label>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm text-slate-600">Email admin</Label>
                         <Input
                           value={loginEmail}
                           onChange={(e) => setLoginEmail(e.target.value)}
                           placeholder="admin@example.com"
-                          className="h-9 rounded-xl"
+                          className="h-10 rounded-2xl"
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-slate-500">Mật khẩu</Label>
+                      <div className="space-y-2">
+                        <Label className="text-sm text-slate-600">Mật khẩu</Label>
                         <Input
                           type="password"
                           value={loginPassword}
                           onChange={(e) => setLoginPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="h-9 rounded-xl"
+                          className="h-10 rounded-2xl"
                         />
                       </div>
-                      <Button onClick={signInAsAdmin} size="sm" className="h-9 w-full rounded-xl" disabled={loggingIn}>
-                        <LogIn className="mr-1.5 h-3.5 w-3.5" />
+                      <Button onClick={signInAsAdmin} className="h-10 w-full rounded-2xl" disabled={loggingIn}>
+                        <LogIn className="mr-2 h-4 w-4" />
                         {loggingIn ? "Đang đăng nhập..." : "Đăng nhập admin"}
                       </Button>
                       {loginMessage ? (
-                        <div className="rounded-xl border bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                        <div className="rounded-2xl border bg-slate-50 px-3 py-2 text-sm text-slate-700">
                           {loginMessage}
                         </div>
                       ) : null}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {pageMessage ? (
-              <div className="mt-4 rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">
-                {pageMessage}
-              </div>
+              <div className="mt-4 rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{pageMessage}</div>
             ) : null}
             {realtimeMessage ? (
-              <div className="mt-4 rounded-2xl border bg-red-50 p-3 text-sm text-red-700">
-                {realtimeMessage}
-              </div>
+              <div className="mt-4 rounded-2xl border bg-red-50 p-3 text-sm text-red-700">{realtimeMessage}</div>
             ) : null}
           </div>
 
@@ -1667,7 +1704,7 @@ function CircleProgress({ percent = 0, size = "md" }) {
           cy={radius}
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold">{percent}%</div>
+      <div className={`absolute inset-0 flex items-center justify-center font-semibold ${textClass}`}>{percent}%</div>
     </div>
   );
 }

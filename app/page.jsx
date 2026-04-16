@@ -881,7 +881,9 @@ export default function HoaHoiGameCanvasApp() {
       actorName: user?.email || member.name,
       targetType: "member",
       targetName: member.name,
-      details: `Thêm ${additions.length} hoa`,
+      details: `Thêm ${additions.length} hoa: ${additions
+        .map((item) => flowers.find((flower) => String(flower.id) === String(item.flower_id))?.name || item.flower_id)
+        .join(", ")}`,
     });
     await loadAllData();
   }
@@ -905,7 +907,7 @@ export default function HoaHoiGameCanvasApp() {
     return { ok: true, message: "Đã cập nhật thông tin hoa." };
   }
 
-  const tabsClass = "w-full rounded-xl px-3 py-2 text-center text-xs leading-tight transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:rounded-2xl sm:px-4 sm:text-sm";
+  const tabsClass = "!w-full rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-normal break-words transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:rounded-2xl sm:px-4 sm:text-sm";
 
   return (
     <div
@@ -986,7 +988,7 @@ export default function HoaHoiGameCanvasApp() {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-3 md:space-y-4">
-          <TabsList className={`grid h-auto w-full gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 ${isAdmin ? "grid-cols-2 md:grid-cols-4 xl:grid-cols-7" : "grid-cols-2 md:grid-cols-4"}`}>
+          <TabsList className={`!grid !h-auto w-full gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 ${isAdmin ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-7" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-4"}`}>
             <TabsTrigger value="dashboard" className={tabsClass}>Tổng quan</TabsTrigger>
             <TabsTrigger value="members" className={tabsClass}>Thành viên</TabsTrigger>
             <TabsTrigger value="flowerlookup" className={tabsClass}>Tra cứu theo hoa</TabsTrigger>

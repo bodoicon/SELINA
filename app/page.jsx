@@ -174,7 +174,7 @@ async function deleteFlowerIconByUrl(url) {
 }
 
 async function fetchAllOwnershipRows() {
-  const pageSize = 2000;
+  const pageSize = 1000;
   let from = 0;
   let allRows = [];
 
@@ -182,6 +182,7 @@ async function fetchAllOwnershipRows() {
     const { data, error } = await supabase
       .from("member_flowers")
       .select("id, member_id, flower_id")
+      .order("id", { ascending: true })
       .range(from, from + pageSize - 1);
 
     if (error) {
@@ -226,6 +227,7 @@ export default function HoaHoiGameCanvasApp() {
 
   const [loading, setLoading] = useState(true);
   const [ownershipsLoading, setOwnershipsLoading] = useState(true);
+  const [ownershipsLoaded, setOwnershipsLoaded] = useState(false);
   const [pageMessage, setPageMessage] = useState("");
 
   const [memberSearch, setMemberSearch] = useState("");
@@ -249,7 +251,6 @@ export default function HoaHoiGameCanvasApp() {
   const [newFlowerUploadMessage, setNewFlowerUploadMessage] = useState("");
 
   const [historyLogs, setHistoryLogs] = useState([]);
-  const [memberFlowerCounts, setMemberFlowerCounts] = useState({});
 
   const [user, setUser] = useState(null);
   const [loginEmail, setLoginEmail] = useState("");
@@ -323,24 +324,28 @@ export default function HoaHoiGameCanvasApp() {
     setOwnershipsLoading(true);
 
     try {
-      const ownershipsRes = await fetchAllOwnershipRows();
+      let ownershipsRes = await fetchAllOwnershipRows();
 
       if (ownershipsRes.error) {
-        setPageMessage(`Không tải được dữ liệu sở hữu: ${ownershipsRes.error.message}`);
-        return;
+        throw new Error(ownershipsRes.error.message);
       }
 
-      const rows = ownershipsRes.data || [];
-      const counts = {};
-      rows.forEach((row) => {
-        const key = String(row.member_id);
-        counts[key] = (counts[key] || 0) + 1;
-      });
+      let rows = ownershipsRes.data || [];
 
-      setMemberFlowerCounts(counts);
+      if (rows.length === 0 && (membersRef.current.length > 0 || flowersRef.current.length > 0)) {
+        await new Promise((resolve) => window.setTimeout(resolve, 400));
+        ownershipsRes = await fetchAllOwnershipRows();
+        if (ownershipsRes.error) {
+          throw new Error(ownershipsRes.error.message);
+        }
+        rows = ownershipsRes.data || [];
+      }
+
       setOwnerships(rows.map(normalizeOwnershipRow));
+      setOwnershipsLoaded(true);
     } catch (error) {
-      setPageMessage(`Không tải được dữ liệu sở hữu: ${error?.message || "Lỗi không xác định"}`);
+      console.error("loadOwnershipData error:", error);
+      setOwnershipsLoaded(false);
     } finally {
       setOwnershipsLoading(false);
     }
@@ -594,6 +599,15 @@ export default function HoaHoiGameCanvasApp() {
       (flower) => dashboardRareGroupFilter === "all" || flower.group === dashboardRareGroupFilter
     );
   }, [rareFlowers, dashboardRareGroupFilter]);
+
+  const memberFlowerCounts = useMemo(() => {
+    const counts = {};
+    ownerships.forEach((row) => {
+      const key = String(row.memberId);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [ownerships]);
 
   const filteredMembers = useMemo(() => {
     const q = memberSearch.trim().toLowerCase();
@@ -1136,7 +1150,9 @@ export default function HoaHoiGameCanvasApp() {
                                       <FlowerThumbnail flower={flower} />
                                       <p className="font-semibold">{flowerLabel(flower)}</p>
                                     </div>
-                                    <p className="mt-1 text-sm text-slate-600">{owners.length} người sở hữu</p>
+                                    <p className="mt-1 text-sm text-slate-600">
+                                      {ownershipsLoading || !ownershipsLoaded ? "Đang đồng bộ dữ liệu sở hữu" : `${owners.length} người sở hữu`}
+                                    </p>
                                     {owners.length > 0 ? (
                                       <div className="mt-2 flex flex-wrap gap-2">
                                         {owners.map((owner) => (
@@ -1241,7 +1257,7 @@ export default function HoaHoiGameCanvasApp() {
                             <div className="flex items-center justify-between gap-3">
                               <CardTitle className="text-xl">{member.name}</CardTitle>
                               <div className="flex items-center gap-2">
-                                <Badge variant="secondary">{ownedCount} hoa</Badge>
+                                <Badge variant="secondary">{ownershipsLoading || !ownershipsLoaded ? "..." : `${ownedCount} hoa`}</Badge>
                                 {isAdmin ? (
                                   <Dialog>
                                     <DialogTrigger asChild>
@@ -1262,14 +1278,16 @@ export default function HoaHoiGameCanvasApp() {
                           </CardHeader>
                           <CardContent className="space-y-3">
                             <p className="text-sm text-slate-600">
-                              Thành viên này hiện đang sở hữu {ownedCount} loại hoa.
+                              {`Thành viên này hiện đang sở hữu ${ownershipsLoading || !ownershipsLoaded ? "..." : ownedCount} loại hoa.`}
                             </p>
                             <div className="flex items-center gap-4">
                               <CircleProgress percent={memberProgress.percent} />
                               <div className="text-sm text-slate-600">
                                 <p>Tiến độ sưu tập</p>
                                 <p className="font-medium">
-                                  {memberProgress.ownedCount}/{memberProgress.total} ({memberProgress.percent}%)
+                                  {ownershipsLoading || !ownershipsLoaded
+                                    ? "Đang đồng bộ..."
+                                    : `${memberProgress.ownedCount}/${memberProgress.total} (${memberProgress.percent}%)`}
                                 </p>
                               </div>
                             </div>
@@ -1312,7 +1330,7 @@ export default function HoaHoiGameCanvasApp() {
                                 <p className="mt-1 text-sm text-slate-600">Nhóm {flower.group}</p>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Badge variant="secondary">{owners.length} người</Badge>
+                                <Badge variant="secondary">{ownershipsLoading || !ownershipsLoaded ? "..." : `${owners.length} người`}</Badge>
                                 {isAdmin ? (
                                   <Dialog>
                                     <DialogTrigger asChild>
@@ -1615,7 +1633,9 @@ export default function HoaHoiGameCanvasApp() {
                                     <p className="font-medium">{flowerLabel(flower)}</p>
                                   </div>
                                   <p className="mt-1 text-sm text-slate-600">
-                                    {ownersByFlower.get(String(flower.id))?.length || 0} người đang sở hữu
+                                    {ownershipsLoading || !ownershipsLoaded
+                                      ? "Đang đồng bộ dữ liệu sở hữu"
+                                      : `${ownersByFlower.get(String(flower.id))?.length || 0} người đang sở hữu`}
                                   </p>
                                 </div>
                                 <Badge variant="outline" className={groupBadgeClass(flower.group)}>

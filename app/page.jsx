@@ -385,6 +385,9 @@ export default function HoaHoiGameCanvasApp() {
   const [members, setMembers] = useState([]);
   const [ownerships, setOwnerships] = useState([]);
   const [historyLogs, setHistoryLogs] = useState([]);
+  const [titles, setTitles] = useState([]);
+  const [memberTitles, setMemberTitles] = useState([]);
+  const [titleFeatureAvailable, setTitleFeatureAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
   const [ownershipsLoading, setOwnershipsLoading] = useState(true);
   const [ownershipsLoaded, setOwnershipsLoaded] = useState(false);
@@ -396,6 +399,8 @@ export default function HoaHoiGameCanvasApp() {
   const [dashboardMissingGroupFilter, setDashboardMissingGroupFilter] = useState("all");
   const [dashboardRareGroupFilter, setDashboardRareGroupFilter] = useState("all");
   const [selectedExistingMemberId, setSelectedExistingMemberId] = useState("none");
+  const [memberPickerOpen, setMemberPickerOpen] = useState(false);
+  const [memberPickerSearch, setMemberPickerSearch] = useState("");
   const [newMemberName, setNewMemberName] = useState("");
   const [selectedFlowerIds, setSelectedFlowerIds] = useState([]);
   const [updateSearch, setUpdateSearch] = useState("");
@@ -415,6 +420,13 @@ export default function HoaHoiGameCanvasApp() {
   const [loggingIn, setLoggingIn] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [newTitleName, setNewTitleName] = useState("");
+  const [titleMessage, setTitleMessage] = useState("");
+  const [savingTitle, setSavingTitle] = useState(false);
+  const [selectedTitleId, setSelectedTitleId] = useState("none");
+  const [selectedTitleMemberIds, setSelectedTitleMemberIds] = useState([]);
+  const [titleManageSearch, setTitleManageSearch] = useState("");
+  const [titleMemberSearch, setTitleMemberSearch] = useState("");
 
   const membersRef = useRef([]);
   const flowersRef = useRef([]);
@@ -490,18 +502,35 @@ export default function HoaHoiGameCanvasApp() {
       const results = await Promise.all([
         supabase.from("members").select("id, name").order("name", { ascending: true }),
         supabase.from("flowers").select("id, name, group_name, icon_url").order("name", { ascending: true }),
+        supabase.from("titles").select("id, name").order("name", { ascending: true }),
+        supabase.from("member_titles").select("id, member_id, title_id"),
         supabase
           .from("action_logs")
           .select("id, action_type, actor_name, target_type, target_name, details, created_at")
           .order("created_at", { ascending: false })
           .limit(50),
       ]);
-      const [membersRes, flowersRes, historyRes] = results;
+      const [membersRes, flowersRes, titlesRes, memberTitlesRes, historyRes] = results;
+      const hasTitleFeatureError = Boolean(titlesRes.error || memberTitlesRes.error);
       if (membersRes.error || flowersRes.error || historyRes.error) {
-        setPageMessage(membersRes.error?.message || flowersRes.error?.message || historyRes.error?.message || "Không tải được dữ liệu từ Supabase.");
+        setPageMessage(
+          membersRes.error?.message ||
+            flowersRes.error?.message ||
+            historyRes.error?.message ||
+            "Không tải được dữ liệu từ Supabase."
+        );
       } else {
         setMembers((membersRes.data || []).map((m) => ({ id: String(m.id), name: m.name })));
         setFlowers((flowersRes.data || []).map((f) => ({ id: String(f.id), name: f.name, group: f.group_name, iconUrl: f.icon_url || "" })));
+        if (hasTitleFeatureError) {
+          setTitleFeatureAvailable(false);
+          setTitles([]);
+          setMemberTitles([]);
+        } else {
+          setTitleFeatureAvailable(true);
+          setTitles((titlesRes.data || []).map((t) => ({ id: String(t.id), name: t.name })));
+          setMemberTitles((memberTitlesRes.data || []).map((row) => ({ id: String(row.id), memberId: String(row.member_id), titleId: String(row.title_id) })));
+        }
         setHistoryLogs(
           (historyRes.data || []).map((log) => ({
             id: String(log.id),
@@ -660,6 +689,14 @@ export default function HoaHoiGameCanvasApp() {
         .sort((a, b) => (b.ownedCount || 0) - (a.ownedCount || 0)),
     [members, memberFlowerCounts, memberSearch]
   );
+
+  const filteredExistingMembers = useMemo(() => {
+    const q = memberPickerSearch.trim().toLowerCase();
+    return members
+      .filter((member) => member.name.toLowerCase().includes(q))
+      .sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  }, [members, memberPickerSearch]);
+
   const filteredFlowers = useMemo(
     () => flowers.filter((flower) => flowerLabel(flower).toLowerCase().includes(flowerSearch.trim().toLowerCase())),
     [flowers, flowerSearch]
@@ -697,6 +734,44 @@ export default function HoaHoiGameCanvasApp() {
     if (!q) return flowers;
     return flowers.filter((flower) => flowerLabel(flower).toLowerCase().includes(q));
   }, [flowers, flowerManageSearch]);
+
+  const titleById = useMemo(() => {
+    const map = new Map();
+    titles.forEach((title) => map.set(String(title.id), title));
+    return map;
+  }, [titles]);
+
+  const titleByMemberId = useMemo(() => {
+    const map = new Map();
+    memberTitles.forEach((row) => {
+      map.set(String(row.memberId), titleById.get(String(row.titleId)) || null);
+    });
+    return map;
+  }, [memberTitles, titleById]);
+
+  const membersByTitleId = useMemo(() => {
+    const map = new Map();
+    titles.forEach((title) => map.set(String(title.id), []));
+    memberTitles.forEach((row) => {
+      const member = members.find((item) => String(item.id) === String(row.memberId));
+      if (!member) return;
+      const key = String(row.titleId);
+      const current = map.get(key) || [];
+      current.push(member);
+      map.set(key, current);
+    });
+    return map;
+  }, [titles, memberTitles, members]);
+
+  const filteredTitleMembers = useMemo(() => {
+    const q = titleMemberSearch.trim().toLowerCase();
+    return members.filter((member) => member.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  }, [members, titleMemberSearch]);
+
+  const filteredTitles = useMemo(() => {
+    const q = titleManageSearch.trim().toLowerCase();
+    return titles.filter((title) => title.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  }, [titles, titleManageSearch]);
 
   async function signInAsAdmin() {
     setLoginMessage("");
@@ -921,6 +996,91 @@ export default function HoaHoiGameCanvasApp() {
     return { ok: true, message: "Đã cập nhật thông tin hoa." };
   }
 
+  function toggleTitleMember(memberId) {
+    setSelectedTitleMemberIds((prev) => {
+      const key = String(memberId);
+      return prev.includes(key) ? prev.filter((id) => id !== key) : [...prev, key];
+    });
+  }
+
+  async function addTitleToDatabase() {
+    if (!isAdmin) return;
+    if (!titleFeatureAvailable) {
+      setTitleMessage("Chưa dùng được chức danh vì Supabase chưa có bảng titles và member_titles.");
+      return;
+    }
+    setTitleMessage("");
+    const name = newTitleName.trim();
+    if (!name) {
+      setTitleMessage("Vui lòng nhập tên chức danh.");
+      return;
+    }
+    if (titles.some((title) => title.name.toLowerCase() === name.toLowerCase())) {
+      setTitleMessage("Chức danh này đã tồn tại.");
+      return;
+    }
+
+    setSavingTitle(true);
+    const { data, error } = await supabase.from("titles").insert([{ name }]).select("id, name").single();
+    setSavingTitle(false);
+    if (error) {
+      setTitleMessage(`Không thêm được chức danh: ${error.message}`);
+      return;
+    }
+
+    await logAction({
+      actionType: "add_title",
+      actorName: user?.email || "Quản trị hội",
+      targetType: "title",
+      targetName: data.name,
+      details: "Thêm chức danh mới",
+    });
+    setNewTitleName("");
+    setTitleMessage(`Đã thêm chức danh: ${data.name}.`);
+    await loadAllData();
+  }
+
+  async function saveTitleAssignments() {
+    if (!isAdmin) return;
+    if (!titleFeatureAvailable) {
+      setTitleMessage("Chưa dùng được chức danh vì Supabase chưa có bảng titles và member_titles.");
+      return;
+    }
+    setTitleMessage("");
+    if (selectedTitleId === "none") {
+      setTitleMessage("Vui lòng chọn chức danh cần trao.");
+      return;
+    }
+    if (selectedTitleMemberIds.length === 0) {
+      setTitleMessage("Vui lòng chọn ít nhất 1 thành viên.");
+      return;
+    }
+
+    setSavingTitle(true);
+    const rows = selectedTitleMemberIds.map((memberId) => ({ member_id: String(memberId), title_id: String(selectedTitleId) }));
+    const selectedMembers = members.filter((member) => selectedTitleMemberIds.includes(String(member.id)));
+    const titleName = titleById.get(String(selectedTitleId))?.name || selectedTitleId;
+    const { error } = await supabase.from("member_titles").upsert(rows, { onConflict: "member_id" });
+    setSavingTitle(false);
+
+    if (error) {
+      setTitleMessage(`Không lưu được chức danh: ${error.message}`);
+      return;
+    }
+
+    await logAction({
+      actionType: "assign_title",
+      actorName: user?.email || "Quản trị hội",
+      targetType: "title",
+      targetName: titleName,
+      details: `Trao cho: ${selectedMembers.map((member) => member.name).join(", ")}`,
+    });
+    setSelectedTitleMemberIds([]);
+    setSelectedTitleId("none");
+    setTitleMessage(`Đã trao chức danh ${titleName} cho ${selectedMembers.length} thành viên.`);
+    await loadAllData();
+  }
+
   const tabsClass = "!w-full rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-normal break-words transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:rounded-2xl sm:px-4 sm:text-sm";
 
   return (
@@ -1002,13 +1162,14 @@ export default function HoaHoiGameCanvasApp() {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-3 md:space-y-4">
-          <TabsList className={`!grid !h-auto w-full gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 ${isAdmin ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-7" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-4"}`}>
+          <TabsList className={`!grid !h-auto w-full gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 ${isAdmin ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8" : "grid-cols-1 sm:grid-cols-2 md:grid-cols-4"}`}>
             <TabsTrigger value="dashboard" className={tabsClass}>Tổng quan</TabsTrigger>
             <TabsTrigger value="members" className={tabsClass}>Thành viên</TabsTrigger>
             <TabsTrigger value="flowerlookup" className={tabsClass}>Tra cứu theo hoa</TabsTrigger>
             <TabsTrigger value="memberflowerlookup" className={tabsClass}>Tra cứu theo thành viên</TabsTrigger>
             {isAdmin ? <TabsTrigger value="update" className={tabsClass}>Cập nhật sở hữu</TabsTrigger> : null}
             {isAdmin ? <TabsTrigger value="addflower" className={tabsClass}>Thêm hoa mới</TabsTrigger> : null}
+            {isAdmin ? <TabsTrigger value="titlemanagement" className={tabsClass}>Quản lý chức danh</TabsTrigger> : null}
             {isAdmin ? <TabsTrigger value="history" className={tabsClass}>Lịch sử</TabsTrigger> : null}
           </TabsList>
 
@@ -1144,7 +1305,12 @@ export default function HoaHoiGameCanvasApp() {
             </div>
           </TabsContent>
 
-          <TabsContent value="members" className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle className="font-sans">Tra cứu theo thành viên</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Tìm theo tên thành viên..." className="rounded-2xl pl-9" /></div><div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredMembers.map((member) => { const ownedCount = memberFlowerCounts[String(member.id)] || 0; return <Card key={member.id} className="rounded-[24px]"><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle className="text-lg leading-snug sm:text-xl">{member.name}</CardTitle><div className="flex items-center gap-2"><Badge variant="secondary">{ownedCount} hoa</Badge><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>Sửa tên thành viên</DialogTitle></DialogHeader><EditMemberForm member={member} onSave={(newName) => renameMember(member.id, newName)} /></DialogContent></Dialog></div></div></CardHeader><CardContent className="space-y-3"><div className="flex items-center gap-3 sm:gap-4"><CircleProgress percent={summary.totalFlowers ? Math.round((ownedCount / summary.totalFlowers) * 100) : 0} /><div className="text-sm text-slate-600"><p>Tiến độ sưu tập</p><p className="font-medium">{ownedCount}/{summary.totalFlowers}</p></div></div></CardContent></Card>; })}</div></CardContent></Card></TabsContent>
+          <TabsContent value="members" className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle className="font-sans">Tra cứu theo thành viên</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Tìm theo tên thành viên..." className="rounded-2xl pl-9" /></div><div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredMembers.map((member) => { const ownedCount = memberFlowerCounts[String(member.id)] || 0; return <Card key={member.id} className="rounded-[24px]"><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><div className="space-y-1">
+                        <CardTitle className="text-lg leading-snug sm:text-xl">{member.name}</CardTitle>
+                        {titleByMemberId.get(String(member.id))?.name ? (
+                          <Badge variant="outline" className="rounded-full">{titleByMemberId.get(String(member.id))?.name}</Badge>
+                        ) : null}
+                      </div><div className="flex items-center gap-2"><Badge variant="secondary">{ownedCount} hoa</Badge><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>Sửa tên thành viên</DialogTitle></DialogHeader><EditMemberForm member={member} onSave={(newName) => renameMember(member.id, newName)} /></DialogContent></Dialog></div></div></CardHeader><CardContent className="space-y-3"><div className="flex items-center gap-3 sm:gap-4"><CircleProgress percent={summary.totalFlowers ? Math.round((ownedCount / summary.totalFlowers) * 100) : 0} /><div className="text-sm text-slate-600"><p>Tiến độ sưu tập</p><p className="font-medium">{ownedCount}/{summary.totalFlowers}</p></div></div></CardContent></Card>; })}</div></CardContent></Card></TabsContent>
 
           <TabsContent value="flowerlookup" className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle className="font-sans">Tra cứu theo hoa</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={flowerSearch} onChange={(e) => setFlowerSearch(e.target.value)} placeholder="Tìm theo tên hoa..." className="rounded-2xl pl-9" /></div><ScrollArea className="h-[360px] pr-3 md:h-[520px] xl:h-[760px]"><div className="space-y-4">{filteredFlowers.map((flower) => { const owners = ownersByFlower.get(String(flower.id)) || []; return <Card key={flower.id} className="rounded-[28px]"><CardHeader><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-3"><FlowerThumbnail flower={flower} /><CardTitle className="text-lg">{flowerLabel(flower)}</CardTitle></div><p className="mt-1 text-sm text-slate-600">Nhóm {flower.group}</p></div><div className="flex items-center gap-2"><Badge variant="secondary">{owners.length} người</Badge><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>Sửa tên hoa</DialogTitle></DialogHeader><EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} /></DialogContent></Dialog></div></div></CardHeader><CardContent>{owners.length === 0 ? <SectionEmpty>Hiện chưa có ai sở hữu.</SectionEmpty> : <div className="flex flex-wrap gap-2">{owners.map((owner) => <Badge key={String(flower.id) + owner} variant="outline" className="rounded-full">{owner}</Badge>)}</div>}</CardContent></Card>; })}</div></ScrollArea></CardContent></Card></TabsContent>
 
@@ -1155,16 +1321,72 @@ export default function HoaHoiGameCanvasApp() {
               <Card className="rounded-[28px]">
                 <CardHeader><CardTitle className="font-sans">Cập nhật hoa mới thành viên vừa sở hữu</CardTitle></CardHeader>
                 <CardContent className="grid gap-4 xl:grid-cols-[360px_1fr] xl:gap-6">
+                  
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Chọn thành viên cũ</Label>
-                      <Select value={selectedExistingMemberId} onValueChange={(value) => { setSelectedExistingMemberId(value); if (value !== "none") setNewMemberName(""); }}>
-                        <SelectTrigger className="rounded-2xl"><SelectValue placeholder="Chọn tên thành viên" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">-- Không chọn --</SelectItem>
-                          {members.map((member) => <SelectItem key={member.id} value={String(member.id)}>{member.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <Dialog open={memberPickerOpen} onOpenChange={setMemberPickerOpen}>
+                        <DialogTrigger asChild>
+                          <Button type="button" variant="outline" className="w-full justify-between rounded-2xl font-normal">
+                            <span className="truncate text-left">
+                              {selectedExistingMemberId === "none"
+                                ? "-- Không chọn --"
+                                : members.find((member) => String(member.id) === String(selectedExistingMemberId))?.name || "-- Không chọn --"}
+                            </span>
+                            <span className="text-slate-400">▼</span>
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-3xl sm:max-w-lg">
+                          <DialogHeader>
+                            <DialogTitle>Chọn thành viên cũ</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-3">
+                            <div className="relative">
+                              <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                              <Input
+                                value={memberPickerSearch}
+                                onChange={(e) => setMemberPickerSearch(e.target.value)}
+                                placeholder="Tìm tên thành viên..."
+                                className="rounded-2xl pl-9"
+                              />
+                            </div>
+                            <ScrollArea className="h-[320px] pr-3">
+                              <div className="space-y-2">
+                                <button
+                                  type="button"
+                                  className="w-full rounded-2xl border px-4 py-3 text-left text-sm transition hover:bg-slate-50"
+                                  onClick={() => {
+                                    setSelectedExistingMemberId("none");
+                                    setMemberPickerOpen(false);
+                                  }}
+                                >
+                                  -- Không chọn --
+                                </button>
+                                {filteredExistingMembers.length === 0 ? (
+                                  <SectionEmpty>Không tìm thấy thành viên phù hợp.</SectionEmpty>
+                                ) : (
+                                  filteredExistingMembers.map((member) => (
+                                    <button
+                                      key={member.id}
+                                      type="button"
+                                      className={`w-full rounded-2xl border px-4 py-3 text-left text-sm transition hover:bg-slate-50 ${
+                                        String(selectedExistingMemberId) === String(member.id) ? "border-slate-900 bg-slate-50" : ""
+                                      }`}
+                                      onClick={() => {
+                                        setSelectedExistingMemberId(String(member.id));
+                                        setNewMemberName("");
+                                        setMemberPickerOpen(false);
+                                      }}
+                                    >
+                                      {member.name}
+                                    </button>
+                                  ))
+                                )}
+                              </div>
+                            </ScrollArea>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                     <div className="space-y-2">
                       <Label>Hoặc tạo thành viên mới</Label>
@@ -1200,6 +1422,125 @@ export default function HoaHoiGameCanvasApp() {
                     {flowerCreateMessage ? <div className="rounded-2xl border bg-white p-3 text-sm text-slate-700">{flowerCreateMessage}</div> : null}
                   </div>
                   <Card className="rounded-[28px]"><CardHeader><CardTitle>Danh sách hoa hiện có</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={flowerManageSearch} onChange={(e) => setFlowerManageSearch(e.target.value)} placeholder="Tìm hoa trong danh sách hiện có..." className="rounded-2xl pl-9" /></div><div className="grid gap-3 md:grid-cols-2">{filteredManageFlowers.map((flower) => <div key={flower.id} className="rounded-3xl border p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-3"><FlowerThumbnail flower={flower} /><div><p className="font-medium">{flowerLabel(flower)}</p><p className="mt-1 text-sm text-slate-600">{ownershipsLoading || !ownershipsLoaded ? "Đang đồng bộ dữ liệu sở hữu" : `${ownersByFlower.get(String(flower.id))?.length || 0} người đang sở hữu`}</p></div></div></div><div className="flex flex-col items-end gap-2"><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa hoa</Button></DialogTrigger><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>Sửa tên hoa và icon</DialogTitle></DialogHeader><EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} /></DialogContent></Dialog></div></div></div>)}</div></CardContent></Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          ) : null}
+
+          {isAdmin ? (
+            <TabsContent value="titlemanagement" className="space-y-4">
+              <Card className="rounded-[28px]">
+                <CardHeader>
+                  <CardTitle className="font-sans">Quản lý chức danh</CardTitle>
+                  {!titleFeatureAvailable ? (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                      Supabase của bạn chưa có bảng <strong>titles</strong> và <strong>member_titles</strong>, nên tab này đang tạm tắt.
+                    </div>
+                  ) : null}
+                </CardHeader>
+                <CardContent className="grid gap-4 xl:grid-cols-[360px_1fr] xl:gap-6">
+                  <div className="space-y-4 rounded-3xl border bg-slate-50 p-5">
+                    <div className="space-y-2">
+                      <Label>Thêm chức danh mới</Label>
+                      <Input value={newTitleName} onChange={(e) => setNewTitleName(e.target.value)} placeholder="Ví dụ: Trưởng nhóm" className="rounded-2xl" />
+                    </div>
+                    <Button onClick={addTitleToDatabase} className="w-full rounded-2xl" disabled={savingTitle}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      {savingTitle ? "Đang thêm..." : "Thêm chức danh"}
+                    </Button>
+
+                    <div className="space-y-2 pt-2">
+                      <Label>Chọn chức danh để trao</Label>
+                      <Select value={selectedTitleId} onValueChange={setSelectedTitleId}>
+                        <SelectTrigger className="rounded-2xl"><SelectValue placeholder="Chọn chức danh" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">-- Chọn chức danh --</SelectItem>
+                          {titles.map((title) => <SelectItem key={title.id} value={String(title.id)}>{title.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Tìm thành viên để trao</Label>
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input value={titleMemberSearch} onChange={(e) => setTitleMemberSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="rounded-2xl pl-9" />
+                      </div>
+                    </div>
+
+                    <Button onClick={saveTitleAssignments} className="w-full rounded-2xl" disabled={savingTitle}>
+                      {savingTitle ? "Đang lưu..." : "Trao chức danh cho thành viên đã chọn"}
+                    </Button>
+                    {titleMessage ? <div className="rounded-2xl border bg-white p-3 text-sm text-slate-700">{titleMessage}</div> : null}
+                  </div>
+
+                  <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+                    <Card className="rounded-[28px]">
+                      <CardHeader><CardTitle className="font-sans">Chọn thành viên</CardTitle></CardHeader>
+                      <CardContent>
+                        <ScrollArea className="h-[520px] pr-4">
+                          <div className="space-y-3">
+                            {filteredTitleMembers.map((member) => {
+                              const checked = selectedTitleMemberIds.includes(String(member.id));
+                              const currentTitle = titleByMemberId.get(String(member.id))?.name || "Chưa có chức danh";
+                              return (
+                                <label key={member.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition hover:bg-slate-50">
+                                  <Checkbox checked={checked} onCheckedChange={() => toggleTitleMember(member.id)} />
+                                  <div className="flex-1">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <p className="font-medium">{member.name}</p>
+                                        <p className="mt-1 text-sm text-slate-600">{currentTitle}</p>
+                                      </div>
+                                      {titleByMemberId.get(String(member.id))?.name ? <Badge variant="outline" className="rounded-full">{titleByMemberId.get(String(member.id))?.name}</Badge> : null}
+                                    </div>
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="rounded-[28px]">
+                      <CardHeader className="space-y-3">
+                        <CardTitle className="font-sans">Danh sách chức danh hiện có</CardTitle>
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                          <Input value={titleManageSearch} onChange={(e) => setTitleManageSearch(e.target.value)} placeholder="Tìm chức danh..." className="rounded-2xl pl-9" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <ScrollArea className="h-[520px] pr-4">
+                          <div className="space-y-3">
+                            {filteredTitles.map((title) => {
+                              const assignedMembers = membersByTitleId.get(String(title.id)) || [];
+                              return (
+                                <div key={title.id} className="rounded-3xl border p-4">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="font-semibold">{title.name}</p>
+                                    <Badge variant="secondary">{assignedMembers.length} người</Badge>
+                                  </div>
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {assignedMembers.length === 0 ? (
+                                      <span className="text-sm text-slate-500">Chưa có ai giữ chức danh này.</span>
+                                    ) : (
+                                      assignedMembers.map((member) => (
+                                        <Badge key={`${title.id}-${member.id}`} variant="outline" className="rounded-full">
+                                          {member.name}
+                                        </Badge>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

@@ -905,16 +905,22 @@ export default function HoaHoiGameCanvasApp() {
     return { ok: true, message: "Đã cập nhật thông tin hoa." };
   }
 
-  const tabsClass = "rounded-xl px-2 py-2 text-xs transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:rounded-2xl sm:px-3 sm:text-sm";
+  const tabsClass = "flex-1 min-w-[140px] rounded-xl px-3 py-2 text-center text-xs transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:rounded-2xl sm:px-4 sm:text-sm";
 
   return (
-    <div className="min-h-screen font-sans antialiased text-slate-900 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),transparent_28%),radial-gradient(circle_at_right,_rgba(168,85,247,0.12),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] p-4 md:p-8">
+    <div
+      className="min-h-screen font-sans antialiased text-slate-900 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),transparent_28%),radial-gradient(circle_at_right,_rgba(168,85,247,0.12),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] p-4 md:p-8"
+      style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
+    >
       <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
         <div className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/85 p-4 shadow-[0_20px_70px_-30px_rgba(15,23,42,0.35)] backdrop-blur sm:p-5 md:rounded-[32px] md:p-8">
           <div className="relative grid gap-5 xl:grid-cols-[1fr_360px] xl:items-start">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500">Selina Flower Dashboard</div>
-              <h1 className="mt-3 font-serif text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl md:mt-4 md:text-4xl">Quản Lý Hoa Hội SELINA</h1>
+              <h1
+                className="mt-3 font-serif text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl md:mt-4 md:text-4xl"
+                style={{ fontFamily: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif' }}
+              >Quản Lý Hoa Hội SELINA</h1>
               <p className="mt-3 max-w-3xl text-sm text-slate-600">Thành viên chỉ có thể tra cứu thông tin. Các chức năng quản trị chỉ hiển thị cho admin đã đăng nhập.</p>
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm">
@@ -980,7 +986,7 @@ export default function HoaHoiGameCanvasApp() {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-3 md:space-y-4">
-          <TabsList className={`grid h-auto w-full gap-2 overflow-x-auto rounded-[20px] border border-white/70 bg-white/85 p-1.5 ${isAdmin ? "grid-cols-7" : "grid-cols-4"}`}>
+          <TabsList className="flex h-auto w-full flex-wrap gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5">
             <TabsTrigger value="dashboard" className={tabsClass}>Tổng quan</TabsTrigger>
             <TabsTrigger value="members" className={tabsClass}>Thành viên</TabsTrigger>
             <TabsTrigger value="flowerlookup" className={tabsClass}>Tra cứu theo hoa</TabsTrigger>

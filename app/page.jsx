@@ -403,6 +403,7 @@ export default function HoaHoiGameCanvasApp() {
   const [updateMessage, setUpdateMessage] = useState("");
   const [savingOwnership, setSavingOwnership] = useState(false);
   const [newFlowerName, setNewFlowerName] = useState("");
+  const [flowerManageSearch, setFlowerManageSearch] = useState("");
   const [newFlowerIconUrl, setNewFlowerIconUrl] = useState("");
   const [newFlowerGroup, setNewFlowerGroup] = useState("Lục");
   const [flowerCreateMessage, setFlowerCreateMessage] = useState("");
@@ -690,6 +691,12 @@ export default function HoaHoiGameCanvasApp() {
       return okText && okGroup;
     });
   }, [flowers, updateSearch, updateGroupFilter]);
+
+  const filteredManageFlowers = useMemo(() => {
+    const q = flowerManageSearch.trim().toLowerCase();
+    if (!q) return flowers;
+    return flowers.filter((flower) => flowerLabel(flower).toLowerCase().includes(q));
+  }, [flowers, flowerManageSearch]);
 
   async function signInAsAdmin() {
     setLoginMessage("");
@@ -1192,7 +1199,7 @@ export default function HoaHoiGameCanvasApp() {
                     <Button onClick={addFlowerToDatabase} className="w-full rounded-2xl" disabled={savingFlower}><Plus className="mr-2 h-4 w-4" />{savingFlower ? "Đang thêm..." : "Thêm hoa mới"}</Button>
                     {flowerCreateMessage ? <div className="rounded-2xl border bg-white p-3 text-sm text-slate-700">{flowerCreateMessage}</div> : null}
                   </div>
-                  <Card className="rounded-[28px]"><CardHeader><CardTitle>Danh sách hoa hiện có</CardTitle></CardHeader><CardContent><div className="grid gap-3 md:grid-cols-2">{flowers.map((flower) => <div key={flower.id} className="rounded-3xl border p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-3"><FlowerThumbnail flower={flower} /><div><p className="font-medium">{flowerLabel(flower)}</p><p className="mt-1 text-sm text-slate-600">{ownershipsLoading || !ownershipsLoaded ? "Đang đồng bộ dữ liệu sở hữu" : `${ownersByFlower.get(String(flower.id))?.length || 0} người đang sở hữu`}</p></div></div></div><div className="flex flex-col items-end gap-2"><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa hoa</Button></DialogTrigger><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>Sửa tên hoa và icon</DialogTitle></DialogHeader><EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} /></DialogContent></Dialog></div></div></div>)}</div></CardContent></Card>
+                  <Card className="rounded-[28px]"><CardHeader><CardTitle>Danh sách hoa hiện có</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={flowerManageSearch} onChange={(e) => setFlowerManageSearch(e.target.value)} placeholder="Tìm hoa trong danh sách hiện có..." className="rounded-2xl pl-9" /></div><div className="grid gap-3 md:grid-cols-2">{filteredManageFlowers.map((flower) => <div key={flower.id} className="rounded-3xl border p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-3"><FlowerThumbnail flower={flower} /><div><p className="font-medium">{flowerLabel(flower)}</p><p className="mt-1 text-sm text-slate-600">{ownershipsLoading || !ownershipsLoaded ? "Đang đồng bộ dữ liệu sở hữu" : `${ownersByFlower.get(String(flower.id))?.length || 0} người đang sở hữu`}</p></div></div></div><div className="flex flex-col items-end gap-2"><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa hoa</Button></DialogTrigger><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>Sửa tên hoa và icon</DialogTitle></DialogHeader><EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} /></DialogContent></Dialog></div></div></div>)}</div></CardContent></Card>
                 </CardContent>
               </Card>
             </TabsContent>

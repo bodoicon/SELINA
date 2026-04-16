@@ -86,7 +86,7 @@ function clearSupabaseAuthStorage() {
     }
     keysToRemove.forEach((key) => window.localStorage.removeItem(key));
   } catch {
-    // Ignore localStorage issues in preview/canvas.
+    // Ignore localStorage issues.
   }
 }
 
@@ -102,6 +102,7 @@ async function getSafeCurrentUser() {
         } catch {
           // ignore
         }
+
         return {
           user: null,
           message:
@@ -124,6 +125,7 @@ async function getSafeCurrentUser() {
       } catch {
         // ignore
       }
+
       return {
         user: null,
         message:
@@ -218,6 +220,7 @@ function runLocalSelfChecks() {
     "Test failed: normalizeOwnershipRow phải chuyển member_id sang string."
   );
   console.assert(flowerLabel({ name: "Hoa Mẫu" }) === "Hoa Mẫu", "Test failed: flowerLabel phải trả về tên hoa.");
+  console.assert(isInvalidRefreshTokenError({ message: "Invalid Refresh Token" }) === true, "Test failed: refresh token error detection.");
 }
 
 export default function HoaHoiGameCanvasApp() {
@@ -232,6 +235,7 @@ export default function HoaHoiGameCanvasApp() {
 
   const [memberSearch, setMemberSearch] = useState("");
   const [flowerSearch, setFlowerSearch] = useState("");
+  const [memberFlowerLookup, setMemberFlowerLookup] = useState("all");
   const [dashboardMissingGroupFilter, setDashboardMissingGroupFilter] = useState("all");
   const [dashboardRareGroupFilter, setDashboardRareGroupFilter] = useState("all");
 
@@ -304,10 +308,12 @@ export default function HoaHoiGameCanvasApp() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!active) return;
+
       if (session?.user) {
         setUser(session.user);
         return;
       }
+
       const fallback = await getSafeCurrentUser();
       if (!active) return;
       setUser(fallback.user || null);
@@ -335,17 +341,28 @@ export default function HoaHoiGameCanvasApp() {
       if (rows.length === 0 && (membersRef.current.length > 0 || flowersRef.current.length > 0)) {
         await new Promise((resolve) => window.setTimeout(resolve, 400));
         ownershipsRes = await fetchAllOwnershipRows();
+
         if (ownershipsRes.error) {
           throw new Error(ownershipsRes.error.message);
         }
+
         rows = ownershipsRes.data || [];
       }
 
-      setOwnerships(rows.map(normalizeOwnershipRow));
+      const dedupedMap = new Map();
+      rows.forEach((row) => {
+        const key = `${String(row.member_id)}-${String(row.flower_id)}`;
+        if (!dedupedMap.has(key)) {
+          dedupedMap.set(key, row);
+        }
+      });
+
+      setOwnerships(Array.from(dedupedMap.values()).map(normalizeOwnershipRow));
       setOwnershipsLoaded(true);
     } catch (error) {
       console.error("loadOwnershipData error:", error);
       setOwnershipsLoaded(false);
+      setPageMessage((prev) => prev || `Không tải được dữ liệu sở hữu: ${error?.message || "Lỗi không xác định"}`);
     } finally {
       setOwnershipsLoading(false);
     }
@@ -385,7 +402,6 @@ export default function HoaHoiGameCanvasApp() {
             historyRes.error?.message ||
             "Không tải được dữ liệu từ Supabase."
         );
-        setLoading(false);
         return;
       }
 
@@ -415,7 +431,7 @@ export default function HoaHoiGameCanvasApp() {
       setLoading(false);
     }
 
-    loadOwnershipData();
+    await loadOwnershipData();
   }
 
   useEffect(() => {
@@ -495,6 +511,7 @@ export default function HoaHoiGameCanvasApp() {
 
   async function signInAsAdmin() {
     setLoginMessage("");
+
     if (!loginEmail.trim() || !loginPassword.trim()) {
       setLoginMessage("Vui lòng nhập email và mật khẩu.");
       return;
@@ -626,6 +643,44 @@ export default function HoaHoiGameCanvasApp() {
     return flowers.filter((flower) => flowerLabel(flower).toLowerCase().includes(q));
   }, [flowers, flowerSearch]);
 
+  const selectedMemberFlowerLookup = useMemo(() => {
+    return members.find((member) => String(member.id) === String(memberFlowerLookup)) || null;
+  }, [members, memberFlowerLookup]);
+
+  const flowersBySelectedMember = useMemo(() => {
+    if (!selectedMemberFlowerLookup) return [];
+
+    const ownedFlowerIds = new Set(
+      ownerships
+        .filter((row) => String(row.memberId) === String(selectedMemberFlowerLookup.id))
+        .map((row) => String(row.flowerId))
+    );
+
+    return flowers.filter((flower) => ownedFlowerIds.has(String(flower.id)));
+  }, [flowers, ownerships, selectedMemberFlowerLookup]);
+
+  const memberFlowersByGroup = useMemo(() => {
+    const groupOrder = ["Đỏ", "Vàng", "Tím", "Lam", "Lục"];
+    const grouped = {
+      Đỏ: [],
+      Vàng: [],
+      Tím: [],
+      Lam: [],
+      Lục: [],
+    };
+
+    flowersBySelectedMember.forEach((flower) => {
+      if (!grouped[flower.group]) grouped[flower.group] = [];
+      grouped[flower.group].push(flower);
+    });
+
+    groupOrder.forEach((group) => {
+      grouped[group] = (grouped[group] || []).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    });
+
+    return grouped;
+  }, [flowersBySelectedMember]);
+
   const selectableFlowers = useMemo(() => {
     const q = updateSearch.trim().toLowerCase();
     return flowers.filter((flower) => {
@@ -648,7 +703,10 @@ export default function HoaHoiGameCanvasApp() {
 
   const topMembers = useMemo(() => {
     return [...members]
-      .map((member) => ({ ...member, ownedCount: memberFlowerCounts[String(member.id)] || 0 }))
+      .map((member) => ({
+        ...member,
+        ownedCount: memberFlowerCounts[String(member.id)] || 0,
+      }))
       .sort((a, b) => (b.ownedCount || 0) - (a.ownedCount || 0))
       .slice(0, 3);
   }, [members, memberFlowerCounts]);
@@ -656,6 +714,7 @@ export default function HoaHoiGameCanvasApp() {
   const memberProgressMap = useMemo(() => {
     const total = flowers.length || 0;
     const result = {};
+
     members.forEach((member) => {
       const ownedCount = memberFlowerCounts[String(member.id)] || 0;
       result[String(member.id)] = {
@@ -664,6 +723,7 @@ export default function HoaHoiGameCanvasApp() {
         percent: total ? Math.round((ownedCount / total) * 100) : 0,
       };
     });
+
     return result;
   }, [members, flowers, memberFlowerCounts]);
 
@@ -684,6 +744,7 @@ export default function HoaHoiGameCanvasApp() {
         details,
       },
     ]);
+
     return { error };
   }
 
@@ -776,6 +837,7 @@ export default function HoaHoiGameCanvasApp() {
     }
 
     const insertedMember = { id: String(data.id), name: data.name };
+
     await logAction({
       actionType: "add_member",
       actorName: user?.email || "Quản trị hội",
@@ -783,6 +845,7 @@ export default function HoaHoiGameCanvasApp() {
       targetName: insertedMember.name,
       details: "Thêm thành viên mới",
     });
+
     await loadAllData();
     return { member: insertedMember };
   }
@@ -887,6 +950,7 @@ export default function HoaHoiGameCanvasApp() {
 
     const oldName = members.find((m) => String(m.id) === String(memberId))?.name || "(không rõ)";
     const { error } = await supabase.from("members").update({ name: trimmed }).eq("id", memberId);
+
     if (error) {
       return { ok: false, message: `Không sửa được tên thành viên: ${error.message}` };
     }
@@ -981,7 +1045,9 @@ export default function HoaHoiGameCanvasApp() {
                   <span className="h-2 w-2 rounded-full bg-emerald-400" />
                   Selina Flower Dashboard
                 </div>
-                <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">Quản Lý Hoa Hội SELINA</h1>
+                <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">
+                  Quản Lý Hoa Hội SELINA
+                </h1>
                 <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
                   Thành viên chỉ có thể tra cứu thông tin. Các chức năng quản trị chỉ hiển thị cho admin đã đăng nhập.
                 </p>
@@ -990,31 +1056,37 @@ export default function HoaHoiGameCanvasApp() {
                   <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm">
                     <CircleProgress percent={summary.completionRate} size="sm" />
                     <span className="font-medium text-slate-800">
-                      {ownershipsLoading ? "Đang đồng bộ..." : `${summary.ownedFlowers}/${summary.totalFlowers} (${summary.completionRate}%)`}
+                      {ownershipsLoading || !ownershipsLoaded
+                        ? "Đang đồng bộ..."
+                        : `${summary.ownedFlowers}/${summary.totalFlowers} (${summary.completionRate}%)`}
                     </span>
                   </div>
 
-                  {!ownershipsLoading && topMembers.map((member, index) => (
-                    <div
-                      key={member.id}
-                      className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm"
-                    >
-                      <Trophy
-                        className={`h-3.5 w-3.5 ${
-                          index === 0 ? "text-amber-500" : index === 1 ? "text-slate-400" : "text-orange-400"
-                        }`}
-                      />
-                      <span className="font-medium text-slate-800">
-                        Top {index + 1}: {member.name} ({member.ownedCount})
-                      </span>
-                    </div>
-                  ))}
+                  {ownershipsLoaded &&
+                    topMembers.map((member, index) => (
+                      <div
+                        key={member.id}
+                        className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm"
+                      >
+                        <Trophy
+                          className={`h-3.5 w-3.5 ${
+                            index === 0 ? "text-amber-500" : index === 1 ? "text-slate-400" : "text-orange-400"
+                          }`}
+                        />
+                        <span className="font-medium text-slate-800">
+                          Top {index + 1}: {member.name} ({member.ownedCount})
+                        </span>
+                      </div>
+                    ))}
                 </div>
               </div>
 
               <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full rounded-2xl border-white/80 bg-white/85 shadow-[0_12px_30px_-18px_rgba(15,23,42,0.35)] backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:bg-white xl:w-auto">
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-2xl border-white/80 bg-white/85 shadow-[0_12px_30px_-18px_rgba(15,23,42,0.35)] backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:bg-white xl:w-auto"
+                  >
                     <Shield className="mr-2 h-4 w-4" />
                     {isAdmin ? "Quản trị viên" : "Đăng nhập admin"}
                   </Button>
@@ -1067,7 +1139,11 @@ export default function HoaHoiGameCanvasApp() {
                           className="h-10 rounded-2xl"
                         />
                       </div>
-                      <Button onClick={signInAsAdmin} className="h-10 w-full rounded-2xl" disabled={loggingIn}>
+                      <Button
+                        onClick={signInAsAdmin}
+                        className="h-10 w-full rounded-2xl"
+                        disabled={loggingIn}
+                      >
                         <LogIn className="mr-2 h-4 w-4" />
                         {loggingIn ? "Đang đăng nhập..." : "Đăng nhập admin"}
                       </Button>
@@ -1093,8 +1169,16 @@ export default function HoaHoiGameCanvasApp() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatCard icon={<Users className="h-5 w-5" />} title="Thành viên" value={summary.totalMembers} />
             <StatCard icon={<Flower2 className="h-5 w-5" />} title="Tổng loại hoa" value={summary.totalFlowers} />
-            <StatCard icon={<Database className="h-5 w-5" />} title="Hội đã sở hữu" value={ownershipsLoading ? "..." : summary.ownedFlowers} />
-            <StatCard icon={<AlertCircle className="h-5 w-5" />} title="Hội còn thiếu" value={ownershipsLoading ? "..." : summary.missingFlowers} />
+            <StatCard
+              icon={<Database className="h-5 w-5" />}
+              title="Hội đã sở hữu"
+              value={ownershipsLoading || !ownershipsLoaded ? "..." : summary.ownedFlowers}
+            />
+            <StatCard
+              icon={<AlertCircle className="h-5 w-5" />}
+              title="Hội còn thiếu"
+              value={ownershipsLoading || !ownershipsLoaded ? "..." : summary.missingFlowers}
+            />
           </div>
 
           <Tabs defaultValue="dashboard" className="space-y-4">
@@ -1103,12 +1187,48 @@ export default function HoaHoiGameCanvasApp() {
                 isAdmin ? "grid-cols-6" : "grid-cols-3"
               }`}
             >
-              <TabsTrigger value="dashboard" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Tổng quan</TabsTrigger>
-              <TabsTrigger value="members" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Thành viên</TabsTrigger>
-              <TabsTrigger value="flowers" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Hoa</TabsTrigger>
-              {isAdmin ? <TabsTrigger value="update" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Cập nhật sở hữu</TabsTrigger> : null}
-              {isAdmin ? <TabsTrigger value="addflower" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Thêm hoa mới</TabsTrigger> : null}
-              {isAdmin ? <TabsTrigger value="history" className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md">Lịch sử</TabsTrigger> : null}
+              <TabsTrigger
+                value="dashboard"
+                className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md"
+              >
+                Tổng quan
+              </TabsTrigger>
+              <TabsTrigger
+                value="members"
+                className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md"
+              >
+                Thành viên
+              </TabsTrigger>
+              <TabsTrigger
+                value="flowers"
+                className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md"
+              >
+                Hoa
+              </TabsTrigger>
+              {isAdmin ? (
+                <TabsTrigger
+                  value="update"
+                  className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md"
+                >
+                  Cập nhật sở hữu
+                </TabsTrigger>
+              ) : null}
+              {isAdmin ? (
+                <TabsTrigger
+                  value="addflower"
+                  className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md"
+                >
+                  Thêm hoa mới
+                </TabsTrigger>
+              ) : null}
+              {isAdmin ? (
+                <TabsTrigger
+                  value="history"
+                  className="rounded-2xl transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md"
+                >
+                  Lịch sử
+                </TabsTrigger>
+              ) : null}
             </TabsList>
 
             <TabsContent value="dashboard" className="space-y-4">
@@ -1133,7 +1253,7 @@ export default function HoaHoiGameCanvasApp() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {ownershipsLoading ? (
+                    {ownershipsLoading || !ownershipsLoaded ? (
                       <p className="text-sm text-slate-600">Đang đồng bộ dữ liệu sở hữu...</p>
                     ) : filteredRareFlowers.length === 0 ? (
                       <p className="text-sm text-slate-600">Không có hoa nào thuộc nhóm này.</p>
@@ -1143,16 +1263,17 @@ export default function HoaHoiGameCanvasApp() {
                           {filteredRareFlowers.map((flower) => {
                             const owners = ownersByFlower.get(String(flower.id)) || [];
                             return (
-                              <div key={flower.id} className="rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                              <div
+                                key={flower.id}
+                                className="rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                              >
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
                                     <div className="flex items-center gap-3">
                                       <FlowerThumbnail flower={flower} />
                                       <p className="font-semibold">{flowerLabel(flower)}</p>
                                     </div>
-                                    <p className="mt-1 text-sm text-slate-600">
-                                      {ownershipsLoading || !ownershipsLoaded ? "Đang đồng bộ dữ liệu sở hữu" : `${owners.length} người sở hữu`}
-                                    </p>
+                                    <p className="mt-1 text-sm text-slate-600">{`${owners.length} người sở hữu`}</p>
                                     {owners.length > 0 ? (
                                       <div className="mt-2 flex flex-wrap gap-2">
                                         {owners.map((owner) => (
@@ -1196,7 +1317,7 @@ export default function HoaHoiGameCanvasApp() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {loading || ownershipsLoading ? (
+                    {loading || ownershipsLoading || !ownershipsLoaded ? (
                       <p className="text-sm text-slate-600">Đang đồng bộ danh sách hoa còn thiếu...</p>
                     ) : filteredMissingFlowers.length === 0 ? (
                       <p className="text-sm text-slate-600">Hiện không có hoa thiếu trong nhóm đang lọc.</p>
@@ -1204,7 +1325,10 @@ export default function HoaHoiGameCanvasApp() {
                       <ScrollArea className="h-[520px] pr-4">
                         <div className="space-y-3">
                           {filteredMissingFlowers.map((flower) => (
-                            <div key={flower.id} className="rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                            <div
+                              key={flower.id}
+                              className="rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                            >
                               <div className="flex items-start justify-between gap-3">
                                 <div>
                                   <div className="flex items-center gap-3">
@@ -1252,7 +1376,7 @@ export default function HoaHoiGameCanvasApp() {
                       };
 
                       return (
-                        <Card key={member.id} className="rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-30px_rgba(99,102,241,0.22)]">
+                        <Card className="rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-30px_rgba(99,102,241,0.22)]" key={member.id}>
                           <CardHeader>
                             <div className="flex items-center justify-between gap-3">
                               <CardTitle className="text-xl">{member.name}</CardTitle>
@@ -1278,7 +1402,7 @@ export default function HoaHoiGameCanvasApp() {
                           </CardHeader>
                           <CardContent className="space-y-3">
                             <p className="text-sm text-slate-600">
-                              {`Thành viên này hiện đang sở hữu ${ownershipsLoading || !ownershipsLoaded ? "..." : ownedCount} loại hoa.`}
+                              Thành viên này hiện đang sở hữu {ownershipsLoading || !ownershipsLoaded ? "..." : ownedCount} loại hoa.
                             </p>
                             <div className="flex items-center gap-4">
                               <CircleProgress percent={memberProgress.percent} />
@@ -1301,73 +1425,158 @@ export default function HoaHoiGameCanvasApp() {
             </TabsContent>
 
             <TabsContent value="flowers" className="space-y-4">
-              <Card className="rounded-[28px] border border-white/70 bg-white/88 shadow-[0_16px_45px_-26px_rgba(15,23,42,0.28)] backdrop-blur">
-                <CardHeader>
-                  <CardTitle>Tra cứu theo hoa</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input
-                      value={flowerSearch}
-                      onChange={(e) => setFlowerSearch(e.target.value)}
-                      placeholder="Tìm theo tên hoa..."
-                      className="rounded-2xl pl-9"
-                    />
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {filteredFlowers.map((flower) => {
-                      const owners = ownersByFlower.get(String(flower.id)) || [];
-                      return (
-                        <Card key={flower.id} className="rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-30px_rgba(99,102,241,0.22)]">
-                          <CardHeader>
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="flex items-center gap-3">
-                                  <FlowerThumbnail flower={flower} />
-                                  <CardTitle className="text-lg">{flowerLabel(flower)}</CardTitle>
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                <Card className="rounded-[28px] border border-white/70 bg-white/88 shadow-[0_16px_45px_-26px_rgba(15,23,42,0.28)] backdrop-blur">
+                  <CardHeader>
+                    <CardTitle>Tra cứu theo hoa</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                      <Input
+                        value={flowerSearch}
+                        onChange={(e) => setFlowerSearch(e.target.value)}
+                        placeholder="Tìm theo tên hoa..."
+                        className="rounded-2xl pl-9"
+                      />
+                    </div>
+                    <ScrollArea className="h-[760px] pr-4">
+                      <div className="space-y-4">
+                        {filteredFlowers.map((flower) => {
+                          const owners = ownersByFlower.get(String(flower.id)) || [];
+                          return (
+                            <Card className="rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_45px_-30px_rgba(15,23,42,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-30px_rgba(99,102,241,0.22)]" key={flower.id}>
+                              <CardHeader>
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <div className="flex items-center gap-3">
+                                      <FlowerThumbnail flower={flower} />
+                                      <CardTitle className="text-lg">{flowerLabel(flower)}</CardTitle>
+                                    </div>
+                                    <p className="mt-1 text-sm text-slate-600">Nhóm {flower.group}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="secondary">{ownershipsLoading || !ownershipsLoaded ? "..." : `${owners.length} người`}</Badge>
+                                    {isAdmin ? (
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button variant="outline" size="sm" className="rounded-2xl">
+                                            Sửa tên
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="rounded-3xl">
+                                          <DialogHeader>
+                                            <DialogTitle>Sửa tên hoa</DialogTitle>
+                                          </DialogHeader>
+                                          <EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} />
+                                        </DialogContent>
+                                      </Dialog>
+                                    ) : null}
+                                  </div>
                                 </div>
-                                <p className="mt-1 text-sm text-slate-600">Nhóm {flower.group}</p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="secondary">{ownershipsLoading || !ownershipsLoaded ? "..." : `${owners.length} người`}</Badge>
-                                {isAdmin ? (
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button variant="outline" size="sm" className="rounded-2xl">
-                                        Sửa tên
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="rounded-3xl">
-                                      <DialogHeader>
-                                        <DialogTitle>Sửa tên hoa</DialogTitle>
-                                      </DialogHeader>
-                                      <EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} />
-                                    </DialogContent>
-                                  </Dialog>
-                                ) : null}
-                              </div>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            {owners.length === 0 ? (
-                              <p className="text-sm text-slate-600">Hiện chưa có ai sở hữu.</p>
-                            ) : (
-                              <div className="flex flex-wrap gap-2">
-                                {owners.map((owner) => (
-                                  <Badge key={`${flower.id}-${owner}`} variant="outline" className="rounded-full">
-                                    {owner}
+                              </CardHeader>
+                              <CardContent>
+                                {owners.length === 0 ? (
+                                  <p className="text-sm text-slate-600">Hiện chưa có ai sở hữu.</p>
+                                ) : (
+                                  <div className="flex flex-wrap gap-2">
+                                    {owners.map((owner) => (
+                                      <Badge key={`${flower.id}-${owner}`} variant="outline" className="rounded-full">
+                                        {owner}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-[28px] border border-white/70 bg-white/88 shadow-[0_16px_45px_-26px_rgba(15,23,42,0.28)] backdrop-blur">
+                  <CardHeader className="space-y-4">
+                    <div>
+                      <CardTitle>Tra cứu theo thành viên</CardTitle>
+                      <p className="mt-1 text-sm text-slate-600">Chọn một thành viên để xem bộ sưu tập theo nhóm hoa.</p>
+                    </div>
+                    <div className="w-full">
+                      <Select value={memberFlowerLookup} onValueChange={setMemberFlowerLookup}>
+                        <SelectTrigger className="rounded-2xl">
+                          <SelectValue placeholder="Chọn thành viên" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">-- Chọn thành viên --</SelectItem>
+                          {members.map((member) => (
+                            <SelectItem key={member.id} value={String(member.id)}>
+                              {member.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {!selectedMemberFlowerLookup ? (
+                      <div className="flex h-[760px] items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-slate-50/60 text-sm text-slate-500">
+                        Hãy chọn một thành viên để xem người đó đang có những loại hoa gì.
+                      </div>
+                    ) : ownershipsLoading ? (
+                      <div className="flex h-[760px] items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-slate-50/60 text-sm text-slate-500">
+                        Đang đồng bộ dữ liệu sở hữu...
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="rounded-2xl border bg-slate-50 px-4 py-3">
+                          <p className="text-sm text-slate-500">Thành viên</p>
+                          <div className="mt-1 flex items-center justify-between gap-3">
+                            <p className="font-semibold text-slate-900">{selectedMemberFlowerLookup.name}</p>
+                            <Badge variant="secondary">{ownershipsLoading || !ownershipsLoaded ? "..." : `${flowersBySelectedMember.length} hoa`}</Badge>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-3 xl:grid-cols-5 md:grid-cols-2">
+                          {["Đỏ", "Vàng", "Tím", "Lam", "Lục"].map((group) => {
+                            const groupFlowers = memberFlowersByGroup[group] || [];
+                            return (
+                              <div key={group} className="rounded-3xl border border-slate-200/80 bg-white p-3 shadow-sm">
+                                <div className="mb-3 flex items-center justify-between gap-2">
+                                  <Badge variant="outline" className={groupBadgeClass(group)}>
+                                    {group}
                                   </Badge>
-                                ))}
+                                  <span className="text-xs text-slate-500">{groupFlowers.length}</span>
+                                </div>
+                                <ScrollArea className="h-[620px] pr-2">
+                                  <div className="space-y-2">
+                                    {groupFlowers.length === 0 ? (
+                                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-400">
+                                        Chưa có hoa
+                                      </div>
+                                    ) : (
+                                      groupFlowers.map((flower) => (
+                                        <div key={`${group}-${flower.id}`} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-3 py-2">
+                                          <div className="flex items-center gap-2">
+                                            <FlowerThumbnail flower={flower} size="sm" />
+                                            <p className="text-sm font-medium text-slate-700 leading-snug break-words line-clamp-2">
+                                              {flowerLabel(flower)}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </ScrollArea>
                               </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {isAdmin ? (
@@ -1604,7 +1813,10 @@ export default function HoaHoiGameCanvasApp() {
                               </DialogHeader>
                               <div className="grid gap-4 md:grid-cols-2">
                                 {FLOWER_GROUPS.map((group) => (
-                                  <div key={group} className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                                  <div
+                                    key={group}
+                                    className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                                  >
                                     <p className="font-semibold">{group}</p>
                                     <div className="mt-3 flex flex-wrap gap-2">
                                       {flowers
@@ -1625,7 +1837,10 @@ export default function HoaHoiGameCanvasApp() {
                       <CardContent>
                         <div className="grid gap-3 md:grid-cols-2">
                           {flowers.map((flower) => (
-                            <div key={flower.id} className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                            <div
+                              key={flower.id}
+                              className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                            >
                               <div className="flex items-start justify-between gap-3">
                                 <div>
                                   <div className="flex items-center gap-3">
@@ -1633,7 +1848,7 @@ export default function HoaHoiGameCanvasApp() {
                                     <p className="font-medium">{flowerLabel(flower)}</p>
                                   </div>
                                   <p className="mt-1 text-sm text-slate-600">
-                                    {ownershipsLoading || !ownershipsLoaded
+                                    {ownershipsLoading
                                       ? "Đang đồng bộ dữ liệu sở hữu"
                                       : `${ownersByFlower.get(String(flower.id))?.length || 0} người đang sở hữu`}
                                   </p>
@@ -1711,6 +1926,7 @@ export default function HoaHoiGameCanvasApp() {
 
 function PlaceholderFlowerIcon({ size = "md" }) {
   const iconClass = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={iconClass} aria-hidden="true">
       <path d="M12 21c1.6-2.8 2.4-5.2 2.4-7.2A4.4 4.4 0 0 0 10 9.4c-2.4 0-4.4 2-4.4 4.4 0 2 1 4.3 2.8 6.5" />
@@ -1795,7 +2011,9 @@ function StatCard({ icon, title, value }) {
   return (
     <Card className="group rounded-[28px] border border-white/70 bg-white/85 shadow-[0_16px_45px_-24px_rgba(15,23,42,0.32)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-24px_rgba(79,70,229,0.28)]">
       <CardContent className="flex items-center gap-4 p-6">
-        <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-3 text-slate-700 transition-transform duration-300 group-hover:scale-105">{icon}</div>
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-3 text-slate-700 transition-transform duration-300 group-hover:scale-105">
+          {icon}
+        </div>
         <div>
           <p className="text-sm font-medium text-slate-500">{title}</p>
           <p className="mt-1 text-2xl font-bold tracking-tight text-slate-950">{value}</p>

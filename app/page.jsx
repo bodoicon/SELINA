@@ -39,8 +39,22 @@ const GROUP_STYLES = {
   Đỏ: "border-red-200 bg-red-50 text-red-700",
 };
 
+const TITLE_STYLES = {
+  "hội trưởng": "border-red-200 bg-red-50 text-red-700",
+  "hội phó": "border-orange-200 bg-orange-50 text-orange-700",
+  "quản lý": "border-violet-200 bg-violet-50 text-violet-700",
+  "tinh anh": "border-blue-200 bg-blue-50 text-blue-700",
+  "thành viên": "border-green-200 bg-green-50 text-green-700",
+  "ngọn cỏ ven đường": "border-slate-200 bg-slate-100 text-slate-700",
+};
+
 function groupBadgeClass(group) {
   return GROUP_STYLES[group] || "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function titleBadgeClass(titleName) {
+  const normalized = String(titleName || "").trim().toLowerCase();
+  return TITLE_STYLES[normalized] || "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function flowerLabel(flower) {
@@ -1081,6 +1095,56 @@ export default function HoaHoiGameCanvasApp() {
     await loadAllData();
   }
 
+  async function removeTitleFromMember(titleId, memberId) {
+    if (!isAdmin) return;
+    if (!titleFeatureAvailable) {
+      setTitleMessage("Chưa dùng được chức danh vì Supabase chưa có bảng titles và member_titles.");
+      return;
+    }
+
+    const title = titles.find((item) => String(item.id) === String(titleId));
+    const member = members.find((item) => String(item.id) === String(memberId));
+    if (!title || !member) {
+      setTitleMessage("Không tìm thấy chức danh hoặc thành viên cần gỡ.");
+      return;
+    }
+
+    setSavingTitle(true);
+    setTitleMessage(`Đang gỡ chức danh ${title.name} khỏi ${member.name}...`);
+
+    const { data: removedAssignments, error: deleteAssignmentsError } = await supabase
+      .from("member_titles")
+      .delete()
+      .eq("title_id", titleId)
+      .eq("member_id", memberId)
+      .select("id");
+
+    setSavingTitle(false);
+
+    if (deleteAssignmentsError) {
+      setTitleMessage(`Không gỡ được chức danh khỏi thành viên: ${deleteAssignmentsError.message}`);
+      return;
+    }
+
+    if (!removedAssignments || removedAssignments.length === 0) {
+      setTitleMessage(`Không gỡ được chức danh ${title.name} khỏi ${member.name}. Khả năng cao là bảng member_titles đang bị RLS chặn quyền xóa.`);
+      return;
+    }
+
+    setMemberTitles((prev) => prev.filter((row) => !(String(row.titleId) === String(titleId) && String(row.memberId) === String(memberId))));
+
+    await logAction({
+      actionType: "remove_title_from_member",
+      actorName: user?.email || "Quản trị hội",
+      targetType: "title",
+      targetName: title.name,
+      details: `Gỡ khỏi: ${member.name}`,
+    });
+
+    setTitleMessage(`Đã gỡ chức danh ${title.name} khỏi ${member.name}.`);
+    await loadAllData();
+  }
+
   const tabsClass = "!w-full rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-normal break-words transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:rounded-2xl sm:px-4 sm:text-sm";
 
   return (
@@ -1308,7 +1372,7 @@ export default function HoaHoiGameCanvasApp() {
           <TabsContent value="members" className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle className="font-sans">Tra cứu theo thành viên</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Tìm theo tên thành viên..." className="rounded-2xl pl-9" /></div><div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredMembers.map((member) => { const ownedCount = memberFlowerCounts[String(member.id)] || 0; return <Card key={member.id} className="rounded-[24px]"><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><div className="space-y-1">
                         <CardTitle className="text-lg leading-snug sm:text-xl">{member.name}</CardTitle>
                         {titleByMemberId.get(String(member.id))?.name ? (
-                          <Badge variant="outline" className="rounded-full">{titleByMemberId.get(String(member.id))?.name}</Badge>
+                          <Badge variant="outline" className={`rounded-full ${titleBadgeClass(titleByMemberId.get(String(member.id))?.name)}`}>{titleByMemberId.get(String(member.id))?.name}</Badge>
                         ) : null}
                       </div><div className="flex items-center gap-2"><Badge variant="secondary">{ownedCount} hoa</Badge><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>Sửa tên thành viên</DialogTitle></DialogHeader><EditMemberForm member={member} onSave={(newName) => renameMember(member.id, newName)} /></DialogContent></Dialog></div></div></CardHeader><CardContent className="space-y-3"><div className="flex items-center gap-3 sm:gap-4"><CircleProgress percent={summary.totalFlowers ? Math.round((ownedCount / summary.totalFlowers) * 100) : 0} /><div className="text-sm text-slate-600"><p>Tiến độ sưu tập</p><p className="font-medium">{ownedCount}/{summary.totalFlowers}</p></div></div></CardContent></Card>; })}</div></CardContent></Card></TabsContent>
 
@@ -1492,7 +1556,7 @@ export default function HoaHoiGameCanvasApp() {
                                         <p className="font-medium">{member.name}</p>
                                         <p className="mt-1 text-sm text-slate-600">{currentTitle}</p>
                                       </div>
-                                      {titleByMemberId.get(String(member.id))?.name ? <Badge variant="outline" className="rounded-full">{titleByMemberId.get(String(member.id))?.name}</Badge> : null}
+                                      {titleByMemberId.get(String(member.id))?.name ? <Badge variant="outline" className={`rounded-full ${titleBadgeClass(titleByMemberId.get(String(member.id))?.name)}`}>{titleByMemberId.get(String(member.id))?.name}</Badge> : null}
                                     </div>
                                   </div>
                                 </label>
@@ -1519,17 +1583,36 @@ export default function HoaHoiGameCanvasApp() {
                               return (
                                 <div key={title.id} className="rounded-3xl border p-4">
                                   <div className="flex items-center justify-between gap-3">
-                                    <p className="font-semibold">{title.name}</p>
-                                    <Badge variant="secondary">{assignedMembers.length} người</Badge>
+                                    <Badge variant="outline" className={`rounded-full ${titleBadgeClass(title.name)}`}>{title.name}</Badge>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="secondary">{assignedMembers.length} người</Badge>
+                                      <Badge variant="secondary">{assignedMembers.length} người</Badge>
+                                    </div>
                                   </div>
                                   <div className="mt-3 flex flex-wrap gap-2">
                                     {assignedMembers.length === 0 ? (
                                       <span className="text-sm text-slate-500">Chưa có ai giữ chức danh này.</span>
                                     ) : (
                                       assignedMembers.map((member) => (
-                                        <Badge key={`${title.id}-${member.id}`} variant="outline" className="rounded-full">
-                                          {member.name}
-                                        </Badge>
+                                        <div key={`${title.id}-${member.id}`} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1">
+                                          <Badge variant="outline" className={`rounded-full ${titleBadgeClass(title.name)}`}>
+                                            {member.name}
+                                          </Badge>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 rounded-full px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              void removeTitleFromMember(title.id, member.id);
+                                            }}
+                                            disabled={savingTitle}
+                                          >
+                                            Gỡ
+                                          </Button>
+                                        </div>
                                       ))
                                     )}
                                   </div>

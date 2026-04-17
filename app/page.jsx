@@ -246,7 +246,7 @@ function FlowerThumbnail({ flower, size = "md" }) {
   );
 }
 
-function CircleProgress({ percent = 0, size = "md" }) {
+function CircleProgress({ percent = 0, size = "md", strokeColor = "#0f172a", glowClass = "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(99,102,241,0.12),rgba(14,165,233,0.08),rgba(168,85,247,0.12))]" }) {
   const radius = size === "sm" ? 20 : 26;
   const stroke = size === "sm" ? 5 : 6;
   const normalizedRadius = radius - stroke / 2;
@@ -257,15 +257,22 @@ function CircleProgress({ percent = 0, size = "md" }) {
 
   return (
     <div className={`relative ${wrapperClass}`}>
-      <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_180deg_at_50%_50%,rgba(99,102,241,0.12),rgba(14,165,233,0.08),rgba(168,85,247,0.12))] blur-md" />
-      <svg viewBox={`0 0 ${radius * 2} ${radius * 2}`} className="relative h-full w-full">
-        <circle stroke="#e5e7eb" fill="transparent" strokeWidth={stroke} r={normalizedRadius} cx={radius} cy={radius} />
+      <div className={`absolute inset-0 rounded-full blur-md ${glowClass}`} />
+      <svg viewBox={`0 0 ${radius * 2} ${radius * 2}`} className="relative h-full w-full -rotate-90">
         <circle
-          stroke="#0f172a"
+          stroke="#e5e7eb"
+          fill="transparent"
+          strokeWidth={stroke}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+        />
+        <circle
+          stroke={strokeColor}
           fill="transparent"
           strokeWidth={stroke}
           strokeDasharray={`${circumference} ${circumference}`}
-          style={{ strokeDashoffset }}
+          strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
           r={normalizedRadius}
           cx={radius}
@@ -277,11 +284,52 @@ function CircleProgress({ percent = 0, size = "md" }) {
   );
 }
 
+function groupProgressCircleStyle(group) {
+  switch (group) {
+    case "Đỏ":
+      return {
+        strokeColor: "#ef4444",
+        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(239,68,68,0.18),rgba(248,113,113,0.10),rgba(254,202,202,0.16))]",
+      };
+    case "Vàng":
+      return {
+        strokeColor: "#f59e0b",
+        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(245,158,11,0.18),rgba(251,191,36,0.10),rgba(253,230,138,0.16))]",
+      };
+    case "Tím":
+      return {
+        strokeColor: "#8b5cf6",
+        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(139,92,246,0.18),rgba(167,139,250,0.10),rgba(221,214,254,0.16))]",
+      };
+    case "Lam":
+      return {
+        strokeColor: "#3b82f6",
+        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(59,130,246,0.18),rgba(96,165,250,0.10),rgba(191,219,254,0.16))]",
+      };
+    case "Lục":
+      return {
+        strokeColor: "#22c55e",
+        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(34,197,94,0.18),rgba(74,222,128,0.10),rgba(187,247,208,0.16))]",
+      };
+    default:
+      return {
+        strokeColor: "#0f172a",
+        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(99,102,241,0.12),rgba(14,165,233,0.08),rgba(168,85,247,0.12))]",
+      };
+  }
+}
+
+function SectionEmpty({ children }) {
+  return <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">{children}</div>;
+}
+
 function StatCard({ icon, title, value }) {
   return (
-    <Card className="group rounded-[22px] border border-white/70 bg-white/85 shadow-[0_16px_45px_-24px_rgba(15,23,42,0.32)] backdrop-blur sm:rounded-[28px]">
+    <Card className="group rounded-[22px] border border-white/70 bg-white/85 shadow-[0_16px_45px_-24px_rgba(15,23,42,0.32)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-24px_rgba(79,70,229,0.28)] sm:rounded-[28px]">
       <CardContent className="flex items-center gap-3 p-4 sm:gap-4 sm:p-6">
-        <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-2.5 text-slate-700 sm:p-3">{icon}</div>
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-2.5 text-slate-700 transition-transform duration-300 group-hover:scale-105 sm:p-3">
+          {icon}
+        </div>
         <div className="min-w-0">
           <p className="text-xs font-medium text-slate-500 sm:text-sm">{title}</p>
           <p className="mt-1 truncate text-lg font-bold tracking-tight text-slate-950 sm:text-2xl">{value}</p>
@@ -289,10 +337,6 @@ function StatCard({ icon, title, value }) {
       </CardContent>
     </Card>
   );
-}
-
-function SectionEmpty({ children }) {
-  return <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">{children}</div>;
 }
 
 function EditMemberForm({ member, onSave }) {
@@ -643,6 +687,19 @@ export default function HoaHoiGameCanvasApp() {
     });
     return counts;
   }, [flowers, ownerships]);
+
+  const groupProgressRows = useMemo(() => {
+    return MEMBER_FLOWER_GROUP_ORDER.map((group) => {
+      const total = flowers.filter((flower) => flower.group === group).length;
+      const owned = groupOwnedCounts[group] || 0;
+      return {
+        group,
+        total,
+        owned,
+        percent: total ? Math.round((owned / total) * 100) : 0,
+      };
+    });
+  }, [flowers, groupOwnedCounts]);
 
   const rankingsByGroup = useMemo(() => {
     const grouped = { Đỏ: [], Vàng: [], Tím: [], Lam: [], Lục: [] };
@@ -1251,7 +1308,7 @@ export default function HoaHoiGameCanvasApp() {
     >
       <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
         <div className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/85 p-4 shadow-[0_20px_70px_-30px_rgba(15,23,42,0.35)] backdrop-blur sm:p-5 md:rounded-[32px] md:p-8">
-          <div className="relative grid gap-5 xl:grid-cols-[1fr_360px] xl:items-start">
+          <div className="relative">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500">Selina Flower Dashboard</div>
               <h1
@@ -1260,22 +1317,12 @@ export default function HoaHoiGameCanvasApp() {
               >Quản Lý Hoa Hội SELINA</h1>
               <p className="mt-3 max-w-3xl text-sm text-slate-600">Thành viên chỉ có thể tra cứu thông tin. Các chức năng quản trị chỉ hiển thị cho admin đã đăng nhập.</p>
               <div className="mt-5 flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm">
-                  <CircleProgress percent={summary.completionRate} size="sm" />
-                  <span className="font-medium text-slate-800">{ownershipsLoading || !ownershipsLoaded ? "Đang đồng bộ..." : `${summary.ownedFlowers}/${summary.totalFlowers} (${summary.completionRate}%)`}</span>
-                </div>
                 {ownershipsLoaded && topMembers.map((member, index) => (
                   <div key={member.id} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm">
                     <Trophy className="h-3.5 w-3.5 text-amber-500" />
                     <span>Top {index + 1}: {member.name} ({member.ownedCount})</span>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            <div className="rounded-[24px] border border-slate-200 bg-white/90 p-3 shadow-sm">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Hội đã sở hữu theo nhóm</p>
                 <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="h-8 rounded-xl px-3 text-xs"><Shield className="mr-1 h-3.5 w-3.5" />{isAdmin ? "Admin" : "Đăng nhập"}</Button>
@@ -1299,15 +1346,6 @@ export default function HoaHoiGameCanvasApp() {
                     )}
                   </DialogContent>
                 </Dialog>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {MEMBER_FLOWER_GROUP_ORDER.map((group) => (
-                  <div key={group} className={`inline-flex min-w-[96px] flex-1 items-center justify-between rounded-2xl border px-3 py-2 text-sm ${groupBadgeClass(group)}`}>
-                    <span className="font-medium">{group}</span>
-                    <span className="font-semibold">{groupOwnedCounts[group] || 0}</span>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
@@ -1338,39 +1376,41 @@ export default function HoaHoiGameCanvasApp() {
             <div className="grid gap-4 xl:grid-cols-[0.95fr_1fr_1fr]">
               <Card className="rounded-[28px] border border-white/70 bg-white/85 shadow-[0_16px_45px_-24px_rgba(15,23,42,0.18)]">
                 <CardHeader className="flex flex-row items-center justify-between gap-3">
-                  <CardTitle className="font-sans">Xếp hạng theo phân loại</CardTitle>
+                  <CardTitle className="font-sans">Tiến độ sưu tập của hội</CardTitle>
                   <span className="text-sm text-slate-500">Theo nhóm</span>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-[320px] pr-3 md:h-[520px]">
-                    <div className="space-y-3">
-                      {MEMBER_FLOWER_GROUP_ORDER.map((group) => {
-                        const items = rankingsByGroup[group] || [];
-                        return (
-                          <div key={group} className={`rounded-3xl border p-4 ${groupBadgeClass(group)}`}>
-                            <div className="mb-3 flex items-center justify-between gap-3">
-                              <p className="text-lg font-semibold">{group}</p>
-                            </div>
-                            {items.length === 0 ? (
-                              <p className="text-sm opacity-80">Chưa có dữ liệu</p>
-                            ) : (
-                              <div className="space-y-2 text-sm text-slate-800">
-                                {items.map((item, index) => (
-                                  <div key={`${group}-${item.memberId}`} className="flex items-start justify-between gap-3 rounded-2xl bg-white/70 px-3 py-2">
-                                    <div className="min-w-0">
-                                      <span className="mr-2 font-semibold">{index + 1}.</span>
-                                      <span className="break-words">{item.memberName}</span>
-                                    </div>
-                                    <span className="font-semibold">{item.count}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="flex items-center gap-4">
+                      <CircleProgress percent={summary.completionRate} />
+                      <div>
+                        <p className="text-sm text-slate-500">Tổng tiến độ</p>
+                        <p className="mt-1 text-lg font-semibold text-slate-900">
+                          {summary.ownedFlowers}/{summary.totalFlowers} ({summary.completionRate}%)
+                        </p>
+                      </div>
                     </div>
-                  </ScrollArea>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {groupProgressRows.map((item) => {
+                      const circleStyle = groupProgressCircleStyle(item.group);
+                      return (
+                      <div key={item.group} className="rounded-3xl border border-slate-200 bg-white p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <Badge variant="outline" className={groupBadgeClass(item.group)}>{item.group}</Badge>
+                          <span className="text-sm font-semibold text-slate-700">{item.owned}/{item.total}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <CircleProgress percent={item.percent} size="sm" strokeColor={circleStyle.strokeColor} glowClass={circleStyle.glowClass} />
+                          <div>
+                            <p className="text-sm font-medium text-slate-700">Phẩm {item.group}</p>
+                            <p className="text-sm text-slate-500">{item.percent}% hoàn thành</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                    })}
+                  </div>
                 </CardContent>
               </Card>
 

@@ -417,6 +417,8 @@ export default function HoaHoiGameCanvasApp() {
   const [memberPickerSearch, setMemberPickerSearch] = useState("");
   const [newMemberName, setNewMemberName] = useState("");
   const [selectedFlowerIds, setSelectedFlowerIds] = useState([]);
+  const [selectedRemovalFlowerIds, setSelectedRemovalFlowerIds] = useState([]);
+  const [removalFlowerSearch, setRemovalFlowerSearch] = useState("");
   const [updateSearch, setUpdateSearch] = useState("");
   const [updateGroupFilter, setUpdateGroupFilter] = useState("all");
   const [updateMessage, setUpdateMessage] = useState("");
@@ -743,6 +745,24 @@ export default function HoaHoiGameCanvasApp() {
     });
   }, [flowers, updateSearch, updateGroupFilter]);
 
+  const selectedExistingMember = useMemo(() => {
+    return members.find((member) => String(member.id) === String(selectedExistingMemberId)) || null;
+  }, [members, selectedExistingMemberId]);
+
+  const removableFlowers = useMemo(() => {
+    if (!selectedExistingMember) return [];
+    const ownedIds = new Set(
+      ownerships
+        .filter((row) => String(row.memberId) === String(selectedExistingMember.id))
+        .map((row) => String(row.flowerId))
+    );
+    const q = removalFlowerSearch.trim().toLowerCase();
+    return flowers
+      .filter((flower) => ownedIds.has(String(flower.id)))
+      .filter((flower) => !q || flowerLabel(flower).toLowerCase().includes(q))
+      .sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  }, [selectedExistingMember, ownerships, flowers, removalFlowerSearch]);
+
   const filteredManageFlowers = useMemo(() => {
     const q = flowerManageSearch.trim().toLowerCase();
     if (!q) return flowers;
@@ -932,6 +952,13 @@ export default function HoaHoiGameCanvasApp() {
     });
   }
 
+  function toggleRemovalFlowerSelection(flowerId) {
+    setSelectedRemovalFlowerIds((prev) => {
+      const key = String(flowerId);
+      return prev.includes(key) ? prev.filter((id) => id !== key) : [...prev, key];
+    });
+  }
+
   async function saveOwnershipUpdate() {
     if (!isAdmin) return;
     setUpdateMessage("");
@@ -975,6 +1002,7 @@ export default function HoaHoiGameCanvasApp() {
     }
 
     setSelectedFlowerIds([]);
+    setSelectedRemovalFlowerIds([]);
     setSelectedExistingMemberId("none");
     setNewMemberName("");
     setUpdateMessage(`Đã cập nhật ${additions.length} loại hoa mới cho ${member.name}.`);
@@ -988,6 +1016,71 @@ export default function HoaHoiGameCanvasApp() {
         .map((item) => flowers.find((flower) => String(flower.id) === String(item.flower_id))?.name || item.flower_id)
         .join(", ")}`,
     });
+    await loadAllData();
+  }
+
+  async function removeOwnershipFromMember() {
+    if (!isAdmin) return;
+    setUpdateMessage("");
+
+    if (!selectedExistingMember) {
+      setUpdateMessage("Hãy chọn thành viên cũ để gỡ hoa.");
+      return;
+    }
+
+    if (selectedRemovalFlowerIds.length === 0) {
+      setUpdateMessage("Hãy chọn ít nhất 1 loại hoa cần gỡ.");
+      return;
+    }
+
+    setSavingOwnership(true);
+    const flowerIdsToRemove = [...new Set(selectedRemovalFlowerIds.map(String))];
+
+    const { data: removedRows, error } = await supabase
+      .from("member_flowers")
+      .delete()
+      .eq("member_id", selectedExistingMember.id)
+      .in("flower_id", flowerIdsToRemove)
+      .select("id, flower_id");
+
+    setSavingOwnership(false);
+
+    if (error) {
+      setUpdateMessage(`Không gỡ được hoa khỏi thành viên: ${error.message}`);
+      return;
+    }
+
+    const removedCount = removedRows?.length || 0;
+    if (removedCount === 0) {
+      setUpdateMessage(
+        `Không gỡ được hoa khỏi ${selectedExistingMember.name}. Khả năng cao là bảng member_flowers đang bị chặn quyền xóa hoặc không tìm thấy dòng khớp dữ liệu.`
+      );
+      return;
+    }
+
+    const removedFlowerIds = [...new Set((removedRows || []).map((row) => String(row.flower_id)))];
+
+    await logAction({
+      actionType: "remove_ownership",
+      actorName: user?.email || "Quản trị hội",
+      targetType: "member",
+      targetName: selectedExistingMember.name,
+      details: `Gỡ ${removedFlowerIds.length} hoa: ${removedFlowerIds
+        .map((id) => flowers.find((flower) => String(flower.id) === String(id))?.name || id)
+        .join(", ")}`,
+    });
+
+    setOwnerships((prev) =>
+      prev.filter(
+        (row) =>
+          !(
+            String(row.memberId) === String(selectedExistingMember.id) &&
+            removedFlowerIds.includes(String(row.flowerId))
+          )
+      )
+    );
+    setSelectedRemovalFlowerIds([]);
+    setUpdateMessage(`Đã gỡ ${removedFlowerIds.length} loại hoa khỏi ${selectedExistingMember.name}.`);
     await loadAllData();
   }
 
@@ -1461,13 +1554,39 @@ export default function HoaHoiGameCanvasApp() {
                       <Input value={updateSearch} onChange={(e) => setUpdateSearch(e.target.value)} placeholder="Tìm tên hoa" className="rounded-2xl" />
                       <Select value={updateGroupFilter} onValueChange={setUpdateGroupFilter}><SelectTrigger className="rounded-2xl"><SelectValue placeholder="Lọc theo nhóm" /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả nhóm</SelectItem>{FLOWER_GROUPS.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select>
                     </div>
-                    <Button onClick={saveOwnershipUpdate} className="w-full rounded-2xl" disabled={savingOwnership}>{savingOwnership ? "Đang lưu..." : "Lưu cập nhật sở hữu"}</Button>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Button onClick={saveOwnershipUpdate} className="w-full rounded-2xl" disabled={savingOwnership}>
+                        {savingOwnership ? "Đang lưu..." : "Lưu cập nhật sở hữu"}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={removeOwnershipFromMember} className="w-full rounded-2xl" disabled={savingOwnership || !selectedExistingMember}>
+                        {savingOwnership ? "Đang xử lý..." : "Gỡ hoa khỏi thành viên"}
+                      </Button>
+                    </div>
                     {updateMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{updateMessage}</div> : null}
                   </div>
-                  <Card className="rounded-[28px]">
-                    <CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle>Chọn nhiều hoa</CardTitle><Badge variant="secondary">Đã chọn {selectedFlowerIds.length}</Badge></div></CardHeader>
-                    <CardContent><ScrollArea className="h-[420px] pr-4"><div className="space-y-3">{selectableFlowers.map((flower) => { const checked = selectedFlowerIds.includes(String(flower.id)); return <label key={flower.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleFlowerSelection(flower.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-3"><FlowerThumbnail flower={flower} size="sm" /><p className="font-medium">{flowerLabel(flower)}</p></div><p className="mt-1 text-sm text-slate-600">Hiện có {ownersByFlower.get(String(flower.id))?.length || 0} người sở hữu</p></div><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></div></div></label>; })}</div></ScrollArea></CardContent>
-                  </Card>
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    <Card className="rounded-[28px]">
+                      <CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle>Chọn hoa để thêm</CardTitle><Badge variant="secondary">Đã chọn {selectedFlowerIds.length}</Badge></div></CardHeader>
+                      <CardContent><ScrollArea className="h-[420px] pr-4"><div className="space-y-3">{selectableFlowers.map((flower) => { const checked = selectedFlowerIds.includes(String(flower.id)); return <label key={flower.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleFlowerSelection(flower.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-3"><FlowerThumbnail flower={flower} size="sm" /><p className="font-medium">{flowerLabel(flower)}</p></div><p className="mt-1 text-sm text-slate-600">Hiện có {ownersByFlower.get(String(flower.id))?.length || 0} người sở hữu</p></div><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></div></div></label>; })}</div></ScrollArea></CardContent>
+                    </Card>
+
+                    <Card className="rounded-[28px]">
+                      <CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle>Chọn hoa để gỡ</CardTitle><Badge variant="secondary">Đã chọn {selectedRemovalFlowerIds.length}</Badge></div></CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                          <Input value={removalFlowerSearch} onChange={(e) => setRemovalFlowerSearch(e.target.value)} placeholder="Tìm tên hoa để gỡ..." className="rounded-2xl pl-9" />
+                        </div>
+                        {!selectedExistingMember ? (
+                          <SectionEmpty>Hãy chọn thành viên cũ để xem những hoa đang sở hữu và gỡ khi cần.</SectionEmpty>
+                        ) : removableFlowers.length === 0 ? (
+                          <SectionEmpty>{selectedExistingMember.name} hiện chưa có hoa nào để gỡ.</SectionEmpty>
+                        ) : (
+                          <ScrollArea className="h-[420px] pr-4"><div className="space-y-3">{removableFlowers.map((flower) => { const checked = selectedRemovalFlowerIds.includes(String(flower.id)); return <label key={flower.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleRemovalFlowerSelection(flower.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-3"><FlowerThumbnail flower={flower} size="sm" /><p className="font-medium">{flowerLabel(flower)}</p></div><p className="mt-1 text-sm text-slate-600">Đang thuộc sở hữu của {selectedExistingMember.name}</p></div><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></div></div></label>; })}</div></ScrollArea>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1585,7 +1704,6 @@ export default function HoaHoiGameCanvasApp() {
                                   <div className="flex items-center justify-between gap-3">
                                     <Badge variant="outline" className={`rounded-full ${titleBadgeClass(title.name)}`}>{title.name}</Badge>
                                     <div className="flex items-center gap-2">
-                                      <Badge variant="secondary">{assignedMembers.length} người</Badge>
                                       <Badge variant="secondary">{assignedMembers.length} người</Badge>
                                     </div>
                                   </div>

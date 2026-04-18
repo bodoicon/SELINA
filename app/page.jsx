@@ -899,6 +899,25 @@ export default function HoaHoiGameCanvasApp() {
     return titles.filter((title) => title.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, "vi"));
   }, [titles, titleManageSearch]);
 
+  const historyEntries = useMemo(() => {
+    const tryFindFlowerByName = (text) => {
+      const normalizedText = String(text || "").toLowerCase();
+      return flowers.find((flower) => normalizedText.includes(flower.name.toLowerCase())) || null;
+    };
+
+    return historyLogs.map((log) => {
+      const member = members.find((item) => item.name === log.targetName) || null;
+      const memberTitle = member ? titleByMemberId.get(String(member.id)) : null;
+      const matchedFlower = tryFindFlowerByName(log.details);
+      return {
+        ...log,
+        member,
+        memberTitle,
+        matchedFlower,
+      };
+    });
+  }, [historyLogs, flowers, members, titleByMemberId]);
+
   async function signInAsAdmin() {
     setLoginMessage("");
     if (!loginEmail.trim() || !loginPassword.trim()) {
@@ -1400,7 +1419,7 @@ export default function HoaHoiGameCanvasApp() {
             {isAdmin ? <TabsTrigger value="update" className={tabsClass}>Cập nhật sở hữu</TabsTrigger> : null}
             {isAdmin ? <TabsTrigger value="addflower" className={tabsClass}>Thêm hoa mới</TabsTrigger> : null}
             {isAdmin ? <TabsTrigger value="titlemanagement" className={tabsClass}>Quản lý chức danh</TabsTrigger> : null}
-            {isAdmin ? <TabsTrigger value="history" className={tabsClass}>Lịch sử</TabsTrigger> : null}
+            <TabsTrigger value="history" className={tabsClass}>Lịch sử</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
@@ -1822,16 +1841,53 @@ export default function HoaHoiGameCanvasApp() {
             </TabsContent>
           ) : null}
 
-          {isAdmin ? (
-            <TabsContent value="history" className="space-y-4">
-              <Card className="rounded-[28px]">
-                <CardHeader><CardTitle className="font-sans">Bảng lịch sử thao tác</CardTitle></CardHeader>
-                <CardContent>
-                  {loading ? <p className="text-sm text-slate-600">Đang tải lịch sử...</p> : historyLogs.length === 0 ? <SectionEmpty>Chưa có lịch sử thao tác.</SectionEmpty> : <div className="overflow-x-auto rounded-2xl border"><table className="min-w-full text-sm"><thead className="bg-slate-50 text-left text-slate-600"><tr><th className="px-4 py-3 font-medium">Thời gian</th><th className="px-4 py-3 font-medium">Người thao tác</th><th className="px-4 py-3 font-medium">Hành động</th><th className="px-4 py-3 font-medium">Đối tượng</th><th className="px-4 py-3 font-medium">Chi tiết</th></tr></thead><tbody>{historyLogs.map((log) => <tr key={log.id} className="border-t align-top"><td className="px-4 py-3 whitespace-nowrap text-slate-500">{log.createdAt ? new Date(log.createdAt).toLocaleString("vi-VN") : "-"}</td><td className="px-4 py-3 font-medium">{log.actorName || "-"}</td><td className="px-4 py-3"><Badge variant="outline" className="rounded-full">{log.actionType || "-"}</Badge></td><td className="px-4 py-3"><div className="font-medium">{log.targetName || "-"}</div><div className="text-xs text-slate-500">{log.targetType || "-"}</div></td><td className="px-4 py-3 text-slate-600">{log.details || "-"}</td></tr>)}</tbody></table></div>}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          ) : null}
+          <TabsContent value="history" className="space-y-4">
+            <Card className="rounded-[28px] border border-white/70 bg-white/85 shadow-[0_16px_45px_-24px_rgba(15,23,42,0.18)]">
+              <CardHeader>
+                <CardTitle className="font-sans">Lịch sử cập nhật</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <p className="text-sm text-slate-600">Đang tải lịch sử...</p>
+                ) : historyEntries.length === 0 ? (
+                  <SectionEmpty>Chưa có lịch sử thao tác.</SectionEmpty>
+                ) : (
+                  <div className="space-y-3">
+                    {historyEntries.map((log) => (
+                      <div key={log.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                          <div className="flex min-w-0 items-start gap-3">
+                            {log.matchedFlower ? <FlowerThumbnail flower={log.matchedFlower} /> : <div className="flex h-11 w-11 items-center justify-center rounded-2xl border bg-slate-50 text-slate-400"><PlaceholderFlowerIcon /></div>}
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-semibold text-slate-900">{log.targetName || "-"}</p>
+                                {log.memberTitle?.name ? (
+                                  <Badge variant="outline" className={`rounded-full ${titleBadgeClass(log.memberTitle.name)}`}>
+                                    {log.memberTitle.name}
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              <p className="mt-1 text-sm text-slate-600">{log.details || "-"}</p>
+                              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                <span>{log.createdAt ? new Date(log.createdAt).toLocaleString("vi-VN") : "-"}</span>
+                                <span>•</span>
+                                <span>{log.actorName || "Hệ thống"}</span>
+                              </div>
+                            </div>
+                          </div>
+                          {log.matchedFlower ? (
+                            <Badge variant="outline" className={groupBadgeClass(log.matchedFlower.group)}>
+                              {log.matchedFlower.group}
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </div>

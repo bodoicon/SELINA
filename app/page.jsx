@@ -12,14 +12,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, Plus, Users, Flower2, Database, AlertCircle, Trophy, LogIn, LogOut, Shield } from "lucide-react";
+import { Search, Plus, Users, Flower2, Database, AlertCircle, Trophy, Shield } from "lucide-react";
 
 const FLOWER_GROUPS = ["Lục", "Lam", "Tím", "Vàng", "Đỏ"];
 const MEMBER_FLOWER_GROUP_ORDER = ["Đỏ", "Vàng", "Tím", "Lam", "Lục"];
 const SUPABASE_URL = "https://tewaxvsxbktcexduvfjv.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRld2F4dnN4Ymt0Y2V4ZHV2Zmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNTIxMjksImV4cCI6MjA5MTcyODEyOX0.0VpLpXpR_gGk7p5RiCEL0bK4_EnhAUoqhLpieTL-4zI";
-const ADMIN_EMAILS = ["lehuuhung133132@gmail.com"];
+const ADMIN_EMAILS = [
+  "lehuuhung133132@gmail.com",
+  "tranduytunghp160992@gmail.com",
+];
+const MANAGER_EMAILS = ["tranduytunghp160992@gmail.com"];
 const FLOWER_ICON_BUCKET = "flower-icons";
 const SUPABASE_STORAGE_KEY_PREFIX = "sb-";
 
@@ -139,15 +143,16 @@ async function uploadFlowerIcon(file) {
   });
 
   if (uploadError) {
-    const rawMessage = String(uploadError.message || "");
-    const lowerMessage = rawMessage.toLowerCase();
+    const lowerMessage = String(uploadError.message || "").toLowerCase();
     if (lowerMessage.includes("row-level security") || lowerMessage.includes("violates row-level security policy")) {
       return {
-        error: "Không upload được ảnh vì bucket Supabase Storage đang bị chặn bởi RLS. Hãy tạo policy cho bucket flower-icons để cho phép user đã đăng nhập upload file.",
+        error:
+          "Không upload được ảnh vì bucket Supabase Storage đang bị chặn bởi RLS. Hãy tạo policy cho bucket flower-icons để cho phép user đã đăng nhập upload file.",
       };
     }
     return { error: `Không upload được ảnh: ${uploadError.message}` };
   }
+
   const { data } = supabase.storage.from(FLOWER_ICON_BUCKET).getPublicUrl(filePath);
   return { url: data.publicUrl, path: filePath };
 }
@@ -197,10 +202,7 @@ function runLocalSelfChecks() {
   console.assert(groupBadgeClass("Khác").includes("slate"), "Test failed: class fallback");
   console.assert(flowerLabel({ name: "Hoa Mẫu" }) === "Hoa Mẫu", "Test failed: flowerLabel");
   console.assert(extractStoragePathFromUrl("") === null, "Test failed: extractStoragePathFromUrl empty");
-  console.assert(
-    normalizeOwnershipRow({ id: 1, member_id: 2, flower_id: 3 }).memberId === "2",
-    "Test failed: normalizeOwnershipRow"
-  );
+  console.assert(normalizeOwnershipRow({ id: 1, member_id: 2, flower_id: 3 }).memberId === "2", "Test failed: normalizeOwnershipRow");
   console.assert(isInvalidRefreshTokenError({ message: "Invalid Refresh Token" }) === true, "Test failed: refresh token detection");
 }
 
@@ -246,7 +248,12 @@ function FlowerThumbnail({ flower, size = "md" }) {
   );
 }
 
-function CircleProgress({ percent = 0, size = "md", strokeColor = "#0f172a", glowClass = "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(99,102,241,0.12),rgba(14,165,233,0.08),rgba(168,85,247,0.12))]" }) {
+function CircleProgress({
+  percent = 0,
+  size = "md",
+  strokeColor = "#0f172a",
+  glowClass = "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(99,102,241,0.12),rgba(14,165,233,0.08),rgba(168,85,247,0.12))]",
+}) {
   const radius = size === "sm" ? 20 : 26;
   const stroke = size === "sm" ? 5 : 6;
   const normalizedRadius = radius - stroke / 2;
@@ -259,14 +266,7 @@ function CircleProgress({ percent = 0, size = "md", strokeColor = "#0f172a", glo
     <div className={`relative ${wrapperClass}`}>
       <div className={`absolute inset-0 rounded-full blur-md ${glowClass}`} />
       <svg viewBox={`0 0 ${radius * 2} ${radius * 2}`} className="relative h-full w-full -rotate-90">
-        <circle
-          stroke="#e5e7eb"
-          fill="transparent"
-          strokeWidth={stroke}
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-        />
+        <circle stroke="#e5e7eb" fill="transparent" strokeWidth={stroke} r={normalizedRadius} cx={radius} cy={radius} />
         <circle
           stroke={strokeColor}
           fill="transparent"
@@ -287,67 +287,26 @@ function CircleProgress({ percent = 0, size = "md", strokeColor = "#0f172a", glo
 function groupProgressCircleStyle(group) {
   switch (group) {
     case "Đỏ":
-      return {
-        strokeColor: "#ef4444",
-        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(239,68,68,0.18),rgba(248,113,113,0.10),rgba(254,202,202,0.16))]",
-      };
+      return { strokeColor: "#ef4444", glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(239,68,68,0.18),rgba(248,113,113,0.10),rgba(254,202,202,0.16))]" };
     case "Vàng":
-      return {
-        strokeColor: "#f59e0b",
-        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(245,158,11,0.18),rgba(251,191,36,0.10),rgba(253,230,138,0.16))]",
-      };
+      return { strokeColor: "#f59e0b", glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(245,158,11,0.18),rgba(251,191,36,0.10),rgba(253,230,138,0.16))]" };
     case "Tím":
-      return {
-        strokeColor: "#8b5cf6",
-        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(139,92,246,0.18),rgba(167,139,250,0.10),rgba(221,214,254,0.16))]",
-      };
+      return { strokeColor: "#8b5cf6", glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(139,92,246,0.18),rgba(167,139,250,0.10),rgba(221,214,254,0.16))]" };
     case "Lam":
-      return {
-        strokeColor: "#3b82f6",
-        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(59,130,246,0.18),rgba(96,165,250,0.10),rgba(191,219,254,0.16))]",
-      };
+      return { strokeColor: "#3b82f6", glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(59,130,246,0.18),rgba(96,165,250,0.10),rgba(191,219,254,0.16))]" };
     case "Lục":
-      return {
-        strokeColor: "#22c55e",
-        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(34,197,94,0.18),rgba(74,222,128,0.10),rgba(187,247,208,0.16))]",
-      };
+      return { strokeColor: "#22c55e", glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(34,197,94,0.18),rgba(74,222,128,0.10),rgba(187,247,208,0.16))]" };
     default:
-      return {
-        strokeColor: "#0f172a",
-        glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(99,102,241,0.12),rgba(14,165,233,0.08),rgba(168,85,247,0.12))]",
-      };
+      return { strokeColor: "#0f172a", glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(99,102,241,0.12),rgba(14,165,233,0.08),rgba(168,85,247,0.12))]" };
   }
 }
 
 function memberProgressCircleStyle(percent) {
-  if (percent >= 100) {
-    return {
-      strokeColor: "#ef4444",
-      glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(239,68,68,0.18),rgba(248,113,113,0.10),rgba(254,202,202,0.16))]",
-    };
-  }
-  if (percent >= 75) {
-    return {
-      strokeColor: "#f59e0b",
-      glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(245,158,11,0.18),rgba(251,191,36,0.10),rgba(253,230,138,0.16))]",
-    };
-  }
-  if (percent >= 50) {
-    return {
-      strokeColor: "#8b5cf6",
-      glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(139,92,246,0.18),rgba(167,139,250,0.10),rgba(221,214,254,0.16))]",
-    };
-  }
-  if (percent >= 25) {
-    return {
-      strokeColor: "#3b82f6",
-      glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(59,130,246,0.18),rgba(96,165,250,0.10),rgba(191,219,254,0.16))]",
-    };
-  }
-  return {
-    strokeColor: "#22c55e",
-    glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(34,197,94,0.18),rgba(74,222,128,0.10),rgba(187,247,208,0.16))]",
-  };
+  if (percent >= 100) return { strokeColor: "#ef4444", glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(239,68,68,0.18),rgba(248,113,113,0.10),rgba(254,202,202,0.16))]" };
+  if (percent >= 75) return { strokeColor: "#f59e0b", glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(245,158,11,0.18),rgba(251,191,36,0.10),rgba(253,230,138,0.16))]" };
+  if (percent >= 50) return { strokeColor: "#8b5cf6", glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(139,92,246,0.18),rgba(167,139,250,0.10),rgba(221,214,254,0.16))]" };
+  if (percent >= 25) return { strokeColor: "#3b82f6", glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(59,130,246,0.18),rgba(96,165,250,0.10),rgba(191,219,254,0.16))]" };
+  return { strokeColor: "#22c55e", glowClass: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(34,197,94,0.18),rgba(74,222,128,0.10),rgba(187,247,208,0.16))]" };
 }
 
 function SectionEmpty({ children }) {
@@ -358,9 +317,7 @@ function StatCard({ icon, title, value }) {
   return (
     <Card className="group rounded-[22px] border border-white/70 bg-white/85 shadow-[0_16px_45px_-24px_rgba(15,23,42,0.32)] backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-24px_rgba(79,70,229,0.28)] sm:rounded-[28px]">
       <CardContent className="flex items-center gap-3 p-4 sm:gap-4 sm:p-6">
-        <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-2.5 text-slate-700 transition-transform duration-300 group-hover:scale-105 sm:p-3">
-          {icon}
-        </div>
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-2.5 text-slate-700 transition-transform duration-300 group-hover:scale-105 sm:p-3">{icon}</div>
         <div className="min-w-0">
           <p className="text-xs font-medium text-slate-500 sm:text-sm">{title}</p>
           <p className="mt-1 truncate text-lg font-bold tracking-tight text-slate-950 sm:text-2xl">{value}</p>
@@ -506,7 +463,7 @@ export default function HoaHoiGameCanvasApp() {
   const [newFlowerIconUrl, setNewFlowerIconUrl] = useState("");
   const [newFlowerGroup, setNewFlowerGroup] = useState("Lục");
   const [flowerCreateMessage, setFlowerCreateMessage] = useState("");
-    const [savingFlower, setSavingFlower] = useState(false);
+  const [savingFlower, setSavingFlower] = useState(false);
   const [user, setUser] = useState(null);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -537,10 +494,21 @@ export default function HoaHoiGameCanvasApp() {
     flowersRef.current = flowers;
   }, [flowers]);
 
+  const userEmail = useMemo(() => user?.email?.toLowerCase() || "", [user]);
+
   const isAdmin = useMemo(() => {
-    const email = user?.email?.toLowerCase() || "";
-    return ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(email);
-  }, [user]);
+    return ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail);
+  }, [userEmail]);
+
+  const isManager = useMemo(() => {
+    return MANAGER_EMAILS.map((x) => x.toLowerCase()).includes(userEmail);
+  }, [userEmail]);
+
+  const adminButtonLabel = useMemo(() => {
+    if (isManager) return "Manager";
+    if (isAdmin) return "Admin";
+    return "Đăng nhập";
+  }, [isAdmin, isManager]);
 
   useEffect(() => {
     let active = true;
@@ -576,7 +544,7 @@ export default function HoaHoiGameCanvasApp() {
       const rows = result.data || [];
       const map = new Map();
       rows.forEach((row) => {
-        const key = String(row.member_id) + "-" + String(row.flower_id);
+        const key = `${String(row.member_id)}-${String(row.flower_id)}`;
         if (!map.has(key)) map.set(key, row);
       });
       setOwnerships(Array.from(map.values()).map(normalizeOwnershipRow));
@@ -593,7 +561,7 @@ export default function HoaHoiGameCanvasApp() {
     setLoading(true);
     setPageMessage("");
     try {
-      const results = await Promise.all([
+      const [membersRes, flowersRes, titlesRes, memberTitlesRes, historyRes] = await Promise.all([
         supabase.from("members").select("id, name").order("name", { ascending: true }),
         supabase.from("flowers").select("id, name, group_name, icon_url").order("name", { ascending: true }),
         supabase.from("titles").select("id, name").order("name", { ascending: true }),
@@ -604,15 +572,10 @@ export default function HoaHoiGameCanvasApp() {
           .order("created_at", { ascending: false })
           .limit(50),
       ]);
-      const [membersRes, flowersRes, titlesRes, memberTitlesRes, historyRes] = results;
+
       const hasTitleFeatureError = Boolean(titlesRes.error || memberTitlesRes.error);
       if (membersRes.error || flowersRes.error || historyRes.error) {
-        setPageMessage(
-          membersRes.error?.message ||
-            flowersRes.error?.message ||
-            historyRes.error?.message ||
-            "Không tải được dữ liệu từ Supabase."
-        );
+        setPageMessage(membersRes.error?.message || flowersRes.error?.message || historyRes.error?.message || "Không tải được dữ liệu từ Supabase.");
       } else {
         setMembers((membersRes.data || []).map((m) => ({ id: String(m.id), name: m.name })));
         setFlowers((flowersRes.data || []).map((f) => ({ id: String(f.id), name: f.name, group: f.group_name, iconUrl: f.icon_url || "" })));
@@ -714,9 +677,7 @@ export default function HoaHoiGameCanvasApp() {
     const ownedFlowerIds = new Set(ownerships.map((row) => String(row.flowerId)));
     const counts = { Đỏ: 0, Vàng: 0, Tím: 0, Lam: 0, Lục: 0 };
     flowers.forEach((flower) => {
-      if (ownedFlowerIds.has(String(flower.id))) {
-        counts[flower.group] = (counts[flower.group] || 0) + 1;
-      }
+      if (ownedFlowerIds.has(String(flower.id))) counts[flower.group] = (counts[flower.group] || 0) + 1;
     });
     return counts;
   }, [flowers, ownerships]);
@@ -725,43 +686,9 @@ export default function HoaHoiGameCanvasApp() {
     return MEMBER_FLOWER_GROUP_ORDER.map((group) => {
       const total = flowers.filter((flower) => flower.group === group).length;
       const owned = groupOwnedCounts[group] || 0;
-      return {
-        group,
-        total,
-        owned,
-        percent: total ? Math.round((owned / total) * 100) : 0,
-      };
+      return { group, total, owned, percent: total ? Math.round((owned / total) * 100) : 0 };
     });
   }, [flowers, groupOwnedCounts]);
-
-  const rankingsByGroup = useMemo(() => {
-    const grouped = { Đỏ: [], Vàng: [], Tím: [], Lam: [], Lục: [] };
-    members.forEach((member) => {
-      const ownedIds = new Set(
-        ownerships
-          .filter((row) => String(row.memberId) === String(member.id))
-          .map((row) => String(row.flowerId))
-      );
-
-      FLOWER_GROUPS.forEach((group) => {
-        const count = flowers.filter((flower) => flower.group === group && ownedIds.has(String(flower.id))).length;
-        if (count > 0) {
-          grouped[group].push({ memberId: member.id, memberName: member.name, count });
-        }
-      });
-    });
-
-    FLOWER_GROUPS.forEach((group) => {
-      grouped[group] = grouped[group]
-        .sort((a, b) => {
-          if (b.count !== a.count) return b.count - a.count;
-          return a.memberName.localeCompare(b.memberName, "vi");
-        })
-        .slice(0, 3);
-    });
-
-    return grouped;
-  }, [members, flowers, ownerships]);
 
   const missingFlowers = useMemo(() => flowers.filter((flower) => !ownersByFlower.get(String(flower.id))?.length), [flowers, ownersByFlower]);
   const rareFlowers = useMemo(
@@ -780,14 +707,8 @@ export default function HoaHoiGameCanvasApp() {
     [flowers, ownersByFlower]
   );
 
-  const filteredMissingFlowers = useMemo(
-    () => missingFlowers.filter((flower) => dashboardMissingGroupFilter === "all" || flower.group === dashboardMissingGroupFilter),
-    [missingFlowers, dashboardMissingGroupFilter]
-  );
-  const filteredRareFlowers = useMemo(
-    () => rareFlowers.filter((flower) => dashboardRareGroupFilter === "all" || flower.group === dashboardRareGroupFilter),
-    [rareFlowers, dashboardRareGroupFilter]
-  );
+  const filteredMissingFlowers = useMemo(() => missingFlowers.filter((flower) => dashboardMissingGroupFilter === "all" || flower.group === dashboardMissingGroupFilter), [missingFlowers, dashboardMissingGroupFilter]);
+  const filteredRareFlowers = useMemo(() => rareFlowers.filter((flower) => dashboardRareGroupFilter === "all" || flower.group === dashboardRareGroupFilter), [rareFlowers, dashboardRareGroupFilter]);
   const filteredMembers = useMemo(
     () =>
       [...members]
@@ -799,59 +720,51 @@ export default function HoaHoiGameCanvasApp() {
 
   const filteredExistingMembers = useMemo(() => {
     const q = memberPickerSearch.trim().toLowerCase();
-    return members
-      .filter((member) => member.name.toLowerCase().includes(q))
-      .sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    return members.filter((member) => member.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, "vi"));
   }, [members, memberPickerSearch]);
 
-  const filteredFlowers = useMemo(
-    () => flowers.filter((flower) => flowerLabel(flower).toLowerCase().includes(flowerSearch.trim().toLowerCase())),
-    [flowers, flowerSearch]
-  );
+  const filteredFlowers = useMemo(() => flowers.filter((flower) => flowerLabel(flower).toLowerCase().includes(flowerSearch.trim().toLowerCase())), [flowers, flowerSearch]);
+
   const filteredMemberFlowerLookupOptions = useMemo(() => {
     const q = memberFlowerLookupSearch.trim().toLowerCase();
     return members.filter((member) => !q || member.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, "vi"));
   }, [members, memberFlowerLookupSearch]);
 
-  const selectedMemberFlowerLookup = useMemo(
-    () => members.find((member) => String(member.id) === String(memberFlowerLookup)) || null,
-    [members, memberFlowerLookup]
-  );
+  const selectedMemberFlowerLookup = useMemo(() => members.find((member) => String(member.id) === String(memberFlowerLookup)) || null, [members, memberFlowerLookup]);
+
+  const selectedExistingMember = useMemo(() => members.find((member) => String(member.id) === String(selectedExistingMemberId)) || null, [members, selectedExistingMemberId]);
+
   const flowersBySelectedMember = useMemo(() => {
     if (!selectedMemberFlowerLookup) return [];
-    const ids = new Set(
-      ownerships.filter((row) => String(row.memberId) === String(selectedMemberFlowerLookup.id)).map((row) => String(row.flowerId))
-    );
+    const ids = new Set(ownerships.filter((row) => String(row.memberId) === String(selectedMemberFlowerLookup.id)).map((row) => String(row.flowerId)));
     return flowers.filter((flower) => ids.has(String(flower.id)));
   }, [flowers, ownerships, selectedMemberFlowerLookup]);
+
   const memberFlowersByGroup = useMemo(() => {
     const grouped = { Đỏ: [], Vàng: [], Tím: [], Lam: [], Lục: [] };
     flowersBySelectedMember.forEach((flower) => {
-      if (!grouped[flower.group]) grouped[flower.group] = [];
       grouped[flower.group].push(flower);
     });
     return grouped;
   }, [flowersBySelectedMember]);
+
   const selectableFlowers = useMemo(() => {
     const q = updateSearch.trim().toLowerCase();
+    const ownedIds = selectedExistingMember
+      ? new Set(ownerships.filter((row) => String(row.memberId) === String(selectedExistingMember.id)).map((row) => String(row.flowerId)))
+      : new Set();
+
     return flowers.filter((flower) => {
       const okText = flowerLabel(flower).toLowerCase().includes(q);
       const okGroup = updateGroupFilter === "all" || flower.group === updateGroupFilter;
-      return okText && okGroup;
+      const notOwnedYet = !selectedExistingMember || !ownedIds.has(String(flower.id));
+      return okText && okGroup && notOwnedYet;
     });
-  }, [flowers, updateSearch, updateGroupFilter]);
-
-  const selectedExistingMember = useMemo(() => {
-    return members.find((member) => String(member.id) === String(selectedExistingMemberId)) || null;
-  }, [members, selectedExistingMemberId]);
+  }, [flowers, updateSearch, updateGroupFilter, selectedExistingMember, ownerships]);
 
   const removableFlowers = useMemo(() => {
     if (!selectedExistingMember) return [];
-    const ownedIds = new Set(
-      ownerships
-        .filter((row) => String(row.memberId) === String(selectedExistingMember.id))
-        .map((row) => String(row.flowerId))
-    );
+    const ownedIds = new Set(ownerships.filter((row) => String(row.memberId) === String(selectedExistingMember.id)).map((row) => String(row.flowerId)));
     const q = removalFlowerSearch.trim().toLowerCase();
     return flowers
       .filter((flower) => ownedIds.has(String(flower.id)))
@@ -888,10 +801,9 @@ export default function HoaHoiGameCanvasApp() {
     memberTitles.forEach((row) => {
       const member = members.find((item) => String(item.id) === String(row.memberId));
       if (!member) return;
-      const key = String(row.titleId);
-      const current = map.get(key) || [];
+      const current = map.get(String(row.titleId)) || [];
       current.push(member);
-      map.set(key, current);
+      map.set(String(row.titleId), current);
     });
     return map;
   }, [titles, memberTitles, members]);
@@ -916,12 +828,7 @@ export default function HoaHoiGameCanvasApp() {
       const member = members.find((item) => item.name === log.targetName) || null;
       const memberTitle = member ? titleByMemberId.get(String(member.id)) : null;
       const matchedFlower = tryFindFlowerByName(log.details);
-      return {
-        ...log,
-        member,
-        memberTitle,
-        matchedFlower,
-      };
+      return { ...log, member, memberTitle, matchedFlower };
     });
   }, [historyLogs, flowers, members, titleByMemberId]);
 
@@ -931,13 +838,9 @@ export default function HoaHoiGameCanvasApp() {
       setLoginMessage("Vui lòng nhập email và mật khẩu.");
       return;
     }
-
     setLoggingIn(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail.trim(),
-        password: loginPassword,
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPassword });
       if (error) {
         setLoginMessage(`Đăng nhập thất bại: ${error.message}`);
         return;
@@ -1002,30 +905,18 @@ export default function HoaHoiGameCanvasApp() {
     }
 
     setSavingFlower(true);
-    const { data, error } = await supabase
-      .from("flowers")
-      .insert([{ name, group_name: newFlowerGroup, icon_url: newFlowerIconUrl.trim() || null }])
-      .select("id, name, group_name, icon_url")
-      .single();
+    const { data, error } = await supabase.from("flowers").insert([{ name, group_name: newFlowerGroup, icon_url: newFlowerIconUrl.trim() || null }]).select("id, name, group_name, icon_url").single();
     setSavingFlower(false);
-
     if (error) {
       setFlowerCreateMessage(`Không thêm được hoa mới: ${error.message}`);
       return;
     }
 
-    await logAction({
-      actionType: "add_flower",
-      actorName: user?.email || "Quản trị hội",
-      targetType: "flower",
-      targetName: data.name,
-      details: `Thêm hoa mới vào nhóm ${data.group_name}`,
-    });
-
+    await logAction({ actionType: "add_flower", actorName: user?.email || "Quản trị hội", targetType: "flower", targetName: data.name, details: `Thêm hoa mới vào nhóm ${data.group_name}` });
     await loadAllData();
     setNewFlowerName("");
     setNewFlowerIconUrl("");
-        setNewFlowerGroup("Lục");
+    setNewFlowerGroup("Lục");
     setFlowerCreateMessage(`Đã thêm hoa mới: ${data.name}.`);
   }
 
@@ -1034,10 +925,7 @@ export default function HoaHoiGameCanvasApp() {
     const useExistingMember = selectedExistingMemberId !== "none";
     const useNewMember = !useExistingMember && trimmedNewMemberName.length > 0;
 
-    if (!useExistingMember && !useNewMember) {
-      return { error: "Hãy chọn thành viên cũ hoặc nhập tên thành viên mới." };
-    }
-
+    if (!useExistingMember && !useNewMember) return { error: "Hãy chọn thành viên cũ hoặc nhập tên thành viên mới." };
     if (useExistingMember) {
       const member = members.find((m) => String(m.id) === selectedExistingMemberId);
       if (!member) return { error: "Không tìm thấy thành viên đã chọn." };
@@ -1050,15 +938,7 @@ export default function HoaHoiGameCanvasApp() {
 
     const { data, error } = await supabase.from("members").insert([{ name: trimmedNewMemberName }]).select("id, name").single();
     if (error) return { error: `Không tạo được thành viên mới: ${error.message}` };
-
-    await logAction({
-      actionType: "add_member",
-      actorName: user?.email || "Quản trị hội",
-      targetType: "member",
-      targetName: data.name,
-      details: "Thêm thành viên mới",
-    });
-
+    await logAction({ actionType: "add_member", actorName: user?.email || "Quản trị hội", targetType: "member", targetName: data.name, details: "Thêm thành viên mới" });
     await loadAllData();
     return { member: { id: String(data.id), name: data.name } };
   }
@@ -1094,13 +974,9 @@ export default function HoaHoiGameCanvasApp() {
     }
 
     const member = memberResult.member;
-    const alreadyOwned = new Set(
-      ownerships.filter((o) => String(o.memberId) === String(member.id)).map((o) => String(o.flowerId))
-    );
+    const alreadyOwned = new Set(ownerships.filter((o) => String(o.memberId) === String(member.id)).map((o) => String(o.flowerId)));
     const uniqueSelectedFlowerIds = [...new Set(selectedFlowerIds.map(String))];
-    const additions = uniqueSelectedFlowerIds
-      .filter((flowerId) => !alreadyOwned.has(String(flowerId)))
-      .map((flowerId) => ({ member_id: String(member.id), flower_id: String(flowerId) }));
+    const additions = uniqueSelectedFlowerIds.filter((flowerId) => !alreadyOwned.has(String(flowerId))).map((flowerId) => ({ member_id: String(member.id), flower_id: String(flowerId) }));
 
     if (additions.length === 0) {
       setSavingOwnership(false);
@@ -1108,11 +984,7 @@ export default function HoaHoiGameCanvasApp() {
       return;
     }
 
-    const { error } = await supabase.from("member_flowers").upsert(additions, {
-      onConflict: "member_id,flower_id",
-      ignoreDuplicates: true,
-    });
-
+    const { error } = await supabase.from("member_flowers").upsert(additions, { onConflict: "member_id,flower_id", ignoreDuplicates: true });
     setSavingOwnership(false);
     if (error) {
       setUpdateMessage(`Không lưu được cập nhật sở hữu: ${error.message}`);
@@ -1130,9 +1002,7 @@ export default function HoaHoiGameCanvasApp() {
       actorName: user?.email || member.name,
       targetType: "member",
       targetName: member.name,
-      details: `Thêm ${additions.length} hoa: ${additions
-        .map((item) => flowers.find((flower) => String(flower.id) === String(item.flower_id))?.name || item.flower_id)
-        .join(", ")}`,
+      details: `Thêm ${additions.length} hoa: ${additions.map((item) => flowers.find((flower) => String(flower.id) === String(item.flower_id))?.name || item.flower_id).join(", ")}`,
     });
     await loadAllData();
   }
@@ -1140,12 +1010,10 @@ export default function HoaHoiGameCanvasApp() {
   async function removeOwnershipFromMember() {
     if (!isAdmin) return;
     setUpdateMessage("");
-
     if (!selectedExistingMember) {
       setUpdateMessage("Hãy chọn thành viên cũ để gỡ hoa.");
       return;
     }
-
     if (selectedRemovalFlowerIds.length === 0) {
       setUpdateMessage("Hãy chọn ít nhất 1 loại hoa cần gỡ.");
       return;
@@ -1153,14 +1021,7 @@ export default function HoaHoiGameCanvasApp() {
 
     setSavingOwnership(true);
     const flowerIdsToRemove = [...new Set(selectedRemovalFlowerIds.map(String))];
-
-    const { data: removedRows, error } = await supabase
-      .from("member_flowers")
-      .delete()
-      .eq("member_id", selectedExistingMember.id)
-      .in("flower_id", flowerIdsToRemove)
-      .select("id, flower_id");
-
+    const { data: removedRows, error } = await supabase.from("member_flowers").delete().eq("member_id", selectedExistingMember.id).in("flower_id", flowerIdsToRemove).select("id, flower_id");
     setSavingOwnership(false);
 
     if (error) {
@@ -1170,33 +1031,20 @@ export default function HoaHoiGameCanvasApp() {
 
     const removedCount = removedRows?.length || 0;
     if (removedCount === 0) {
-      setUpdateMessage(
-        `Không gỡ được hoa khỏi ${selectedExistingMember.name}. Khả năng cao là bảng member_flowers đang bị chặn quyền xóa hoặc không tìm thấy dòng khớp dữ liệu.`
-      );
+      setUpdateMessage(`Không gỡ được hoa khỏi ${selectedExistingMember.name}. Khả năng cao là bảng member_flowers đang bị chặn quyền xóa hoặc không tìm thấy dòng khớp dữ liệu.`);
       return;
     }
 
     const removedFlowerIds = [...new Set((removedRows || []).map((row) => String(row.flower_id)))];
-
     await logAction({
       actionType: "remove_ownership",
       actorName: user?.email || "Quản trị hội",
       targetType: "member",
       targetName: selectedExistingMember.name,
-      details: `Gỡ ${removedFlowerIds.length} hoa: ${removedFlowerIds
-        .map((id) => flowers.find((flower) => String(flower.id) === String(id))?.name || id)
-        .join(", ")}`,
+      details: `Gỡ ${removedFlowerIds.length} hoa: ${removedFlowerIds.map((id) => flowers.find((flower) => String(flower.id) === String(id))?.name || id).join(", ")}`,
     });
 
-    setOwnerships((prev) =>
-      prev.filter(
-        (row) =>
-          !(
-            String(row.memberId) === String(selectedExistingMember.id) &&
-            removedFlowerIds.includes(String(row.flowerId))
-          )
-      )
-    );
+    setOwnerships((prev) => prev.filter((row) => !(String(row.memberId) === String(selectedExistingMember.id) && removedFlowerIds.includes(String(row.flowerId)))));
     setSelectedRemovalFlowerIds([]);
     setUpdateMessage(`Đã gỡ ${removedFlowerIds.length} loại hoa khỏi ${selectedExistingMember.name}.`);
     await loadAllData();
@@ -1253,13 +1101,7 @@ export default function HoaHoiGameCanvasApp() {
       return;
     }
 
-    await logAction({
-      actionType: "add_title",
-      actorName: user?.email || "Quản trị hội",
-      targetType: "title",
-      targetName: data.name,
-      details: "Thêm chức danh mới",
-    });
+    await logAction({ actionType: "add_title", actorName: user?.email || "Quản trị hội", targetType: "title", targetName: data.name, details: "Thêm chức danh mới" });
     setNewTitleName("");
     setTitleMessage(`Đã thêm chức danh: ${data.name}.`);
     await loadAllData();
@@ -1287,19 +1129,12 @@ export default function HoaHoiGameCanvasApp() {
     const titleName = titleById.get(String(selectedTitleId))?.name || selectedTitleId;
     const { error } = await supabase.from("member_titles").upsert(rows, { onConflict: "member_id" });
     setSavingTitle(false);
-
     if (error) {
       setTitleMessage(`Không lưu được chức danh: ${error.message}`);
       return;
     }
 
-    await logAction({
-      actionType: "assign_title",
-      actorName: user?.email || "Quản trị hội",
-      targetType: "title",
-      targetName: titleName,
-      details: `Trao cho: ${selectedMembers.map((member) => member.name).join(", ")}`,
-    });
+    await logAction({ actionType: "assign_title", actorName: user?.email || "Quản trị hội", targetType: "title", targetName: titleName, details: `Trao cho: ${selectedMembers.map((member) => member.name).join(", ")}` });
     setSelectedTitleMemberIds([]);
     setSelectedTitleId("none");
     setTitleMessage(`Đã trao chức danh ${titleName} cho ${selectedMembers.length} thành viên.`);
@@ -1322,36 +1157,20 @@ export default function HoaHoiGameCanvasApp() {
 
     setSavingTitle(true);
     setTitleMessage(`Đang gỡ chức danh ${title.name} khỏi ${member.name}...`);
-
-    const { data: removedAssignments, error: deleteAssignmentsError } = await supabase
-      .from("member_titles")
-      .delete()
-      .eq("title_id", titleId)
-      .eq("member_id", memberId)
-      .select("id");
-
+    const { data: removedAssignments, error: deleteAssignmentsError } = await supabase.from("member_titles").delete().eq("title_id", titleId).eq("member_id", memberId).select("id");
     setSavingTitle(false);
 
     if (deleteAssignmentsError) {
       setTitleMessage(`Không gỡ được chức danh khỏi thành viên: ${deleteAssignmentsError.message}`);
       return;
     }
-
     if (!removedAssignments || removedAssignments.length === 0) {
       setTitleMessage(`Không gỡ được chức danh ${title.name} khỏi ${member.name}. Khả năng cao là bảng member_titles đang bị RLS chặn quyền xóa.`);
       return;
     }
 
     setMemberTitles((prev) => prev.filter((row) => !(String(row.titleId) === String(titleId) && String(row.memberId) === String(memberId))));
-
-    await logAction({
-      actionType: "remove_title_from_member",
-      actorName: user?.email || "Quản trị hội",
-      targetType: "title",
-      targetName: title.name,
-      details: `Gỡ khỏi: ${member.name}`,
-    });
-
+    await logAction({ actionType: "remove_title_from_member", actorName: user?.email || "Quản trị hội", targetType: "title", targetName: title.name, details: `Gỡ khỏi: ${member.name}` });
     setTitleMessage(`Đã gỡ chức danh ${title.name} khỏi ${member.name}.`);
     await loadAllData();
   }
@@ -1368,10 +1187,7 @@ export default function HoaHoiGameCanvasApp() {
           <div className="relative">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500">Selina Flower Dashboard</div>
-              <h1
-                className="mt-3 font-serif text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl md:mt-4 md:text-4xl"
-                style={{ fontFamily: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif' }}
-              >Quản Lý Hoa Hội SELINA</h1>
+              <h1 className="mt-3 font-serif text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl md:mt-4 md:text-4xl" style={{ fontFamily: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif' }}>Quản Lý Hoa Hội SELINA</h1>
               <p className="mt-3 max-w-3xl text-sm text-slate-600">Thành viên chỉ có thể tra cứu thông tin. Các chức năng quản trị chỉ hiển thị cho admin đã đăng nhập.</p>
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 {ownershipsLoaded && topMembers.map((member, index) => (
@@ -1382,7 +1198,7 @@ export default function HoaHoiGameCanvasApp() {
                 ))}
                 <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="h-8 rounded-xl px-3 text-xs"><Shield className="mr-1 h-3.5 w-3.5" />{isAdmin ? "Admin" : "Đăng nhập"}</Button>
+                    <Button variant="outline" className="h-8 rounded-xl px-3 text-xs"><Shield className="mr-1 h-3.5 w-3.5" />{adminButtonLabel}</Button>
                   </DialogTrigger>
                   <DialogContent className="rounded-[28px] sm:max-w-md">
                     <DialogHeader>
@@ -1442,9 +1258,7 @@ export default function HoaHoiGameCanvasApp() {
                       <CircleProgress percent={summary.completionRate} />
                       <div>
                         <p className="text-sm text-slate-500">Tổng tiến độ</p>
-                        <p className="mt-1 text-lg font-semibold text-slate-900">
-                          {summary.ownedFlowers}/{summary.totalFlowers} ({summary.completionRate}%)
-                        </p>
+                        <p className="mt-1 text-lg font-semibold text-slate-900">{summary.ownedFlowers}/{summary.totalFlowers} ({summary.completionRate}%)</p>
                       </div>
                     </div>
                   </div>
@@ -1452,20 +1266,20 @@ export default function HoaHoiGameCanvasApp() {
                     {groupProgressRows.map((item) => {
                       const circleStyle = groupProgressCircleStyle(item.group);
                       return (
-                      <div key={item.group} className="rounded-3xl border border-slate-200 bg-white p-4">
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <Badge variant="outline" className={groupBadgeClass(item.group)}>{item.group}</Badge>
-                          <span className="text-sm font-semibold text-slate-700">{item.owned}/{item.total}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <CircleProgress percent={item.percent} size="sm" strokeColor={circleStyle.strokeColor} glowClass={circleStyle.glowClass} />
-                          <div>
-                            <p className="text-sm font-medium text-slate-700">Phẩm {item.group}</p>
-                            <p className="text-sm text-slate-500">{item.percent}% hoàn thành</p>
+                        <div key={item.group} className="rounded-3xl border border-slate-200 bg-white p-4">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <Badge variant="outline" className={groupBadgeClass(item.group)}>{item.group}</Badge>
+                            <span className="text-sm font-semibold text-slate-700">{item.owned}/{item.total}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <CircleProgress percent={item.percent} size="sm" strokeColor={circleStyle.strokeColor} glowClass={circleStyle.glowClass} />
+                            <div>
+                              <p className="text-sm font-medium text-slate-700">Phẩm {item.group}</p>
+                              <p className="text-sm text-slate-500">{item.percent}% hoàn thành</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
+                      );
                     })}
                   </div>
                 </CardContent>
@@ -1503,11 +1317,7 @@ export default function HoaHoiGameCanvasApp() {
                                       <p className="mt-1 text-sm text-slate-600">{owners.length} người sở hữu</p>
                                     </div>
                                   </div>
-                                  {owners.length > 0 ? (
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                      {owners.map((owner) => <Badge key={`${flower.id}-${owner}`} variant="outline" className="rounded-full">{owner}</Badge>)}
-                                    </div>
-                                  ) : null}
+                                  {owners.length > 0 ? <div className="mt-2 flex flex-wrap gap-2">{owners.map((owner) => <Badge key={`${flower.id}-${owner}`} variant="outline" className="rounded-full">{owner}</Badge>)}</div> : null}
                                 </div>
                                 <Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge>
                               </div>
@@ -1563,95 +1373,217 @@ export default function HoaHoiGameCanvasApp() {
             </div>
           </TabsContent>
 
-          <TabsContent value="members" className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle className="font-sans">Tra cứu theo thành viên</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Tìm theo tên thành viên..." className="rounded-2xl pl-9 font-sans text-slate-900" /></div><div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredMembers.map((member) => { const ownedCount = memberFlowerCounts[String(member.id)] || 0; const memberPercent = summary.totalFlowers ? Math.round((ownedCount / summary.totalFlowers) * 100) : 0; const memberCircleStyle = memberProgressCircleStyle(memberPercent); return <Card key={member.id} className="rounded-[24px]"><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><div className="space-y-1">
-                        <CardTitle className="text-lg leading-snug sm:text-xl">{member.name}</CardTitle>
-                        {titleByMemberId.get(String(member.id))?.name ? (
-                          <Badge variant="outline" className={`rounded-full ${titleBadgeClass(titleByMemberId.get(String(member.id))?.name)}`}>{titleByMemberId.get(String(member.id))?.name}</Badge>
-                        ) : null}
-                      </div><div className="flex items-center gap-2"><Badge variant="secondary">{ownedCount} hoa</Badge>{isAdmin ? <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>Sửa tên thành viên</DialogTitle></DialogHeader><EditMemberForm member={member} onSave={(newName) => renameMember(member.id, newName)} /></DialogContent></Dialog> : null}</div></div></CardHeader><CardContent className="space-y-3"><div className="flex items-center gap-3 sm:gap-4"><CircleProgress percent={memberPercent} strokeColor={memberCircleStyle.strokeColor} glowClass={memberCircleStyle.glowClass} /><div className="text-sm text-slate-600"><p>Tiến độ sưu tập</p><p className="font-medium">{ownedCount}/{summary.totalFlowers}</p></div></div></CardContent></Card>; })}</div></CardContent></Card></TabsContent>
+          <TabsContent value="members" className="space-y-4">
+            <Card className="rounded-[28px]">
+              <CardHeader><CardTitle className="font-sans">Tra cứu theo thành viên</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Tìm theo tên thành viên..." className="rounded-2xl pl-9 font-sans text-slate-900" />
+                </div>
+                <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {filteredMembers.map((member) => {
+                    const ownedCount = memberFlowerCounts[String(member.id)] || 0;
+                    const memberPercent = summary.totalFlowers ? Math.round((ownedCount / summary.totalFlowers) * 100) : 0;
+                    const memberCircleStyle = memberProgressCircleStyle(memberPercent);
+                    return (
+                      <Card key={member.id} className="rounded-[24px]">
+                        <CardHeader>
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="space-y-1">
+                              <CardTitle className="text-lg leading-snug sm:text-xl">{member.name}</CardTitle>
+                              {titleByMemberId.get(String(member.id))?.name ? (
+                                <Badge variant="outline" className={`rounded-full ${titleBadgeClass(titleByMemberId.get(String(member.id))?.name)}`}>{titleByMemberId.get(String(member.id))?.name}</Badge>
+                              ) : null}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary">{ownedCount} hoa</Badge>
+                              {isAdmin ? (
+                                <Dialog>
+                                  <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger>
+                                  <DialogContent className="rounded-3xl">
+                                    <DialogHeader><DialogTitle>Sửa tên thành viên</DialogTitle></DialogHeader>
+                                    <EditMemberForm member={member} onSave={(newName) => renameMember(member.id, newName)} />
+                                  </DialogContent>
+                                </Dialog>
+                              ) : null}
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <CircleProgress percent={memberPercent} strokeColor={memberCircleStyle.strokeColor} glowClass={memberCircleStyle.glowClass} />
+                            <div className="text-sm text-slate-600">
+                              <p>Tiến độ sưu tập</p>
+                              <p className="font-medium">{ownedCount}/{summary.totalFlowers}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          <TabsContent value="flowerlookup" className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle className="font-sans">Tra cứu theo hoa</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={flowerSearch} onChange={(e) => setFlowerSearch(e.target.value)} placeholder="Tìm theo tên hoa..." className="rounded-2xl pl-9 font-sans text-slate-900" /></div><ScrollArea className="h-[360px] pr-3 md:h-[520px] xl:h-[760px]"><div className="space-y-4">{filteredFlowers.map((flower) => { const owners = ownersByFlower.get(String(flower.id)) || []; return <Card key={flower.id} className="rounded-[28px]"><CardHeader><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-3"><FlowerThumbnail flower={flower} /><CardTitle className="text-lg">{flowerLabel(flower)}</CardTitle></div><p className="mt-1 text-sm text-slate-600">Nhóm {flower.group}</p></div><div className="flex items-center gap-2"><Badge variant="secondary">{owners.length} người</Badge>{isAdmin ? <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>Sửa tên hoa</DialogTitle></DialogHeader><EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} /></DialogContent></Dialog> : null}</div></div></CardHeader><CardContent>{owners.length === 0 ? <SectionEmpty>Hiện chưa có ai sở hữu.</SectionEmpty> : <div className="flex flex-wrap gap-2">{owners.map((owner) => <Badge key={String(flower.id) + owner} variant="outline" className="rounded-full">{owner}</Badge>)}</div>}</CardContent></Card>; })}</div></ScrollArea></CardContent></Card></TabsContent>
+          <TabsContent value="flowerlookup" className="space-y-4">
+            <Card className="rounded-[28px]">
+              <CardHeader><CardTitle className="font-sans">Tra cứu theo hoa</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Input value={flowerSearch} onChange={(e) => setFlowerSearch(e.target.value)} placeholder="Tìm theo tên hoa..." className="rounded-2xl pl-9 font-sans text-slate-900" />
+                </div>
+                <ScrollArea className="h-[360px] pr-3 md:h-[520px] xl:h-[760px]">
+                  <div className="space-y-4">
+                    {filteredFlowers.map((flower) => {
+                      const owners = ownersByFlower.get(String(flower.id)) || [];
+                      return (
+                        <Card key={flower.id} className="rounded-[28px]">
+                          <CardHeader>
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="flex items-center gap-3">
+                                  <FlowerThumbnail flower={flower} />
+                                  <CardTitle className="text-lg">{flowerLabel(flower)}</CardTitle>
+                                </div>
+                                <p className="mt-1 text-sm text-slate-600">Nhóm {flower.group}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary">{owners.length} người</Badge>
+                                {isAdmin ? (
+                                  <Dialog>
+                                    <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger>
+                                    <DialogContent className="rounded-3xl">
+                                      <DialogHeader><DialogTitle>Sửa tên hoa</DialogTitle></DialogHeader>
+                                      <EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} />
+                                    </DialogContent>
+                                  </Dialog>
+                                ) : null}
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            {owners.length === 0 ? <SectionEmpty>Hiện chưa có ai sở hữu.</SectionEmpty> : <div className="flex flex-wrap gap-2">{owners.map((owner) => <Badge key={`${flower.id}-${owner}`} variant="outline" className="rounded-full">{owner}</Badge>)}</div>}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          <TabsContent value="memberflowerlookup" className="space-y-4"><Card className="rounded-[28px]"><CardHeader className="space-y-4"><div><CardTitle className="font-sans">Tra cứu theo thành viên</CardTitle><p className="mt-1 text-sm text-slate-600">Chọn một thành viên để xem bộ sưu tập theo nhóm hoa.</p></div><div className="space-y-2"><Label>Chọn thành viên</Label><Dialog open={memberFlowerLookupPickerOpen} onOpenChange={setMemberFlowerLookupPickerOpen}><DialogTrigger asChild><Button type="button" variant="outline" className="w-full justify-between rounded-2xl font-normal"><span className="truncate text-left">{memberFlowerLookup === "all" ? "-- Chọn thành viên --" : members.find((member) => String(member.id) === String(memberFlowerLookup))?.name || "-- Chọn thành viên --"}</span><span className="text-slate-400">▼</span></Button></DialogTrigger><DialogContent
-                          className="rounded-3xl font-sans text-slate-900 sm:max-w-lg [&_*]:font-sans"
-                          style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
-                        ><DialogHeader><DialogTitle
-                            className="font-sans text-slate-900"
-                            style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
-                          >Chọn thành viên</DialogTitle></DialogHeader><div className="space-y-3"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={memberFlowerLookupSearch} onChange={(e) => setMemberFlowerLookupSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="rounded-2xl pl-9 font-sans text-slate-900" /></div><ScrollArea className="h-[320px] pr-3"><div className="space-y-2"><button type="button" className="w-full rounded-2xl border px-4 py-3 text-left text-sm font-sans text-slate-900 transition hover:bg-slate-50" onClick={() => { setMemberFlowerLookup("all"); setMemberFlowerLookupPickerOpen(false); }}>-- Chọn thành viên --</button>{filteredMemberFlowerLookupOptions.length === 0 ? <SectionEmpty>Không tìm thấy thành viên phù hợp.</SectionEmpty> : filteredMemberFlowerLookupOptions.map((member) => <button key={member.id} type="button" className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-sans text-slate-900 transition hover:bg-slate-50 ${String(memberFlowerLookup) === String(member.id) ? "border-slate-900 bg-slate-50" : ""}`} onClick={() => { setMemberFlowerLookup(String(member.id)); setMemberFlowerLookupPickerOpen(false); }}>{member.name}</button>)}</div></ScrollArea></div></DialogContent></Dialog></div></CardHeader><CardContent>{!selectedMemberFlowerLookup ? <SectionEmpty>Hãy chọn một thành viên để xem người đó đang có những loại hoa gì.</SectionEmpty> : <div className="space-y-4"><div className="rounded-2xl border bg-slate-50 px-4 py-3"><div className="mt-1 flex items-center justify-between gap-3"><p className="font-semibold text-slate-900">{selectedMemberFlowerLookup.name}</p><Badge variant="secondary">{flowersBySelectedMember.length} hoa</Badge></div></div><div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">{MEMBER_FLOWER_GROUP_ORDER.map((group) => { const groupFlowers = memberFlowersByGroup[group] || []; return <div key={group} className="rounded-3xl border p-3"><div className="mb-3 flex items-center justify-between gap-2"><Badge variant="outline" className={groupBadgeClass(group)}>{group}</Badge><span className="text-xs text-slate-500">{groupFlowers.length}</span></div><ScrollArea className="h-[220px] pr-2 sm:h-[300px] xl:h-[620px]"><div className="space-y-2">{groupFlowers.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-400">Chưa có hoa</div> : groupFlowers.map((flower) => <div key={String(group) + String(flower.id)} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2"><div className="flex items-center gap-2"><FlowerThumbnail flower={flower} size="sm" /><p className="text-sm font-medium text-slate-700 leading-snug break-words line-clamp-2">{flowerLabel(flower)}</p></div></div>)}</div></ScrollArea></div>; })}</div></div>}</CardContent></Card></TabsContent>
+          <TabsContent value="memberflowerlookup" className="space-y-4">
+            <Card className="rounded-[28px]">
+              <CardHeader className="space-y-4">
+                <div>
+                  <CardTitle className="font-sans">Tra cứu theo thành viên</CardTitle>
+                  <p className="mt-1 text-sm text-slate-600">Chọn một thành viên để xem bộ sưu tập theo nhóm hoa.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Chọn thành viên</Label>
+                  <Dialog open={memberFlowerLookupPickerOpen} onOpenChange={setMemberFlowerLookupPickerOpen}>
+                    <DialogTrigger asChild>
+                      <Button type="button" variant="outline" className="w-full justify-between rounded-2xl font-normal">
+                        <span className="truncate text-left">{memberFlowerLookup === "all" ? "-- Chọn thành viên --" : members.find((member) => String(member.id) === String(memberFlowerLookup))?.name || "-- Chọn thành viên --"}</span>
+                        <span className="text-slate-400">▼</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="rounded-3xl font-sans text-slate-900 sm:max-w-lg [&_*]:font-sans" style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                      <DialogHeader>
+                        <DialogTitle className="font-sans text-slate-900" style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>Chọn thành viên</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                          <Input value={memberFlowerLookupSearch} onChange={(e) => setMemberFlowerLookupSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="rounded-2xl pl-9 font-sans text-slate-900" />
+                        </div>
+                        <ScrollArea className="h-[320px] pr-3">
+                          <div className="space-y-2">
+                            <button type="button" className="w-full rounded-2xl border px-4 py-3 text-left text-sm font-sans text-slate-900 transition hover:bg-slate-50" onClick={() => { setMemberFlowerLookup("all"); setMemberFlowerLookupPickerOpen(false); }}>-- Chọn thành viên --</button>
+                            {filteredMemberFlowerLookupOptions.length === 0 ? <SectionEmpty>Không tìm thấy thành viên phù hợp.</SectionEmpty> : filteredMemberFlowerLookupOptions.map((member) => <button key={member.id} type="button" className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-sans text-slate-900 transition hover:bg-slate-50 ${String(memberFlowerLookup) === String(member.id) ? "border-slate-900 bg-slate-50" : ""}`} onClick={() => { setMemberFlowerLookup(String(member.id)); setMemberFlowerLookupPickerOpen(false); }}>{member.name}</button>)}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!selectedMemberFlowerLookup ? (
+                  <SectionEmpty>Hãy chọn một thành viên để xem người đó đang có những loại hoa gì.</SectionEmpty>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border bg-slate-50 px-4 py-3">
+                      <div className="mt-1 flex items-center justify-between gap-3">
+                        <p className="font-semibold text-slate-900">{selectedMemberFlowerLookup.name}</p>
+                        <Badge variant="secondary">{flowersBySelectedMember.length} hoa</Badge>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                      {MEMBER_FLOWER_GROUP_ORDER.map((group) => {
+                        const groupFlowers = memberFlowersByGroup[group] || [];
+                        return (
+                          <div key={group} className="rounded-3xl border p-3">
+                            <div className="mb-3 flex items-center justify-between gap-2">
+                              <Badge variant="outline" className={groupBadgeClass(group)}>{group}</Badge>
+                              <span className="text-xs text-slate-500">{groupFlowers.length}</span>
+                            </div>
+                            <ScrollArea className="h-[220px] pr-2 sm:h-[300px] xl:h-[620px]">
+                              <div className="space-y-2">
+                                {groupFlowers.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-400">Chưa có hoa</div> : groupFlowers.map((flower) => (
+                                  <div key={`${group}-${flower.id}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                    <div className="flex items-center gap-2">
+                                      <FlowerThumbnail flower={flower} size="sm" />
+                                      <p className="text-sm font-medium text-slate-700 leading-snug break-words line-clamp-2">{flowerLabel(flower)}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {isAdmin ? (
             <TabsContent value="update" className="space-y-4">
               <Card className="rounded-[28px]">
                 <CardHeader><CardTitle className="font-sans">Cập nhật hoa mới thành viên vừa sở hữu</CardTitle></CardHeader>
                 <CardContent className="grid gap-4 xl:grid-cols-[360px_1fr] xl:gap-6">
-                  
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Chọn thành viên cũ</Label>
                       <Dialog open={memberPickerOpen} onOpenChange={setMemberPickerOpen}>
                         <DialogTrigger asChild>
                           <Button type="button" variant="outline" className="w-full justify-between rounded-2xl font-normal">
-                            <span className="truncate text-left">
-                              {selectedExistingMemberId === "none"
-                                ? "-- Không chọn --"
-                                : members.find((member) => String(member.id) === String(selectedExistingMemberId))?.name || "-- Không chọn --"}
-                            </span>
+                            <span className="truncate text-left">{selectedExistingMemberId === "none" ? "-- Không chọn --" : members.find((member) => String(member.id) === String(selectedExistingMemberId))?.name || "-- Không chọn --"}</span>
                             <span className="text-slate-400">▼</span>
                           </Button>
                         </DialogTrigger>
-                        <DialogContent
-                          className="rounded-3xl font-sans text-slate-900 sm:max-w-lg [&_*]:font-sans"
-                          style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
-                        >
+                        <DialogContent className="rounded-3xl font-sans text-slate-900 sm:max-w-lg [&_*]:font-sans" style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
                           <DialogHeader>
-                            <DialogTitle
-                            className="font-sans text-slate-900"
-                            style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
-                          >Chọn thành viên cũ</DialogTitle>
+                            <DialogTitle className="font-sans text-slate-900" style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>Chọn thành viên cũ</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-3">
                             <div className="relative">
                               <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                              <Input
-                                value={memberPickerSearch}
-                                onChange={(e) => setMemberPickerSearch(e.target.value)}
-                                placeholder="Tìm tên thành viên..."
-                                className="rounded-2xl pl-9 font-sans text-slate-900"
-                              />
+                              <Input value={memberPickerSearch} onChange={(e) => setMemberPickerSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="rounded-2xl pl-9 font-sans text-slate-900" />
                             </div>
                             <ScrollArea className="h-[320px] pr-3">
                               <div className="space-y-2">
-                                <button
-                                  type="button"
-                                  className="w-full rounded-2xl border px-4 py-3 text-left text-sm font-sans text-slate-900 transition hover:bg-slate-50"
-                                  onClick={() => {
-                                    setSelectedExistingMemberId("none");
-                                    setMemberPickerOpen(false);
-                                  }}
-                                >
-                                  -- Không chọn --
-                                </button>
-                                {filteredExistingMembers.length === 0 ? (
-                                  <SectionEmpty>Không tìm thấy thành viên phù hợp.</SectionEmpty>
-                                ) : (
-                                  filteredExistingMembers.map((member) => (
-                                    <button
-                                      key={member.id}
-                                      type="button"
-                                      className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-sans text-slate-900 transition hover:bg-slate-50 ${
-                                        String(selectedExistingMemberId) === String(member.id) ? "border-slate-900 bg-slate-50" : ""
-                                      }`}
-                                      onClick={() => {
-                                        setSelectedExistingMemberId(String(member.id));
-                                        setNewMemberName("");
-                                        setMemberPickerOpen(false);
-                                      }}
-                                    >
-                                      {member.name}
-                                    </button>
-                                  ))
-                                )}
+                                <button type="button" className="w-full rounded-2xl border px-4 py-3 text-left text-sm font-sans text-slate-900 transition hover:bg-slate-50" onClick={() => { setSelectedExistingMemberId("none"); setMemberPickerOpen(false); }}>-- Không chọn --</button>
+                                {filteredExistingMembers.length === 0 ? <SectionEmpty>Không tìm thấy thành viên phù hợp.</SectionEmpty> : filteredExistingMembers.map((member) => (
+                                  <button key={member.id} type="button" className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-sans text-slate-900 transition hover:bg-slate-50 ${String(selectedExistingMemberId) === String(member.id) ? "border-slate-900 bg-slate-50" : ""}`} onClick={() => { setSelectedExistingMemberId(String(member.id)); setNewMemberName(""); setMemberPickerOpen(false); }}>{member.name}</button>
+                                ))}
                               </div>
                             </ScrollArea>
                           </div>
@@ -1665,22 +1597,50 @@ export default function HoaHoiGameCanvasApp() {
                     <div className="space-y-3 rounded-2xl border bg-slate-50 p-4">
                       <Label>Lọc danh sách hoa để chọn</Label>
                       <Input value={updateSearch} onChange={(e) => setUpdateSearch(e.target.value)} placeholder="Tìm tên hoa" className="rounded-2xl" />
-                      <Select value={updateGroupFilter} onValueChange={setUpdateGroupFilter}><SelectTrigger className="rounded-2xl"><SelectValue placeholder="Lọc theo nhóm" /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả nhóm</SelectItem>{FLOWER_GROUPS.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select>
+                      <Select value={updateGroupFilter} onValueChange={setUpdateGroupFilter}>
+                        <SelectTrigger className="rounded-2xl"><SelectValue placeholder="Lọc theo nhóm" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tất cả nhóm</SelectItem>
+                          {FLOWER_GROUPS.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <Button onClick={saveOwnershipUpdate} className="w-full rounded-2xl" disabled={savingOwnership}>
-                        {savingOwnership ? "Đang lưu..." : "Lưu cập nhật sở hữu"}
-                      </Button>
-                      <Button type="button" variant="outline" onClick={removeOwnershipFromMember} className="w-full rounded-2xl" disabled={savingOwnership || !selectedExistingMember}>
-                        {savingOwnership ? "Đang xử lý..." : "Gỡ hoa khỏi thành viên"}
-                      </Button>
+                      <Button onClick={saveOwnershipUpdate} className="w-full rounded-2xl" disabled={savingOwnership}>{savingOwnership ? "Đang lưu..." : "Lưu cập nhật sở hữu"}</Button>
+                      <Button type="button" variant="outline" onClick={removeOwnershipFromMember} className="w-full rounded-2xl" disabled={savingOwnership || !selectedExistingMember}>{savingOwnership ? "Đang xử lý..." : "Gỡ hoa khỏi thành viên"}</Button>
                     </div>
                     {updateMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{updateMessage}</div> : null}
                   </div>
+
                   <div className="grid gap-4 xl:grid-cols-2">
                     <Card className="rounded-[28px]">
                       <CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle>Chọn hoa để thêm</CardTitle><Badge variant="secondary">Đã chọn {selectedFlowerIds.length}</Badge></div></CardHeader>
-                      <CardContent><ScrollArea className="h-[420px] pr-4"><div className="space-y-3">{selectableFlowers.map((flower) => { const checked = selectedFlowerIds.includes(String(flower.id)); return <label key={flower.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleFlowerSelection(flower.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-3"><FlowerThumbnail flower={flower} size="sm" /><p className="font-medium">{flowerLabel(flower)}</p></div><p className="mt-1 text-sm text-slate-600">Hiện có {ownersByFlower.get(String(flower.id))?.length || 0} người sở hữu</p></div><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></div></div></label>; })}</div></ScrollArea></CardContent>
+                      <CardContent>
+                        <ScrollArea className="h-[420px] pr-4">
+                          <div className="space-y-3">
+                            {selectableFlowers.map((flower) => {
+                              const checked = selectedFlowerIds.includes(String(flower.id));
+                              return (
+                                <label key={flower.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition hover:bg-slate-50">
+                                  <Checkbox checked={checked} onCheckedChange={() => toggleFlowerSelection(flower.id)} />
+                                  <div className="flex-1">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <div className="flex items-center gap-3">
+                                          <FlowerThumbnail flower={flower} size="sm" />
+                                          <p className="font-medium">{flowerLabel(flower)}</p>
+                                        </div>
+                                        <p className="mt-1 text-sm text-slate-600">Hiện có {ownersByFlower.get(String(flower.id))?.length || 0} người sở hữu</p>
+                                      </div>
+                                      <Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge>
+                                    </div>
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
                     </Card>
 
                     <Card className="rounded-[28px]">
@@ -1690,12 +1650,31 @@ export default function HoaHoiGameCanvasApp() {
                           <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
                           <Input value={removalFlowerSearch} onChange={(e) => setRemovalFlowerSearch(e.target.value)} placeholder="Tìm tên hoa để gỡ..." className="rounded-2xl pl-9 font-sans text-slate-900" />
                         </div>
-                        {!selectedExistingMember ? (
-                          <SectionEmpty>Hãy chọn thành viên cũ để xem những hoa đang sở hữu và gỡ khi cần.</SectionEmpty>
-                        ) : removableFlowers.length === 0 ? (
-                          <SectionEmpty>{selectedExistingMember.name} hiện chưa có hoa nào để gỡ.</SectionEmpty>
-                        ) : (
-                          <ScrollArea className="h-[420px] pr-4"><div className="space-y-3">{removableFlowers.map((flower) => { const checked = selectedRemovalFlowerIds.includes(String(flower.id)); return <label key={flower.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleRemovalFlowerSelection(flower.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-3"><FlowerThumbnail flower={flower} size="sm" /><p className="font-medium">{flowerLabel(flower)}</p></div><p className="mt-1 text-sm text-slate-600">Đang thuộc sở hữu của {selectedExistingMember.name}</p></div><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></div></div></label>; })}</div></ScrollArea>
+                        {!selectedExistingMember ? <SectionEmpty>Hãy chọn thành viên cũ để xem những hoa đang sở hữu và gỡ khi cần.</SectionEmpty> : removableFlowers.length === 0 ? <SectionEmpty>{selectedExistingMember.name} hiện chưa có hoa nào để gỡ.</SectionEmpty> : (
+                          <ScrollArea className="h-[420px] pr-4">
+                            <div className="space-y-3">
+                              {removableFlowers.map((flower) => {
+                                const checked = selectedRemovalFlowerIds.includes(String(flower.id));
+                                return (
+                                  <label key={flower.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition hover:bg-slate-50">
+                                    <Checkbox checked={checked} onCheckedChange={() => toggleRemovalFlowerSelection(flower.id)} />
+                                    <div className="flex-1">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                          <div className="flex items-center gap-3">
+                                            <FlowerThumbnail flower={flower} size="sm" />
+                                            <p className="font-medium">{flowerLabel(flower)}</p>
+                                          </div>
+                                          <p className="mt-1 text-sm text-slate-600">Đang thuộc sở hữu của {selectedExistingMember.name}</p>
+                                        </div>
+                                        <Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge>
+                                      </div>
+                                    </div>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </ScrollArea>
                         )}
                       </CardContent>
                     </Card>
@@ -1717,7 +1696,51 @@ export default function HoaHoiGameCanvasApp() {
                     <Button onClick={addFlowerToDatabase} className="w-full rounded-2xl" disabled={savingFlower}><Plus className="mr-2 h-4 w-4" />{savingFlower ? "Đang thêm..." : "Thêm hoa mới"}</Button>
                     {flowerCreateMessage ? <div className="rounded-2xl border bg-white p-3 text-sm text-slate-700">{flowerCreateMessage}</div> : null}
                   </div>
-                  <Card className="rounded-[28px]"><CardHeader><CardTitle>Danh sách hoa hiện có</CardTitle></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 md:grid-cols-[1fr_220px]"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={flowerManageSearch} onChange={(e) => setFlowerManageSearch(e.target.value)} placeholder="Tìm hoa trong danh sách hiện có..." className="rounded-2xl pl-9 font-sans text-slate-900" /></div><Select value={flowerManageGroupFilter} onValueChange={setFlowerManageGroupFilter}><SelectTrigger className="rounded-2xl"><SelectValue placeholder="Lọc theo nhóm" /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả nhóm</SelectItem>{FLOWER_GROUPS.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select></div><div className="grid gap-3 md:grid-cols-2">{filteredManageFlowers.map((flower) => <div key={flower.id} className="rounded-3xl border p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-3"><FlowerThumbnail flower={flower} /><div><p className="font-medium">{flowerLabel(flower)}</p><p className="mt-1 text-sm text-slate-600">{ownershipsLoading || !ownershipsLoaded ? "Đang đồng bộ dữ liệu sở hữu" : `${ownersByFlower.get(String(flower.id))?.length || 0} người đang sở hữu`}</p></div></div></div><div className="flex flex-col items-end gap-2"><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa hoa</Button></DialogTrigger><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>Sửa tên hoa và icon</DialogTitle></DialogHeader><EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} /></DialogContent></Dialog></div></div></div>)}</div></CardContent></Card>
+                  <Card className="rounded-[28px]">
+                    <CardHeader><CardTitle>Danh sách hoa hiện có</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                          <Input value={flowerManageSearch} onChange={(e) => setFlowerManageSearch(e.target.value)} placeholder="Tìm hoa trong danh sách hiện có..." className="rounded-2xl pl-9 font-sans text-slate-900" />
+                        </div>
+                        <Select value={flowerManageGroupFilter} onValueChange={setFlowerManageGroupFilter}>
+                          <SelectTrigger className="rounded-2xl"><SelectValue placeholder="Lọc theo nhóm" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Tất cả nhóm</SelectItem>
+                            {FLOWER_GROUPS.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {filteredManageFlowers.map((flower) => (
+                          <div key={flower.id} className="rounded-3xl border p-4 shadow-sm">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="flex items-center gap-3">
+                                  <FlowerThumbnail flower={flower} />
+                                  <div>
+                                    <p className="font-medium">{flowerLabel(flower)}</p>
+                                    <p className="mt-1 text-sm text-slate-600">{ownershipsLoading || !ownershipsLoaded ? "Đang đồng bộ dữ liệu sở hữu" : `${ownersByFlower.get(String(flower.id))?.length || 0} người đang sở hữu`}</p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-2">
+                                <Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge>
+                                <Dialog>
+                                  <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa hoa</Button></DialogTrigger>
+                                  <DialogContent className="rounded-3xl">
+                                    <DialogHeader><DialogTitle>Sửa tên hoa và icon</DialogTitle></DialogHeader>
+                                    <EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} />
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1728,23 +1751,12 @@ export default function HoaHoiGameCanvasApp() {
               <Card className="rounded-[28px]">
                 <CardHeader>
                   <CardTitle className="font-sans">Quản lý chức danh</CardTitle>
-                  {!titleFeatureAvailable ? (
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                      Supabase của bạn chưa có bảng <strong>titles</strong> và <strong>member_titles</strong>, nên tab này đang tạm tắt.
-                    </div>
-                  ) : null}
+                  {!titleFeatureAvailable ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Supabase của bạn chưa có bảng <strong>titles</strong> và <strong>member_titles</strong>, nên tab này đang tạm tắt.</div> : null}
                 </CardHeader>
                 <CardContent className="grid gap-4 xl:grid-cols-[360px_1fr] xl:gap-6">
                   <div className="space-y-4 rounded-3xl border bg-slate-50 p-5">
-                    <div className="space-y-2">
-                      <Label>Thêm chức danh mới</Label>
-                      <Input value={newTitleName} onChange={(e) => setNewTitleName(e.target.value)} placeholder="Ví dụ: Trưởng nhóm" className="rounded-2xl" />
-                    </div>
-                    <Button onClick={addTitleToDatabase} className="w-full rounded-2xl" disabled={savingTitle}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      {savingTitle ? "Đang thêm..." : "Thêm chức danh"}
-                    </Button>
-
+                    <div className="space-y-2"><Label>Thêm chức danh mới</Label><Input value={newTitleName} onChange={(e) => setNewTitleName(e.target.value)} placeholder="Ví dụ: Trưởng nhóm" className="rounded-2xl" /></div>
+                    <Button onClick={addTitleToDatabase} className="w-full rounded-2xl" disabled={savingTitle}><Plus className="mr-2 h-4 w-4" />{savingTitle ? "Đang thêm..." : "Thêm chức danh"}</Button>
                     <div className="space-y-2 pt-2">
                       <Label>Chọn chức danh để trao</Label>
                       <Select value={selectedTitleId} onValueChange={setSelectedTitleId}>
@@ -1755,7 +1767,6 @@ export default function HoaHoiGameCanvasApp() {
                         </SelectContent>
                       </Select>
                     </div>
-
                     <div className="space-y-2">
                       <Label>Tìm thành viên để trao</Label>
                       <div className="relative">
@@ -1763,10 +1774,7 @@ export default function HoaHoiGameCanvasApp() {
                         <Input value={titleMemberSearch} onChange={(e) => setTitleMemberSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="rounded-2xl pl-9 font-sans text-slate-900" />
                       </div>
                     </div>
-
-                    <Button onClick={saveTitleAssignments} className="w-full rounded-2xl" disabled={savingTitle}>
-                      {savingTitle ? "Đang lưu..." : "Trao chức danh cho thành viên đã chọn"}
-                    </Button>
+                    <Button onClick={saveTitleAssignments} className="w-full rounded-2xl" disabled={savingTitle}>{savingTitle ? "Đang lưu..." : "Trao chức danh cho thành viên đã chọn"}</Button>
                     {titleMessage ? <div className="rounded-2xl border bg-white p-3 text-sm text-slate-700">{titleMessage}</div> : null}
                   </div>
 
@@ -1816,36 +1824,15 @@ export default function HoaHoiGameCanvasApp() {
                                 <div key={title.id} className="rounded-3xl border p-4">
                                   <div className="flex items-center justify-between gap-3">
                                     <Badge variant="outline" className={`rounded-full ${titleBadgeClass(title.name)}`}>{title.name}</Badge>
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant="secondary">{assignedMembers.length} người</Badge>
-                                    </div>
+                                    <div className="flex items-center gap-2"><Badge variant="secondary">{assignedMembers.length} người</Badge></div>
                                   </div>
                                   <div className="mt-3 flex flex-wrap gap-2">
-                                    {assignedMembers.length === 0 ? (
-                                      <span className="text-sm text-slate-500">Chưa có ai giữ chức danh này.</span>
-                                    ) : (
-                                      assignedMembers.map((member) => (
-                                        <div key={`${title.id}-${member.id}`} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1">
-                                          <Badge variant="outline" className={`rounded-full ${titleBadgeClass(title.name)}`}>
-                                            {member.name}
-                                          </Badge>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-7 rounded-full px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                                            onClick={(e) => {
-                                              e.preventDefault();
-                                              e.stopPropagation();
-                                              void removeTitleFromMember(title.id, member.id);
-                                            }}
-                                            disabled={savingTitle}
-                                          >
-                                            Gỡ
-                                          </Button>
-                                        </div>
-                                      ))
-                                    )}
+                                    {assignedMembers.length === 0 ? <span className="text-sm text-slate-500">Chưa có ai giữ chức danh này.</span> : assignedMembers.map((member) => (
+                                      <div key={`${title.id}-${member.id}`} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1">
+                                        <Badge variant="outline" className={`rounded-full ${titleBadgeClass(title.name)}`}>{member.name}</Badge>
+                                        <Button type="button" variant="ghost" size="sm" className="h-7 rounded-full px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700" onClick={(e) => { e.preventDefault(); e.stopPropagation(); void removeTitleFromMember(title.id, member.id); }} disabled={savingTitle}>Gỡ</Button>
+                                      </div>
+                                    ))}
                                   </div>
                                 </div>
                               );
@@ -1862,15 +1849,9 @@ export default function HoaHoiGameCanvasApp() {
 
           <TabsContent value="history" className="space-y-4">
             <Card className="rounded-[28px] border border-white/70 bg-white/85 shadow-[0_16px_45px_-24px_rgba(15,23,42,0.18)]">
-              <CardHeader>
-                <CardTitle className="font-sans">Lịch sử cập nhật</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="font-sans">Lịch sử cập nhật</CardTitle></CardHeader>
               <CardContent>
-                {loading ? (
-                  <p className="text-sm text-slate-600">Đang tải lịch sử...</p>
-                ) : historyEntries.length === 0 ? (
-                  <SectionEmpty>Chưa có lịch sử thao tác.</SectionEmpty>
-                ) : (
+                {loading ? <p className="text-sm text-slate-600">Đang tải lịch sử...</p> : historyEntries.length === 0 ? <SectionEmpty>Chưa có lịch sử thao tác.</SectionEmpty> : (
                   <div className="space-y-3">
                     {historyEntries.map((log) => (
                       <div key={log.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -1880,11 +1861,7 @@ export default function HoaHoiGameCanvasApp() {
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <p className="font-semibold text-slate-900">{log.targetName || "-"}</p>
-                                {log.memberTitle?.name ? (
-                                  <Badge variant="outline" className={`rounded-full ${titleBadgeClass(log.memberTitle.name)}`}>
-                                    {log.memberTitle.name}
-                                  </Badge>
-                                ) : null}
+                                {log.memberTitle?.name ? <Badge variant="outline" className={`rounded-full ${titleBadgeClass(log.memberTitle.name)}`}>{log.memberTitle.name}</Badge> : null}
                               </div>
                               <p className="mt-1 text-sm text-slate-600">{log.details || "-"}</p>
                               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -1894,11 +1871,7 @@ export default function HoaHoiGameCanvasApp() {
                               </div>
                             </div>
                           </div>
-                          {log.matchedFlower ? (
-                            <Badge variant="outline" className={groupBadgeClass(log.matchedFlower.group)}>
-                              {log.matchedFlower.group}
-                            </Badge>
-                          ) : null}
+                          {log.matchedFlower ? <Badge variant="outline" className={groupBadgeClass(log.matchedFlower.group)}>{log.matchedFlower.group}</Badge> : null}
                         </div>
                       </div>
                     ))}

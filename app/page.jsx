@@ -75,6 +75,17 @@ function normalizeFlowerLookupText(value) {
     .trim();
 }
 
+function extractFlowerNamesFromHistoryDetails(details) {
+  const text = String(details || "").trim();
+  if (!text) return [];
+  const colonIndex = text.indexOf(":");
+  const flowerPart = colonIndex >= 0 ? text.slice(colonIndex + 1) : text;
+  return flowerPart
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function normalizeOwnershipRow(row) {
   return {
     id: String(row.id),
@@ -884,16 +895,33 @@ export default function HoaHoiGameCanvasApp() {
   }, [titles, titleManageSearch]);
 
   const historyEntries = useMemo(() => {
-    const tryFindFlowerByName = (text) => {
-      const normalizedText = normalizeFlowerLookupText(text)
-      return flowers.find((flower) => normalizedText.includes(normalizeFlowerLookupText(flower.name))) || null;
+    const findFlowerByName = (name) => {
+      const normalizedName = normalizeFlowerLookupText(name);
+      return flowers.find((flower) => normalizeFlowerLookupText(flower.name) === normalizedName) || null;
     };
 
     return historyLogs.map((log) => {
       const member = members.find((item) => item.name === log.targetName) || null;
       const memberTitle = member ? titleByMemberId.get(String(member.id)) : null;
-      const matchedFlower = tryFindFlowerByName(log.details);
-      return { ...log, member, memberTitle, matchedFlower };
+      const flowerNames = extractFlowerNamesFromHistoryDetails(log.details);
+      const flowerItems = flowerNames.map((name) => ({
+        name,
+        flower: findFlowerByName(name),
+      }));
+      const matchedFlower = flowerItems[0]?.flower || null;
+
+      let summaryText = "";
+      if (log.actionType === "update_ownership") {
+        summaryText = `Đã thêm ${flowerItems.length} hoa`;
+      } else if (log.actionType === "remove_ownership") {
+        summaryText = `Đã gỡ ${flowerItems.length} hoa`;
+      } else if (flowerItems.length > 0) {
+        summaryText = `${flowerItems.length} hoa`;
+      } else {
+        summaryText = log.details || "";
+      }
+
+      return { ...log, member, memberTitle, matchedFlower, flowerItems, summaryText };
     });
   }, [historyLogs, flowers, members, titleByMemberId]);
 
@@ -1923,15 +1951,42 @@ export default function HoaHoiGameCanvasApp() {
                   <div className="space-y-3">
                     {historyEntries.map((log) => (
                       <div key={log.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                          <div className="flex min-w-0 items-start gap-3">
-                            {log.matchedFlower ? <FlowerThumbnail flower={log.matchedFlower} /> : <div className="flex h-11 w-11 items-center justify-center rounded-2xl border bg-slate-50 text-slate-400"><PlaceholderFlowerIcon /></div>}
+                        <div className="flex items-start gap-3">
+                          <div className="min-w-0 flex-1">
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <p className="font-semibold text-slate-900">{log.targetName || "-"}</p>
                                 {log.memberTitle?.name ? <Badge variant="outline" className={`rounded-full ${titleBadgeClass(log.memberTitle.name)}`}>{log.memberTitle.name}</Badge> : null}
+                                {log.summaryText ? <span className="text-sm text-slate-500">• {log.summaryText}</span> : null}
                               </div>
-                              <p className="mt-1 text-sm text-slate-600">{log.details || "-"}</p>
+                              {log.flowerItems?.length > 0 ? (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {log.flowerItems.map((item, index) => (
+                                    <div
+                                      key={`${log.id}-${item.name}-${index}`}
+                                      className="inline-flex max-w-full items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2"
+                                    >
+                                      {item.flower ? (
+                                        <FlowerThumbnail flower={item.flower} size="sm" />
+                                      ) : (
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-2xl border bg-white text-slate-400">
+                                          <PlaceholderFlowerIcon size="sm" />
+                                        </div>
+                                      )}
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-medium text-slate-700 break-words">{item.name}</p>
+                                      </div>
+                                      {item.flower ? (
+                                        <Badge variant="outline" className={`shrink-0 rounded-full ${groupBadgeClass(item.flower.group)}`}>
+                                          {item.flower.group}
+                                        </Badge>
+                                      ) : null}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="mt-1 text-sm text-slate-600">{log.details || "-"}</p>
+                              )}
                               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                                 <span>{log.createdAt ? new Date(log.createdAt).toLocaleString("vi-VN") : "-"}</span>
                                 <span>•</span>
@@ -1939,7 +1994,7 @@ export default function HoaHoiGameCanvasApp() {
                               </div>
                             </div>
                           </div>
-                          {log.matchedFlower ? <Badge variant="outline" className={groupBadgeClass(log.matchedFlower.group)}>{log.matchedFlower.group}</Badge> : null}
+                          
                         </div>
                       </div>
                     ))}

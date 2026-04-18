@@ -467,6 +467,7 @@ export default function HoaHoiGameCanvasApp() {
   const [ownershipsLoaded, setOwnershipsLoaded] = useState(false);
   const [pageMessage, setPageMessage] = useState("");
   const [realtimeMessage, setRealtimeMessage] = useState("");
+  const [lastSyncedAt, setLastSyncedAt] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   const [flowerSearch, setFlowerSearch] = useState("");
   const [memberFlowerLookup, setMemberFlowerLookup] = useState("all");
@@ -585,9 +586,12 @@ export default function HoaHoiGameCanvasApp() {
     }
   }
 
-  async function loadAllData() {
-    setLoading(true);
-    setPageMessage("");
+  async function loadAllData(options = {}) {
+    const { silent = false } = options;
+    if (!silent) {
+      setLoading(true);
+      setPageMessage("");
+    }
     try {
       const [membersRes, flowersRes, titlesRes, memberTitlesRes, historyRes] = await Promise.all([
         supabase.from("members").select("id, name").order("name", { ascending: true }),
@@ -627,11 +631,14 @@ export default function HoaHoiGameCanvasApp() {
             createdAt: log.created_at || "",
           }))
         );
+        setLastSyncedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
       }
     } catch (error) {
       setPageMessage(`Không tải được dữ liệu: ${error?.message || "Lỗi không xác định"}`);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
     await loadOwnershipData();
   }
@@ -643,7 +650,7 @@ export default function HoaHoiGameCanvasApp() {
     const refreshFromRealtime = () => {
       clearTimeout(reloadTimer);
       reloadTimer = window.setTimeout(() => {
-        loadAllData();
+        loadAllData({ silent: true });
       }, 300);
     };
     channel
@@ -655,8 +662,35 @@ export default function HoaHoiGameCanvasApp() {
         const text = String(status || "").toLowerCase();
         if (text === "subscribed") setRealtimeMessage("");
       });
+
+    const intervalId = window.setInterval(() => {
+      loadAllData({ silent: true });
+    }, 45000);
+
+    const handleFocusSync = () => {
+      loadAllData({ silent: true });
+    };
+
+    const handleVisibilitySync = () => {
+      if (document.visibilityState === "visible") {
+        loadAllData({ silent: true });
+      }
+    };
+
+    const handleOnlineSync = () => {
+      loadAllData({ silent: true });
+    };
+
+    window.addEventListener("focus", handleFocusSync);
+    window.addEventListener("online", handleOnlineSync);
+    document.addEventListener("visibilitychange", handleVisibilitySync);
+
     return () => {
       clearTimeout(reloadTimer);
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocusSync);
+      window.removeEventListener("online", handleOnlineSync);
+      document.removeEventListener("visibilitychange", handleVisibilitySync);
       supabase.removeChannel(channel);
     };
   }, []);
@@ -1257,6 +1291,7 @@ export default function HoaHoiGameCanvasApp() {
           </div>
           {pageMessage ? <div className="mt-4 rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{pageMessage}</div> : null}
           {realtimeMessage ? <div className="mt-4 rounded-2xl border bg-red-50 p-3 text-sm text-red-700">{realtimeMessage}</div> : null}
+          {lastSyncedAt ? <div className="mt-4 text-xs text-slate-500">Đồng bộ lần cuối: {lastSyncedAt}</div> : null}
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">

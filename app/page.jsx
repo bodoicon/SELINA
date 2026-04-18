@@ -357,6 +357,7 @@ function EditMemberForm({ member, onSave }) {
 
 function EditFlowerForm({ flower, onSave }) {
   const [name, setName] = useState(flower.name);
+  const [group, setGroup] = useState(flower.group || "Lục");
   const [iconUrl, setIconUrl] = useState(flower.iconUrl || "");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -367,6 +368,21 @@ function EditFlowerForm({ flower, onSave }) {
       <div className="space-y-2">
         <Label>Tên hoa</Label>
         <Input value={name} onChange={(e) => setName(e.target.value)} className="rounded-2xl" />
+      </div>
+      <div className="space-y-2">
+        <Label>Nhóm hoa</Label>
+        <Select value={group} onValueChange={setGroup}>
+          <SelectTrigger className="rounded-2xl">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FLOWER_GROUPS.map((item) => (
+              <SelectItem key={item} value={item}>
+                {item}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
         <Label>Icon hoa (URL)</Label>
@@ -413,7 +429,7 @@ function EditFlowerForm({ flower, onSave }) {
           disabled={saving || uploading}
           onClick={async () => {
             setSaving(true);
-            const result = await onSave({ name, iconUrl });
+            const result = await onSave({ name, group, iconUrl });
             setSaving(false);
             setMessage(result.message);
           }}
@@ -1062,8 +1078,10 @@ export default function HoaHoiGameCanvasApp() {
   async function renameFlower(flowerId, payload) {
     const trimmedName = payload.name.trim();
     const nextIconUrl = payload.iconUrl.trim();
+    const nextGroup = payload.group;
     if (!trimmedName) return { ok: false, message: "Tên hoa không được để trống." };
-    const { error } = await supabase.from("flowers").update({ name: trimmedName, icon_url: nextIconUrl || null }).eq("id", flowerId);
+    if (!nextGroup) return { ok: false, message: "Nhóm hoa không được để trống." };
+    const { error } = await supabase.from("flowers").update({ name: trimmedName, group_name: nextGroup, icon_url: nextIconUrl || null }).eq("id", flowerId);
     if (error) return { ok: false, message: `Không sửa được hoa: ${error.message}` };
     await loadAllData();
     return { ok: true, message: "Đã cập nhật thông tin hoa." };
@@ -1456,7 +1474,7 @@ export default function HoaHoiGameCanvasApp() {
                                   <Dialog>
                                     <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger>
                                     <DialogContent className="rounded-3xl">
-                                      <DialogHeader><DialogTitle>Sửa tên hoa</DialogTitle></DialogHeader>
+                                      <DialogHeader><DialogTitle>Sửa hoa</DialogTitle></DialogHeader>
                                       <EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} />
                                     </DialogContent>
                                   </Dialog>
@@ -1730,7 +1748,7 @@ export default function HoaHoiGameCanvasApp() {
                                 <Dialog>
                                   <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa hoa</Button></DialogTrigger>
                                   <DialogContent className="rounded-3xl">
-                                    <DialogHeader><DialogTitle>Sửa tên hoa và icon</DialogTitle></DialogHeader>
+                                    <DialogHeader><DialogTitle>Sửa hoa</DialogTitle></DialogHeader>
                                     <EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} />
                                   </DialogContent>
                                 </Dialog>

@@ -65,6 +65,16 @@ function flowerLabel(flower) {
   return flower?.name || "";
 }
 
+function normalizeFlowerLookupText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .trim();
+}
+
 function normalizeOwnershipRow(row) {
   return {
     id: String(row.id),
@@ -204,6 +214,8 @@ function runLocalSelfChecks() {
   console.assert(extractStoragePathFromUrl("") === null, "Test failed: extractStoragePathFromUrl empty");
   console.assert(normalizeOwnershipRow({ id: 1, member_id: 2, flower_id: 3 }).memberId === "2", "Test failed: normalizeOwnershipRow");
   console.assert(isInvalidRefreshTokenError({ message: "Invalid Refresh Token" }) === true, "Test failed: refresh token detection");
+  console.assert(normalizeFlowerLookupText("Thủy") === normalizeFlowerLookupText("Thuỷ"), "Test failed: flower search normalization must match Thủy and Thuỷ.");
+  console.assert(normalizeFlowerLookupText("Đóa") === "doa", "Test failed: flower search normalization must convert Đ to d.");
 }
 
 function PlaceholderFlowerIcon({ size = "md" }) {
@@ -739,7 +751,10 @@ export default function HoaHoiGameCanvasApp() {
     return members.filter((member) => member.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, "vi"));
   }, [members, memberPickerSearch]);
 
-  const filteredFlowers = useMemo(() => flowers.filter((flower) => flowerLabel(flower).toLowerCase().includes(flowerSearch.trim().toLowerCase())), [flowers, flowerSearch]);
+  const filteredFlowers = useMemo(
+    () => flowers.filter((flower) => normalizeFlowerLookupText(flowerLabel(flower)).includes(normalizeFlowerLookupText(flowerSearch))),
+    [flowers, flowerSearch]
+  );
 
   const filteredMemberFlowerLookupOptions = useMemo(() => {
     const q = memberFlowerLookupSearch.trim().toLowerCase();
@@ -765,13 +780,13 @@ export default function HoaHoiGameCanvasApp() {
   }, [flowersBySelectedMember]);
 
   const selectableFlowers = useMemo(() => {
-    const q = updateSearch.trim().toLowerCase();
+    const q = normalizeFlowerLookupText(updateSearch)
     const ownedIds = selectedExistingMember
       ? new Set(ownerships.filter((row) => String(row.memberId) === String(selectedExistingMember.id)).map((row) => String(row.flowerId)))
       : new Set();
 
     return flowers.filter((flower) => {
-      const okText = flowerLabel(flower).toLowerCase().includes(q);
+      const okText = normalizeFlowerLookupText(flowerLabel(flower)).includes(q)
       const okGroup = updateGroupFilter === "all" || flower.group === updateGroupFilter;
       const notOwnedYet = !selectedExistingMember || !ownedIds.has(String(flower.id));
       return okText && okGroup && notOwnedYet;
@@ -781,17 +796,17 @@ export default function HoaHoiGameCanvasApp() {
   const removableFlowers = useMemo(() => {
     if (!selectedExistingMember) return [];
     const ownedIds = new Set(ownerships.filter((row) => String(row.memberId) === String(selectedExistingMember.id)).map((row) => String(row.flowerId)));
-    const q = removalFlowerSearch.trim().toLowerCase();
+    const q = normalizeFlowerLookupText(removalFlowerSearch)
     return flowers
       .filter((flower) => ownedIds.has(String(flower.id)))
-      .filter((flower) => !q || flowerLabel(flower).toLowerCase().includes(q))
+      .filter((flower) => !q || normalizeFlowerLookupText(flowerLabel(flower)).includes(q))
       .sort((a, b) => a.name.localeCompare(b.name, "vi"));
   }, [selectedExistingMember, ownerships, flowers, removalFlowerSearch]);
 
   const filteredManageFlowers = useMemo(() => {
-    const q = flowerManageSearch.trim().toLowerCase();
+    const q = normalizeFlowerLookupText(flowerManageSearch)
     return flowers.filter((flower) => {
-      const matchText = !q || flowerLabel(flower).toLowerCase().includes(q);
+      const matchText = !q || normalizeFlowerLookupText(flowerLabel(flower)).includes(q);
       const matchGroup = flowerManageGroupFilter === "all" || flower.group === flowerManageGroupFilter;
       return matchText && matchGroup;
     });
@@ -836,8 +851,8 @@ export default function HoaHoiGameCanvasApp() {
 
   const historyEntries = useMemo(() => {
     const tryFindFlowerByName = (text) => {
-      const normalizedText = String(text || "").toLowerCase();
-      return flowers.find((flower) => normalizedText.includes(flower.name.toLowerCase())) || null;
+      const normalizedText = normalizeFlowerLookupText(text)
+      return flowers.find((flower) => normalizedText.includes(normalizeFlowerLookupText(flower.name))) || null;
     };
 
     return historyLogs.map((log) => {
@@ -915,7 +930,7 @@ export default function HoaHoiGameCanvasApp() {
       setFlowerCreateMessage("Vui lòng nhập đủ tên hoa và nhóm hoa.");
       return;
     }
-    if (flowers.some((f) => f.name.toLowerCase() === name.toLowerCase())) {
+    if (flowers.some((f) => normalizeFlowerLookupText(f.name) === normalizeFlowerLookupText(name))) {
       setFlowerCreateMessage("Loại hoa này đã tồn tại trong cơ sở dữ liệu.");
       return;
     }

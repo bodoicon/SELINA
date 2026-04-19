@@ -94,6 +94,29 @@ function normalizeOwnershipRow(row) {
   };
 }
 
+function normalizeMemberGender(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return "";
+  if (["nam", "male", "m"].includes(normalized)) return "Nam";
+  if (["nu", "nữ", "female", "f"].includes(normalized)) return "Nữ";
+  return "Khác";
+}
+
+function getMemberAge(member) {
+  const year = Number(member?.birthYear);
+  if (!Number.isInteger(year) || year < 1900) return null;
+  return new Date().getFullYear() - year;
+}
+
+function formatMemberMeta(member) {
+  const parts = [];
+  const age = getMemberAge(member);
+  const gender = normalizeMemberGender(member?.gender);
+  if (age !== null && age >= 0) parts.push(`${age} tuổi`);
+  if (gender) parts.push(gender);
+  return parts.join(" • ");
+}
+
 function isInvalidRefreshTokenError(error) {
   const message = String(error?.message || error || "").toLowerCase();
   return message.includes("invalid refresh token") || message.includes("refresh token not found");
@@ -469,7 +492,9 @@ function StatCard({ icon, title, value }) {
 }
 
 function EditMemberForm({ member, onSave }) {
-  const [name, setName] = useState(member.name);
+  const [name, setName] = useState(member.name || "");
+  const [birthYear, setBirthYear] = useState(member.birthYear ? String(member.birthYear) : "");
+  const [gender, setGender] = useState(member.gender || "");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -479,17 +504,47 @@ function EditMemberForm({ member, onSave }) {
         <Label>Tên thành viên</Label>
         <Input value={name} onChange={(e) => setName(e.target.value)} className="rounded-2xl" />
       </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>Năm sinh</Label>
+          <Input
+            value={birthYear}
+            onChange={(e) => setBirthYear(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
+            placeholder="Ví dụ: 1998"
+            className="rounded-2xl"
+            inputMode="numeric"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Giới tính</Label>
+          <Select value={gender || "unknown"} onValueChange={(value) => setGender(value === "unknown" ? "" : value)}>
+            <SelectTrigger className="rounded-2xl">
+              <SelectValue placeholder="Chọn giới tính" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unknown">Chưa chọn</SelectItem>
+              <SelectItem value="Nam">Nam</SelectItem>
+              <SelectItem value="Nữ">Nữ</SelectItem>
+              <SelectItem value="Khác">Khác</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       <Button
         className="w-full rounded-2xl"
         disabled={saving}
         onClick={async () => {
           setSaving(true);
-          const result = await onSave(name);
+          const result = await onSave({
+            name,
+            birthYear: birthYear ? Number(birthYear) : null,
+            gender,
+          });
           setSaving(false);
           setMessage(result.message);
         }}
       >
-        {saving ? "Đang lưu..." : "Lưu tên thành viên"}
+        {saving ? "Đang lưu..." : "Lưu thông tin thành viên"}
       </Button>
       {message ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{message}</div> : null}
     </div>
@@ -794,14 +849,19 @@ export default function HoaHoiGameCanvasApp() {
     }
     try {
       const [membersRes, flowersRes] = await Promise.all([
-        supabase.from("members").select("id, name").order("name", { ascending: true }),
+        supabase.from("members").select("id, name, birth_year, gender").order("name", { ascending: true }),
         supabase.from("flowers").select("id, name, group_name, icon_url").order("name", { ascending: true }),
       ]);
 
       if (membersRes.error || flowersRes.error) {
         setPageMessage(membersRes.error?.message || flowersRes.error?.message || "Không tải được dữ liệu từ Supabase.");
       } else {
-        setMembers((membersRes.data || []).map((m) => ({ id: String(m.id), name: m.name })));
+        setMembers((membersRes.data || []).map((m) => ({
+          id: String(m.id),
+          name: m.name,
+          birthYear: m.birth_year || null,
+          gender: m.gender || "",
+        })));
         setFlowers((flowersRes.data || []).map((f) => ({ id: String(f.id), name: f.name, group: f.group_name, iconUrl: f.icon_url || "" })));
         setLastSyncedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
       }
@@ -1260,7 +1320,7 @@ export default function HoaHoiGameCanvasApp() {
     if (error) return { error: `Không tạo được thành viên mới: ${error.message}` };
     await logAction({ actionType: "add_member", actorName: user?.email || "Quản trị hội", targetType: "member", targetName: data.name, details: "Thêm thành viên mới" });
     await loadAllData();
-    return { member: { id: String(data.id), name: data.name } };
+    return { member: { id: String(data.id), name: data.name, birthYear: null, gender: "" } };
   }
 
   function toggleFlowerSelection(flowerId) {
@@ -1370,13 +1430,28 @@ export default function HoaHoiGameCanvasApp() {
     await loadAllData();
   }
 
-  async function renameMember(memberId, newName) {
-    const trimmed = newName.trim();
+  async function renameMember(memberId, payload) {
+    const trimmed = String(payload?.name || "").trim();
+    const birthYear = payload?.birthYear ?? null;
+    const gender = payload?.gender ? normalizeMemberGender(payload.gender) : null;
+
     if (!trimmed) return { ok: false, message: "Tên thành viên không được để trống." };
-    const { error } = await supabase.from("members").update({ name: trimmed }).eq("id", memberId);
-    if (error) return { ok: false, message: `Không sửa được tên thành viên: ${error.message}` };
-    await loadAllData();
-    return { ok: true, message: "Đã cập nhật tên thành viên." };
+    if (birthYear !== null && (!Number.isInteger(birthYear) || birthYear < 1900 || birthYear > new Date().getFullYear())) {
+      return { ok: false, message: "Năm sinh không hợp lệ." };
+    }
+
+    const { error } = await supabase
+      .from("members")
+      .update({
+        name: trimmed,
+        birth_year: birthYear,
+        gender: gender || null,
+      })
+      .eq("id", memberId);
+
+    if (error) return { ok: false, message: `Không sửa được thông tin thành viên: ${error.message}` };
+    await loadAllData({ includeTitles: titlesLoaded, includeHistory: historyLoaded });
+    return { ok: true, message: "Đã cập nhật thông tin thành viên." };
   }
 
   async function renameFlower(flowerId, payload) {
@@ -1752,6 +1827,7 @@ export default function HoaHoiGameCanvasApp() {
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div className="space-y-1">
                               <CardTitle className="text-lg leading-snug sm:text-xl">{member.name}</CardTitle>
+                              {formatMemberMeta(member) ? <p className="text-sm text-slate-500">{formatMemberMeta(member)}</p> : null}
                               {titleByMemberId.get(String(member.id))?.name ? (
                                 <Badge variant="outline" className={`rounded-full ${titleBadgeClass(titleByMemberId.get(String(member.id))?.name)}`}>{titleByMemberId.get(String(member.id))?.name}</Badge>
                               ) : null}
@@ -1762,8 +1838,8 @@ export default function HoaHoiGameCanvasApp() {
                                 <Dialog>
                                   <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger>
                                   <DialogContent className="rounded-3xl">
-                                    <DialogHeader><DialogTitle>Sửa tên thành viên</DialogTitle></DialogHeader>
-                                    <EditMemberForm member={member} onSave={(newName) => renameMember(member.id, newName)} />
+                                    <DialogHeader><DialogTitle>Sửa thông tin thành viên</DialogTitle></DialogHeader>
+                                    <EditMemberForm member={member} onSave={(payload) => renameMember(member.id, payload)} />
                                   </DialogContent>
                                 </Dialog>
                               ) : null}
@@ -1879,7 +1955,10 @@ export default function HoaHoiGameCanvasApp() {
                   <div className="space-y-4">
                     <div className="rounded-2xl border bg-slate-50 px-4 py-3">
                       <div className="mt-1 flex items-center justify-between gap-3">
-                        <p className="font-semibold text-slate-900">{selectedMemberFlowerLookup.name}</p>
+                        <div>
+                          <p className="font-semibold text-slate-900">{selectedMemberFlowerLookup.name}</p>
+                          {formatMemberMeta(selectedMemberFlowerLookup) ? <p className="text-sm text-slate-500">{formatMemberMeta(selectedMemberFlowerLookup)}</p> : null}
+                        </div>
                         <Badge variant="secondary">{flowersBySelectedMember.length} hoa</Badge>
                       </div>
                     </div>

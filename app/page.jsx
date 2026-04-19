@@ -539,6 +539,7 @@ export default function HoaHoiGameCanvasApp() {
   const [selectedTitleMemberIds, setSelectedTitleMemberIds] = useState([]);
   const [titleManageSearch, setTitleManageSearch] = useState("");
   const [titleMemberSearch, setTitleMemberSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   const membersRef = useRef([]);
   const flowersRef = useRef([]);
@@ -1312,11 +1313,26 @@ export default function HoaHoiGameCanvasApp() {
 
   const visibleTabCount = isAdmin ? 8 : 5;
   const mobileTabSpacerCount = (3 - (visibleTabCount % 3 || 3)) % 3;
-  const tabsListClass = isAdmin
-    ? "!grid !h-auto w-full grid-cols-3 items-stretch gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:grid-cols-4 xl:grid-cols-8"
-    : "!grid !h-auto w-full grid-cols-3 items-stretch gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 xl:grid-cols-5";
+  const desktopTabsListClass = isAdmin
+    ? "hidden !h-auto w-full items-stretch gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:!grid md:grid-cols-4 xl:grid-cols-8"
+    : "hidden !h-auto w-full items-stretch gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:!grid xl:grid-cols-5";
 
   const tabsClass = "!flex min-h-[52px] w-full items-center justify-center self-stretch rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-normal break-words transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:min-h-[56px] sm:rounded-2xl sm:px-4 sm:text-sm";
+  const mobileTabButtonClass = (value) =>
+    `flex min-h-[52px] w-full items-center justify-center rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-normal break-words transition-all sm:min-h-[56px] sm:rounded-2xl sm:px-4 sm:text-sm ${
+      activeTab === value ? "bg-slate-900 text-white shadow-md" : "bg-transparent text-slate-600"
+    }`;
+
+  const visibleTabs = [
+    { value: "dashboard", label: "Tổng quan" },
+    { value: "members", label: "Thành viên" },
+    { value: "flowerlookup", label: "Tra cứu theo hoa" },
+    { value: "memberflowerlookup", label: "Tra cứu theo thành viên" },
+    ...(isAdmin ? [{ value: "update", label: "Cập nhật sở hữu" }] : []),
+    ...(isAdmin ? [{ value: "addflower", label: "Thêm hoa mới" }] : []),
+    ...(isAdmin ? [{ value: "titlemanagement", label: "Quản lý chức danh" }] : []),
+    { value: "history", label: "Lịch sử" },
+  ];
 
   return (
     <div
@@ -1375,8 +1391,24 @@ export default function HoaHoiGameCanvasApp() {
           <StatCard icon={<AlertCircle className="h-5 w-5" />} title="Hội còn thiếu" value={ownershipsLoading || !ownershipsLoaded ? "..." : summary.missingFlowers} />
         </div>
 
-        <Tabs defaultValue="dashboard" className="space-y-3 md:space-y-4">
-          <TabsList className={tabsListClass}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 md:space-y-4">
+          <div className="grid w-full grid-cols-3 gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:hidden">
+            {visibleTabs.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                className={mobileTabButtonClass(tab.value)}
+                onClick={() => setActiveTab(tab.value)}
+              >
+                {tab.label}
+              </button>
+            ))}
+            {Array.from({ length: mobileTabSpacerCount }).map((_, index) => (
+              <div key={`tab-spacer-${index}`} className="block min-h-[52px] rounded-xl sm:min-h-[56px] sm:rounded-2xl" aria-hidden="true" />
+            ))}
+          </div>
+
+          <TabsList className={desktopTabsListClass}>
             <TabsTrigger value="dashboard" className={tabsClass}>Tổng quan</TabsTrigger>
             <TabsTrigger value="members" className={tabsClass}>Thành viên</TabsTrigger>
             <TabsTrigger value="flowerlookup" className={tabsClass}>Tra cứu theo hoa</TabsTrigger>
@@ -1385,9 +1417,6 @@ export default function HoaHoiGameCanvasApp() {
             {isAdmin ? <TabsTrigger value="addflower" className={tabsClass}>Thêm hoa mới</TabsTrigger> : null}
             {isAdmin ? <TabsTrigger value="titlemanagement" className={tabsClass}>Quản lý chức danh</TabsTrigger> : null}
             <TabsTrigger value="history" className={tabsClass}>Lịch sử</TabsTrigger>
-            {Array.from({ length: mobileTabSpacerCount }).map((_, index) => (
-              <div key={`tab-spacer-${index}`} className="block min-h-[52px] rounded-xl sm:min-h-[56px] sm:rounded-2xl md:hidden" aria-hidden="true" />
-            ))}
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">

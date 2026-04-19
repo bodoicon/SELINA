@@ -1312,8 +1312,11 @@ export default function HoaHoiGameCanvasApp() {
 
   const visibleTabCount = isAdmin ? 8 : 5;
   const mobileTabSpacerCount = (3 - (visibleTabCount % 3 || 3)) % 3;
+  const tabsListClass = isAdmin
+    ? "grid h-auto w-full grid-cols-3 gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:grid-cols-4 xl:grid-cols-8"
+    : "grid h-auto w-full grid-cols-3 gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 xl:grid-cols-5";
 
-  const tabsClass = "w-full rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-normal break-words transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:rounded-2xl sm:px-4 sm:text-sm";
+  const tabsClass = "flex min-h-[52px] w-full items-center justify-center rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-normal break-words transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:rounded-2xl sm:px-4 sm:text-sm";
 
   return (
     <div
@@ -1373,7 +1376,7 @@ export default function HoaHoiGameCanvasApp() {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-3 md:space-y-4">
-          <TabsList className={`grid h-auto w-full grid-cols-3 gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:${isAdmin ? "grid-cols-4 xl:grid-cols-8" : "grid-cols-3 xl:grid-cols-5"}`}>
+          <TabsList className={tabsListClass}>
             <TabsTrigger value="dashboard" className={tabsClass}>Tổng quan</TabsTrigger>
             <TabsTrigger value="members" className={tabsClass}>Thành viên</TabsTrigger>
             <TabsTrigger value="flowerlookup" className={tabsClass}>Tra cứu theo hoa</TabsTrigger>

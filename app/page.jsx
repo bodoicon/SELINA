@@ -99,6 +99,11 @@ function isInvalidRefreshTokenError(error) {
   return message.includes("invalid refresh token") || message.includes("refresh token not found");
 }
 
+function isAuthLockError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return message.includes("lock broken") || message.includes("aborterror") || message.includes("steal option");
+}
+
 function clearSupabaseAuthStorage() {
   if (typeof window === "undefined") return;
   try {
@@ -129,9 +134,16 @@ async function getSafeCurrentUser() {
           message: "Phiên đăng nhập cũ đã hết hạn và đã được làm sạch. Bạn có thể đăng nhập lại nếu cần quyền quản trị.",
         };
       }
+      if (isAuthLockError(error)) {
+        return {
+          user: null,
+          message: "Trình duyệt đang đồng bộ phiên đăng nhập. Ứng dụng sẽ tự thử lại sau giây lát.",
+          shouldRetry: true,
+        };
+      }
       return { user: null, message: `Không đọc được phiên đăng nhập: ${error.message}` };
     }
-    return { user: data.user || null, message: "" };
+    return { user: data.user || null, message: "", shouldRetry: false };
   } catch (error) {
     if (isInvalidRefreshTokenError(error)) {
       clearSupabaseAuthStorage();
@@ -143,11 +155,20 @@ async function getSafeCurrentUser() {
       return {
         user: null,
         message: "Phiên đăng nhập cũ đã hết hạn và đã được làm sạch. Bạn có thể đăng nhập lại nếu cần quyền quản trị.",
+        shouldRetry: false,
+      };
+    }
+    if (isAuthLockError(error)) {
+      return {
+        user: null,
+        message: "Trình duyệt đang đồng bộ phiên đăng nhập. Ứng dụng sẽ tự thử lại sau giây lát.",
+        shouldRetry: true,
       };
     }
     return {
       user: null,
       message: `Không khởi tạo được xác thực: ${error?.message || "Lỗi không xác định"}`,
+      shouldRetry: false,
     };
   }
 }
@@ -552,26 +573,37 @@ export default function HoaHoiGameCanvasApp() {
 
   useEffect(() => {
     let active = true;
-    async function initAuth() {
+    let retryTimer;
+
+    async function initAuth(attempt = 0) {
       const result = await getSafeCurrentUser();
       if (!active) return;
+
       setUser(result.user || null);
-      if (result.message) setLoginMessage(result.message);
-    }
-    initAuth();
-    const sub = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!active) return;
-      if (session?.user) {
-        setUser(session.user);
-        return;
+      if (result.message) {
+        setLoginMessage(result.message);
       }
-      const result = await getSafeCurrentUser();
+
+      if (result.shouldRetry && attempt < 3) {
+        retryTimer = window.setTimeout(() => {
+          initAuth(attempt + 1);
+        }, 500 + attempt * 300);
+      }
+    }
+
+    initAuth();
+
+    const sub = supabase.auth.onAuthStateChange((_event, session) => {
       if (!active) return;
-      setUser(result.user || null);
-      if (result.message) setLoginMessage(result.message);
+      setUser(session?.user || null);
+      if (session?.user) {
+        setLoginMessage("");
+      }
     });
+
     return () => {
       active = false;
+      if (retryTimer) window.clearTimeout(retryTimer);
       sub.data.subscription.unsubscribe();
     };
   }, []);
@@ -935,7 +967,11 @@ export default function HoaHoiGameCanvasApp() {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPassword });
       if (error) {
-        setLoginMessage(`Đăng nhập thất bại: ${error.message}`);
+        if (isAuthLockError(error)) {
+          setLoginMessage("Trình duyệt đang bận đồng bộ phiên đăng nhập. Vui lòng thử lại sau 1-2 giây.");
+        } else {
+          setLoginMessage(`Đăng nhập thất bại: ${error.message}`);
+        }
         return;
       }
       const email = data.user?.email?.toLowerCase() || "";
@@ -951,7 +987,11 @@ export default function HoaHoiGameCanvasApp() {
       setLoginMessage("Đăng nhập quản trị thành công.");
       setAdminDialogOpen(false);
     } catch (error) {
-      setLoginMessage(`Đăng nhập thất bại: ${error?.message || "Lỗi không xác định"}`);
+      if (isAuthLockError(error)) {
+        setLoginMessage("Trình duyệt đang bận đồng bộ phiên đăng nhập. Vui lòng thử lại sau 1-2 giây.");
+      } else {
+        setLoginMessage(`Đăng nhập thất bại: ${error?.message || "Lỗi không xác định"}`);
+      }
     } finally {
       setLoggingIn(false);
     }

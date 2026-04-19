@@ -173,15 +173,67 @@ async function getSafeCurrentUser() {
   }
 }
 
+async function optimizeFlowerIcon(file) {
+  if (typeof window === "undefined") {
+    return { file, ext: file.name.split(".").pop()?.toLowerCase() || "png" };
+  }
+
+  const canUseCanvas = typeof document !== "undefined";
+  const isImage = String(file.type || "").startsWith("image/");
+  if (!canUseCanvas || !isImage) {
+    return { file, ext: file.name.split(".").pop()?.toLowerCase() || "png" };
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxSize = 128;
+    const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d", { alpha: true });
+    if (!ctx) {
+      bitmap.close?.();
+      return { file, ext: file.name.split(".").pop()?.toLowerCase() || "png" };
+    }
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+
+    const targetType = "image/webp";
+    const blob = await new Promise((resolve) => {
+      canvas.toBlob((result) => resolve(result), targetType, 0.82);
+    });
+
+    if (!blob) {
+      return { file, ext: file.name.split(".").pop()?.toLowerCase() || "png" };
+    }
+
+    const optimizedFile = new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "flower-icon"}.webp`, {
+      type: targetType,
+      lastModified: Date.now(),
+    });
+
+    return { file: optimizedFile, ext: "webp" };
+  } catch {
+    return { file, ext: file.name.split(".").pop()?.toLowerCase() || "png" };
+  }
+}
+
 async function uploadFlowerIcon(file) {
-  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const optimized = await optimizeFlowerIcon(file);
+  const ext = optimized.ext || file.name.split(".").pop()?.toLowerCase() || "png";
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const filePath = `icons/${fileName}`;
 
-  const { error: uploadError } = await supabase.storage.from(FLOWER_ICON_BUCKET).upload(filePath, file, {
-    cacheControl: "3600",
+  const { error: uploadError } = await supabase.storage.from(FLOWER_ICON_BUCKET).upload(filePath, optimized.file, {
+    cacheControl: "31536000",
     upsert: false,
-    contentType: file.type || undefined,
+    contentType: optimized.file.type || file.type || undefined,
   });
 
   if (uploadError) {
@@ -250,6 +302,14 @@ function runLocalSelfChecks() {
   console.assert(normalizeFlowerLookupText("Đóa") === "doa", "Test failed: flower search normalization must convert Đ to d.");
 }
 
+function shouldLoadTitlesForTab(tab, isAdmin) {
+  return isAdmin || tab === "members" || tab === "history" || tab === "titlemanagement";
+}
+
+function shouldLoadHistoryForTab(tab) {
+  return tab === "history";
+}
+
 function PlaceholderFlowerIcon({ size = "md" }) {
   const iconClass = size === "sm" ? "h-4 w-4" : "h-5 w-5";
   return (
@@ -266,22 +326,59 @@ function PlaceholderFlowerIcon({ size = "md" }) {
 
 function FlowerThumbnail({ flower, size = "md" }) {
   const sizeClass = size === "sm" ? "h-9 w-9" : "h-11 w-11";
+  const containerRef = useRef(null);
+  const [shouldRenderImage, setShouldRenderImage] = useState(false);
+
+  useEffect(() => {
+    if (!flower?.iconUrl) return;
+    const node = containerRef.current;
+    if (!node || typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
+      setShouldRenderImage(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setShouldRenderImage(true);
+            observer.disconnect();
+          }
+        });
+      },
+      { rootMargin: "220px" }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [flower?.iconUrl]);
+
   if (flower?.iconUrl) {
     return (
-      <div className={`overflow-hidden rounded-2xl border bg-white ${sizeClass}`}>
-        <img
-          src={flower.iconUrl}
-          alt={flower.name}
-          className="h-full w-full object-cover"
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-            const fallback = e.currentTarget.nextElementSibling;
-            if (fallback) fallback.classList.remove("hidden");
-          }}
-        />
-        <div className="hidden h-full w-full items-center justify-center bg-slate-50 text-slate-500">
-          <PlaceholderFlowerIcon size={size} />
-        </div>
+      <div ref={containerRef} className={`overflow-hidden rounded-2xl border bg-white ${sizeClass}`}>
+        {shouldRenderImage ? (
+          <>
+            <img
+              src={flower.iconUrl}
+              alt={flower.name}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+                const fallback = e.currentTarget.nextElementSibling;
+                if (fallback) fallback.classList.remove("hidden");
+              }}
+            />
+            <div className="hidden h-full w-full items-center justify-center bg-slate-50 text-slate-500">
+              <PlaceholderFlowerIcon size={size} />
+            </div>
+          </>
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-slate-50 text-slate-400">
+            <PlaceholderFlowerIcon size={size} />
+          </div>
+        )}
       </div>
     );
   }
@@ -434,6 +531,7 @@ function EditFlowerForm({ flower, onSave }) {
       </div>
       <div className="space-y-2">
         <Label>Upload ảnh icon</Label>
+        <p className="text-xs text-slate-500">Ảnh sẽ được tự động resize nhỏ gọn và tối ưu trước khi upload, bạn vẫn chỉ cần chọn file như bình thường.</p>
         <Input
           type="file"
           accept="image/*"
@@ -493,6 +591,8 @@ export default function HoaHoiGameCanvasApp() {
   const [historyLogs, setHistoryLogs] = useState([]);
   const [titles, setTitles] = useState([]);
   const [memberTitles, setMemberTitles] = useState([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [titlesLoaded, setTitlesLoaded] = useState(false);
   const [titleFeatureAvailable, setTitleFeatureAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
   const [ownershipsLoading, setOwnershipsLoading] = useState(true);
@@ -543,6 +643,8 @@ export default function HoaHoiGameCanvasApp() {
 
   const membersRef = useRef([]);
   const flowersRef = useRef([]);
+  const activeTabRef = useRef("dashboard");
+  const isAdminRef = useRef(false);
 
   useEffect(() => {
     runLocalSelfChecks();
@@ -571,6 +673,14 @@ export default function HoaHoiGameCanvasApp() {
     if (isAdmin) return "Admin";
     return "Đăng nhập";
   }, [isAdmin, isManager]);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    isAdminRef.current = isAdmin;
+  }, [isAdmin]);
 
   useEffect(() => {
     let active = true;
@@ -630,53 +740,76 @@ export default function HoaHoiGameCanvasApp() {
     }
   }
 
+  async function loadTitlesData() {
+    const [titlesRes, memberTitlesRes] = await Promise.all([
+      supabase.from("titles").select("id, name").order("name", { ascending: true }),
+      supabase.from("member_titles").select("id, member_id, title_id"),
+    ]);
+
+    const hasTitleFeatureError = Boolean(titlesRes.error || memberTitlesRes.error);
+    if (hasTitleFeatureError) {
+      setTitleFeatureAvailable(false);
+      setTitles([]);
+      setMemberTitles([]);
+      setTitlesLoaded(true);
+      return;
+    }
+
+    setTitleFeatureAvailable(true);
+    setTitles((titlesRes.data || []).map((t) => ({ id: String(t.id), name: t.name })));
+    setMemberTitles((memberTitlesRes.data || []).map((row) => ({ id: String(row.id), memberId: String(row.member_id), titleId: String(row.title_id) })));
+    setTitlesLoaded(true);
+  }
+
+  async function loadHistoryData() {
+    const { data, error } = await supabase
+      .from("action_logs")
+      .select("id, action_type, actor_name, target_type, target_name, details, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      throw new Error(error.message || "Không tải được lịch sử thao tác.");
+    }
+
+    setHistoryLogs(
+      (data || []).map((log) => ({
+        id: String(log.id),
+        actionType: log.action_type || "",
+        actorName: log.actor_name || "Hệ thống",
+        targetType: log.target_type || "",
+        targetName: log.target_name || "",
+        details: log.details || "",
+        createdAt: log.created_at || "",
+      }))
+    );
+    setHistoryLoaded(true);
+  }
+
   async function loadAllData(options = {}) {
-    const { silent = false } = options;
+    const { silent = false, includeTitles = false, includeHistory = false } = options;
     if (!silent) {
       setLoading(true);
       setPageMessage("");
     }
     try {
-      const [membersRes, flowersRes, titlesRes, memberTitlesRes, historyRes] = await Promise.all([
+      const [membersRes, flowersRes] = await Promise.all([
         supabase.from("members").select("id, name").order("name", { ascending: true }),
         supabase.from("flowers").select("id, name, group_name, icon_url").order("name", { ascending: true }),
-        supabase.from("titles").select("id, name").order("name", { ascending: true }),
-        supabase.from("member_titles").select("id, member_id, title_id"),
-        supabase
-          .from("action_logs")
-          .select("id, action_type, actor_name, target_type, target_name, details, created_at")
-          .order("created_at", { ascending: false })
-          .limit(50),
       ]);
 
-      const hasTitleFeatureError = Boolean(titlesRes.error || memberTitlesRes.error);
-      if (membersRes.error || flowersRes.error || historyRes.error) {
-        setPageMessage(membersRes.error?.message || flowersRes.error?.message || historyRes.error?.message || "Không tải được dữ liệu từ Supabase.");
+      if (membersRes.error || flowersRes.error) {
+        setPageMessage(membersRes.error?.message || flowersRes.error?.message || "Không tải được dữ liệu từ Supabase.");
       } else {
         setMembers((membersRes.data || []).map((m) => ({ id: String(m.id), name: m.name })));
         setFlowers((flowersRes.data || []).map((f) => ({ id: String(f.id), name: f.name, group: f.group_name, iconUrl: f.icon_url || "" })));
-        if (hasTitleFeatureError) {
-          setTitleFeatureAvailable(false);
-          setTitles([]);
-          setMemberTitles([]);
-        } else {
-          setTitleFeatureAvailable(true);
-          setTitles((titlesRes.data || []).map((t) => ({ id: String(t.id), name: t.name })));
-          setMemberTitles((memberTitlesRes.data || []).map((row) => ({ id: String(row.id), memberId: String(row.member_id), titleId: String(row.title_id) })));
-        }
-        setHistoryLogs(
-          (historyRes.data || []).map((log) => ({
-            id: String(log.id),
-            actionType: log.action_type || "",
-            actorName: log.actor_name || "Hệ thống",
-            targetType: log.target_type || "",
-            targetName: log.target_name || "",
-            details: log.details || "",
-            createdAt: log.created_at || "",
-          }))
-        );
         setLastSyncedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
       }
+
+      const extraTasks = [loadOwnershipData()];
+      if (includeTitles) extraTasks.push(loadTitlesData());
+      if (includeHistory) extraTasks.push(loadHistoryData());
+      await Promise.all(extraTasks);
     } catch (error) {
       setPageMessage(`Không tải được dữ liệu: ${error?.message || "Lỗi không xác định"}`);
     } finally {
@@ -684,17 +817,23 @@ export default function HoaHoiGameCanvasApp() {
         setLoading(false);
       }
     }
-    await loadOwnershipData();
   }
 
   useEffect(() => {
-    loadAllData();
+    loadAllData({
+      includeTitles: shouldLoadTitlesForTab(activeTabRef.current, isAdminRef.current),
+      includeHistory: shouldLoadHistoryForTab(activeTabRef.current),
+    });
     let reloadTimer;
     const channel = supabase.channel("realtime-selina");
     const refreshFromRealtime = () => {
       clearTimeout(reloadTimer);
       reloadTimer = window.setTimeout(() => {
-        loadAllData({ silent: true });
+        loadAllData({
+          silent: true,
+          includeTitles: titlesLoaded || shouldLoadTitlesForTab(activeTabRef.current, isAdminRef.current),
+          includeHistory: historyLoaded || shouldLoadHistoryForTab(activeTabRef.current),
+        });
       }, 300);
     };
     channel
@@ -702,27 +841,45 @@ export default function HoaHoiGameCanvasApp() {
       .on("postgres_changes", { event: "*", schema: "public", table: "flowers" }, refreshFromRealtime)
       .on("postgres_changes", { event: "*", schema: "public", table: "member_flowers" }, refreshFromRealtime)
       .on("postgres_changes", { event: "*", schema: "public", table: "action_logs" }, refreshFromRealtime)
+      .on("postgres_changes", { event: "*", schema: "public", table: "titles" }, refreshFromRealtime)
+      .on("postgres_changes", { event: "*", schema: "public", table: "member_titles" }, refreshFromRealtime)
       .subscribe((status) => {
         const text = String(status || "").toLowerCase();
         if (text === "subscribed") setRealtimeMessage("");
       });
 
     const intervalId = window.setInterval(() => {
-      loadAllData({ silent: true });
+      loadAllData({
+        silent: true,
+        includeTitles: titlesLoaded,
+        includeHistory: historyLoaded,
+      });
     }, 45000);
 
     const handleFocusSync = () => {
-      loadAllData({ silent: true });
+      loadAllData({
+        silent: true,
+        includeTitles: titlesLoaded,
+        includeHistory: historyLoaded,
+      });
     };
 
     const handleVisibilitySync = () => {
       if (document.visibilityState === "visible") {
-        loadAllData({ silent: true });
+        loadAllData({
+          silent: true,
+          includeTitles: titlesLoaded,
+          includeHistory: historyLoaded,
+        });
       }
     };
 
     const handleOnlineSync = () => {
-      loadAllData({ silent: true });
+      loadAllData({
+        silent: true,
+        includeTitles: titlesLoaded,
+        includeHistory: historyLoaded,
+      });
     };
 
     window.addEventListener("focus", handleFocusSync);
@@ -737,20 +894,32 @@ export default function HoaHoiGameCanvasApp() {
       document.removeEventListener("visibilitychange", handleVisibilitySync);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [historyLoaded, titlesLoaded]);
+
+  const memberById = useMemo(() => {
+    const map = new Map();
+    members.forEach((member) => map.set(String(member.id), member));
+    return map;
+  }, [members]);
+
+  const memberNameById = useMemo(() => {
+    const map = new Map();
+    members.forEach((member) => map.set(String(member.id), member.name));
+    return map;
+  }, [members]);
 
   const ownersByFlower = useMemo(() => {
     const map = new Map();
     flowers.forEach((flower) => map.set(String(flower.id), []));
     ownerships.forEach((row) => {
-      const member = members.find((m) => String(m.id) === String(row.memberId));
-      if (!member) return;
+      const memberName = memberNameById.get(String(row.memberId));
+      if (!memberName) return;
       const list = map.get(String(row.flowerId)) || [];
-      if (!list.includes(member.name)) list.push(member.name);
+      if (!list.includes(memberName)) list.push(memberName);
       map.set(String(row.flowerId), list);
     });
     return map;
-  }, [flowers, members, ownerships]);
+  }, [flowers, ownerships, memberNameById]);
 
   const memberFlowerCounts = useMemo(() => {
     const counts = {};
@@ -908,14 +1077,14 @@ export default function HoaHoiGameCanvasApp() {
     const map = new Map();
     titles.forEach((title) => map.set(String(title.id), []));
     memberTitles.forEach((row) => {
-      const member = members.find((item) => String(item.id) === String(row.memberId));
+      const member = memberById.get(String(row.memberId));
       if (!member) return;
       const current = map.get(String(row.titleId)) || [];
       current.push(member);
       map.set(String(row.titleId), current);
     });
     return map;
-  }, [titles, memberTitles, members]);
+  }, [titles, memberTitles, memberById]);
 
   const filteredTitleMembers = useMemo(() => {
     const q = titleMemberSearch.trim().toLowerCase();
@@ -926,6 +1095,23 @@ export default function HoaHoiGameCanvasApp() {
     const q = titleManageSearch.trim().toLowerCase();
     return titles.filter((title) => title.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, "vi"));
   }, [titles, titleManageSearch]);
+
+  useEffect(() => {
+    const needTitles = shouldLoadTitlesForTab(activeTab, isAdmin);
+    const needHistory = shouldLoadHistoryForTab(activeTab);
+
+    if (needTitles && !titlesLoaded) {
+      loadTitlesData().catch((error) => {
+        setPageMessage(`Không tải được chức danh: ${error?.message || "Lỗi không xác định"}`);
+      });
+    }
+
+    if (needHistory && !historyLoaded) {
+      loadHistoryData().catch((error) => {
+        setPageMessage(`Không tải được lịch sử: ${error?.message || "Lỗi không xác định"}`);
+      });
+    }
+  }, [activeTab, isAdmin, titlesLoaded, historyLoaded]);
 
   const historyEntries = useMemo(() => {
     const findFlowerByName = (name) => {
@@ -2025,7 +2211,7 @@ export default function HoaHoiGameCanvasApp() {
             <Card className="rounded-[28px] border border-white/70 bg-white/85 shadow-[0_16px_45px_-24px_rgba(15,23,42,0.18)]">
               <CardHeader><CardTitle className="font-sans">Lịch sử cập nhật</CardTitle></CardHeader>
               <CardContent>
-                {loading ? <p className="text-sm text-slate-600">Đang tải lịch sử...</p> : historyEntries.length === 0 ? <SectionEmpty>Chưa có lịch sử thao tác.</SectionEmpty> : (
+                {!historyLoaded ? <p className="text-sm text-slate-600">Đang tải lịch sử...</p> : historyEntries.length === 0 ? <SectionEmpty>Chưa có lịch sử thao tác.</SectionEmpty> : (
                   <div className="space-y-3">
                     {historyEntries.map((log) => (
                       <div key={log.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">

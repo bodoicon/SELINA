@@ -1310,7 +1310,7 @@ export default function HoaHoiGameCanvasApp() {
     await loadAllData();
   }
 
-  const tabsClass = "min-w-[140px] flex-none rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-nowrap transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:rounded-2xl sm:px-4 sm:text-sm md:min-w-0 md:w-full md:whitespace-normal md:break-words";
+  const tabsClass = "min-w-[118px] flex-none rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-nowrap transition-all snap-start data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:min-w-[128px] sm:rounded-2xl sm:px-4 sm:text-sm md:min-w-0 md:w-full md:whitespace-normal md:break-words";
 
   return (
     <div
@@ -1370,7 +1370,7 @@ export default function HoaHoiGameCanvasApp() {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-3 md:space-y-4">
-          <TabsList className={`flex h-auto w-full gap-2 overflow-x-auto rounded-[20px] border border-white/70 bg-white/85 p-1.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:grid md:overflow-visible ${isAdmin ? "md:grid-cols-4 xl:grid-cols-8" : "md:grid-cols-3 xl:grid-cols-5"}`}>
+          <TabsList className={`flex h-auto w-full snap-x snap-mandatory gap-2 overflow-x-auto rounded-[20px] border border-white/70 bg-white/85 p-1.5 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden md:grid md:overflow-visible ${isAdmin ? "md:grid-cols-4 xl:grid-cols-8" : "md:grid-cols-3 xl:grid-cols-5"}`}>
             <TabsTrigger value="dashboard" className={tabsClass}>Tổng quan</TabsTrigger>
             <TabsTrigger value="members" className={tabsClass}>Thành viên</TabsTrigger>
             <TabsTrigger value="flowerlookup" className={tabsClass}>Tra cứu theo hoa</TabsTrigger>

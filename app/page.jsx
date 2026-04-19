@@ -1310,7 +1310,10 @@ export default function HoaHoiGameCanvasApp() {
     await loadAllData();
   }
 
-  const tabsClass = "min-w-[118px] flex-none rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-nowrap transition-all snap-start data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:min-w-[128px] sm:rounded-2xl sm:px-4 sm:text-sm md:min-w-0 md:w-full md:whitespace-normal md:break-words";
+  const visibleTabCount = isAdmin ? 8 : 5;
+  const mobileTabSpacerCount = (3 - (visibleTabCount % 3 || 3)) % 3;
+
+  const tabsClass = "w-full rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-normal break-words transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:rounded-2xl sm:px-4 sm:text-sm";
 
   return (
     <div
@@ -1370,7 +1373,7 @@ export default function HoaHoiGameCanvasApp() {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-3 md:space-y-4">
-          <TabsList className={`flex h-auto w-full snap-x snap-mandatory gap-2 overflow-x-auto rounded-[20px] border border-white/70 bg-white/85 p-1.5 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden md:grid md:overflow-visible ${isAdmin ? "md:grid-cols-4 xl:grid-cols-8" : "md:grid-cols-3 xl:grid-cols-5"}`}>
+          <TabsList className={`grid h-auto w-full grid-cols-3 gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:${isAdmin ? "grid-cols-4 xl:grid-cols-8" : "grid-cols-3 xl:grid-cols-5"}`}>
             <TabsTrigger value="dashboard" className={tabsClass}>Tổng quan</TabsTrigger>
             <TabsTrigger value="members" className={tabsClass}>Thành viên</TabsTrigger>
             <TabsTrigger value="flowerlookup" className={tabsClass}>Tra cứu theo hoa</TabsTrigger>
@@ -1379,6 +1382,9 @@ export default function HoaHoiGameCanvasApp() {
             {isAdmin ? <TabsTrigger value="addflower" className={tabsClass}>Thêm hoa mới</TabsTrigger> : null}
             {isAdmin ? <TabsTrigger value="titlemanagement" className={tabsClass}>Quản lý chức danh</TabsTrigger> : null}
             <TabsTrigger value="history" className={tabsClass}>Lịch sử</TabsTrigger>
+            {Array.from({ length: mobileTabSpacerCount }).map((_, index) => (
+              <div key={`tab-spacer-${index}`} className="hidden rounded-xl sm:rounded-2xl md:hidden" aria-hidden="true" />
+            ))}
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">

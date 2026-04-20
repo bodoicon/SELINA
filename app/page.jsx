@@ -26,6 +26,10 @@ const ADMIN_EMAILS = [
 const MANAGER_EMAILS = ["tranduytunghp160992@gmail.com"];
 const FLOWER_ICON_BUCKET = "flower-icons";
 const SUPABASE_STORAGE_KEY_PREFIX = "sb-";
+const DEFAULT_SPIRIT_HUNT_SLOTS = [
+  { slotKey: "slot_1", title: "Khung giờ 1", timeLabel: "12:00 - 13:00", memberIds: [] },
+  { slotKey: "slot_2", title: "Khung giờ 2", timeLabel: "20:00 - 21:00", memberIds: [] },
+];
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -331,6 +335,10 @@ function shouldLoadTitlesForTab(tab, isAdmin) {
 
 function shouldLoadHistoryForTab(tab) {
   return tab === "history";
+}
+
+function shouldLoadSpiritHuntForTab(tab) {
+  return tab === "spirithunt";
 }
 
 function PlaceholderFlowerIcon({ size = "md" }) {
@@ -646,7 +654,9 @@ export default function HoaHoiGameCanvasApp() {
   const [historyLogs, setHistoryLogs] = useState([]);
   const [titles, setTitles] = useState([]);
   const [memberTitles, setMemberTitles] = useState([]);
+  const [spiritHuntSlots, setSpiritHuntSlots] = useState(DEFAULT_SPIRIT_HUNT_SLOTS);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [spiritHuntLoaded, setSpiritHuntLoaded] = useState(false);
   const [titlesLoaded, setTitlesLoaded] = useState(false);
   const [titleFeatureAvailable, setTitleFeatureAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -695,6 +705,9 @@ export default function HoaHoiGameCanvasApp() {
   const [titleManageSearch, setTitleManageSearch] = useState("");
   const [titleMemberSearch, setTitleMemberSearch] = useState("");
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [spiritHuntMessage, setSpiritHuntMessage] = useState("");
+  const [savingSpiritHunt, setSavingSpiritHunt] = useState(false);
+  const [spiritHuntMemberSearch, setSpiritHuntMemberSearch] = useState({ slot_1: "", slot_2: "" });
 
   const membersRef = useRef([]);
   const flowersRef = useRef([]);
@@ -841,8 +854,38 @@ export default function HoaHoiGameCanvasApp() {
     setHistoryLoaded(true);
   }
 
+  async function loadSpiritHuntData() {
+    const { data, error } = await supabase
+      .from("spirit_hunt_slots")
+      .select("slot_key, title, time_label, member_ids")
+      .order("slot_key", { ascending: true });
+
+    if (error) {
+      const message = String(error.message || "").toLowerCase();
+      if (message.includes("does not exist") || message.includes("schema cache") || message.includes("not found")) {
+        setSpiritHuntSlots(DEFAULT_SPIRIT_HUNT_SLOTS);
+        setSpiritHuntLoaded(true);
+        return;
+      }
+      throw new Error(error.message || "Không tải được dữ liệu săn hoa linh.");
+    }
+
+    const slotMap = new Map(DEFAULT_SPIRIT_HUNT_SLOTS.map((slot) => [slot.slotKey, slot]));
+    (data || []).forEach((row) => {
+      slotMap.set(String(row.slot_key), {
+        slotKey: String(row.slot_key),
+        title: row.title || "",
+        timeLabel: row.time_label || "",
+        memberIds: Array.isArray(row.member_ids) ? row.member_ids.map((id) => String(id)) : [],
+      });
+    });
+
+    setSpiritHuntSlots(DEFAULT_SPIRIT_HUNT_SLOTS.map((slot) => slotMap.get(slot.slotKey) || slot));
+    setSpiritHuntLoaded(true);
+  }
+
   async function loadAllData(options = {}) {
-    const { silent = false, includeTitles = false, includeHistory = false } = options;
+    const { silent = false, includeTitles = false, includeHistory = false, includeSpiritHunt = false } = options;
     if (!silent) {
       setLoading(true);
       setPageMessage("");
@@ -869,6 +912,7 @@ export default function HoaHoiGameCanvasApp() {
       const extraTasks = [loadOwnershipData()];
       if (includeTitles) extraTasks.push(loadTitlesData());
       if (includeHistory) extraTasks.push(loadHistoryData());
+      if (includeSpiritHunt) extraTasks.push(loadSpiritHuntData());
       await Promise.all(extraTasks);
     } catch (error) {
       setPageMessage(`Không tải được dữ liệu: ${error?.message || "Lỗi không xác định"}`);
@@ -883,6 +927,7 @@ export default function HoaHoiGameCanvasApp() {
     loadAllData({
       includeTitles: shouldLoadTitlesForTab(activeTabRef.current, isAdminRef.current),
       includeHistory: shouldLoadHistoryForTab(activeTabRef.current),
+      includeSpiritHunt: shouldLoadSpiritHuntForTab(activeTabRef.current),
     });
     let reloadTimer;
     const channel = supabase.channel("realtime-selina");
@@ -893,6 +938,7 @@ export default function HoaHoiGameCanvasApp() {
           silent: true,
           includeTitles: titlesLoaded || shouldLoadTitlesForTab(activeTabRef.current, isAdminRef.current),
           includeHistory: historyLoaded || shouldLoadHistoryForTab(activeTabRef.current),
+          includeSpiritHunt: spiritHuntLoaded || shouldLoadSpiritHuntForTab(activeTabRef.current),
         });
       }, 300);
     };
@@ -903,6 +949,7 @@ export default function HoaHoiGameCanvasApp() {
       .on("postgres_changes", { event: "*", schema: "public", table: "action_logs" }, refreshFromRealtime)
       .on("postgres_changes", { event: "*", schema: "public", table: "titles" }, refreshFromRealtime)
       .on("postgres_changes", { event: "*", schema: "public", table: "member_titles" }, refreshFromRealtime)
+      .on("postgres_changes", { event: "*", schema: "public", table: "spirit_hunt_slots" }, refreshFromRealtime)
       .subscribe((status) => {
         const text = String(status || "").toLowerCase();
         if (text === "subscribed") setRealtimeMessage("");
@@ -913,6 +960,7 @@ export default function HoaHoiGameCanvasApp() {
         silent: true,
         includeTitles: titlesLoaded,
         includeHistory: historyLoaded,
+        includeSpiritHunt: spiritHuntLoaded,
       });
     }, 45000);
 
@@ -921,6 +969,7 @@ export default function HoaHoiGameCanvasApp() {
         silent: true,
         includeTitles: titlesLoaded,
         includeHistory: historyLoaded,
+        includeSpiritHunt: spiritHuntLoaded,
       });
     };
 
@@ -939,6 +988,7 @@ export default function HoaHoiGameCanvasApp() {
         silent: true,
         includeTitles: titlesLoaded,
         includeHistory: historyLoaded,
+        includeSpiritHunt: spiritHuntLoaded,
       });
     };
 
@@ -954,7 +1004,7 @@ export default function HoaHoiGameCanvasApp() {
       document.removeEventListener("visibilitychange", handleVisibilitySync);
       supabase.removeChannel(channel);
     };
-  }, [historyLoaded, titlesLoaded]);
+  }, [historyLoaded, titlesLoaded, spiritHuntLoaded]);
 
   const memberById = useMemo(() => {
     const map = new Map();
@@ -1171,7 +1221,14 @@ export default function HoaHoiGameCanvasApp() {
         setPageMessage(`Không tải được lịch sử: ${error?.message || "Lỗi không xác định"}`);
       });
     }
-  }, [activeTab, isAdmin, titlesLoaded, historyLoaded]);
+
+    const needSpiritHunt = shouldLoadSpiritHuntForTab(activeTab);
+    if (needSpiritHunt && !spiritHuntLoaded) {
+      loadSpiritHuntData().catch((error) => {
+        setPageMessage(`Không tải được săn hoa linh: ${error?.message || "Lỗi không xác định"}`);
+      });
+    }
+  }, [activeTab, isAdmin, titlesLoaded, historyLoaded, spiritHuntLoaded]);
 
   const historyEntries = useMemo(() => {
     const findFlowerByName = (name) => {
@@ -1572,11 +1629,55 @@ export default function HoaHoiGameCanvasApp() {
     await loadAllData();
   }
 
-  const visibleTabCount = isAdmin ? 8 : 5;
+  function updateSpiritHuntSlot(slotKey, updater) {
+    setSpiritHuntSlots((prev) => prev.map((slot) => (slot.slotKey === slotKey ? { ...slot, ...updater(slot) } : slot)));
+  }
+
+  function toggleSpiritHuntMember(slotKey, memberId) {
+    updateSpiritHuntSlot(slotKey, (slot) => {
+      const key = String(memberId);
+      const hasMember = slot.memberIds.includes(key);
+      return {
+        memberIds: hasMember ? slot.memberIds.filter((id) => id !== key) : [...slot.memberIds, key],
+      };
+    });
+  }
+
+  async function saveSpiritHuntSlots() {
+    if (!isAdmin) return;
+    setSpiritHuntMessage("");
+    setSavingSpiritHunt(true);
+
+    const payload = spiritHuntSlots.map((slot) => ({
+      slot_key: slot.slotKey,
+      title: String(slot.title || "").trim() || (slot.slotKey === "slot_1" ? "Khung giờ 1" : "Khung giờ 2"),
+      time_label: String(slot.timeLabel || "").trim(),
+      member_ids: slot.memberIds.map(String),
+    }));
+
+    const { error } = await supabase.from("spirit_hunt_slots").upsert(payload, { onConflict: "slot_key" });
+    setSavingSpiritHunt(false);
+    if (error) {
+      setSpiritHuntMessage(`Không lưu được săn hoa linh: ${error.message}`);
+      return;
+    }
+
+    await logAction({
+      actionType: "update_spirit_hunt",
+      actorName: user?.email || "Quản trị hội",
+      targetType: "spirit_hunt",
+      targetName: "Săn hoa linh",
+      details: payload.map((slot) => `${slot.title} (${slot.time_label || "Chưa đặt giờ"}): ${slot.member_ids.length} người`).join(" | "),
+    });
+    setSpiritHuntMessage("Đã cập nhật danh sách săn hoa linh.");
+    await loadSpiritHuntData();
+  }
+
+  const visibleTabCount = isAdmin ? 9 : 6;
   const mobileTabSpacerCount = (3 - (visibleTabCount % 3 || 3)) % 3;
   const desktopTabsListClass = isAdmin
-    ? "hidden !h-auto w-full items-stretch gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:!grid md:grid-cols-4 xl:grid-cols-8"
-    : "hidden !h-auto w-full items-stretch gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:!grid xl:grid-cols-5";
+    ? "hidden !h-auto w-full items-stretch gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:!grid md:grid-cols-9"
+    : "hidden !h-auto w-full items-stretch gap-2 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:!grid md:grid-cols-6";
 
   const tabsClass = "!flex min-h-[52px] w-full items-center justify-center self-stretch rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-normal break-words transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-md sm:min-h-[56px] sm:rounded-2xl sm:px-4 sm:text-sm";
   const mobileTabButtonClass = (value) =>
@@ -1589,6 +1690,7 @@ export default function HoaHoiGameCanvasApp() {
     { value: "members", label: "Thành viên" },
     { value: "flowerlookup", label: "Tra cứu theo hoa" },
     { value: "memberflowerlookup", label: "Tra cứu theo thành viên" },
+    { value: "spirithunt", label: "Săn hoa linh" },
     ...(isAdmin ? [{ value: "update", label: "Cập nhật sở hữu" }] : []),
     ...(isAdmin ? [{ value: "addflower", label: "Thêm hoa mới" }] : []),
     ...(isAdmin ? [{ value: "titlemanagement", label: "Quản lý chức danh" }] : []),
@@ -1678,6 +1780,7 @@ export default function HoaHoiGameCanvasApp() {
             {isAdmin ? <TabsTrigger value="addflower" className={tabsClass}>Thêm hoa mới</TabsTrigger> : null}
             {isAdmin ? <TabsTrigger value="titlemanagement" className={tabsClass}>Quản lý chức danh</TabsTrigger> : null}
             <TabsTrigger value="history" className={tabsClass}>Lịch sử</TabsTrigger>
+            <TabsTrigger value="spirithunt" className={tabsClass}>Săn hoa linh</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
@@ -2341,6 +2444,168 @@ export default function HoaHoiGameCanvasApp() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="spirithunt" className="space-y-4">
+            <Card className="rounded-[28px] border border-white/70 bg-white/85 shadow-[0_16px_45px_-24px_rgba(15,23,42,0.18)]">
+              <CardHeader className="space-y-3">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <CardTitle className="font-sans">Săn hoa linh</CardTitle>
+                  {isAdmin ? (
+                    <Button onClick={saveSpiritHuntSlots} className="rounded-2xl" disabled={savingSpiritHunt}>
+                      {savingSpiritHunt ? "Đang lưu..." : "Lưu Săn hoa linh"}
+                    </Button>
+                  ) : null}
+                </div>
+                {spiritHuntMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{spiritHuntMessage}</div> : null}
+              </CardHeader>
+              <CardContent>
+                {!spiritHuntLoaded ? (
+                  <p className="text-sm text-slate-600">Đang tải dữ liệu săn hoa linh...</p>
+                ) : (
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    {spiritHuntSlots.map((slot) => {
+                      const selectedMembers = slot.memberIds
+                        .map((memberId) => memberById.get(String(memberId)))
+                        .filter(Boolean);
+                      const memberSearchValue = spiritHuntMemberSearch[slot.slotKey] || "";
+                      const filteredSlotMembers = members.filter((member) =>
+                        member.name.toLowerCase().includes(memberSearchValue.trim().toLowerCase())
+                      );
+
+                      return (
+                        <Card key={slot.slotKey} className="rounded-[28px] border border-slate-200 shadow-none">
+                          <CardHeader className="space-y-3">
+                            {isAdmin ? (
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                  <Label>Tên khung</Label>
+                                  <Input
+                                    value={slot.title}
+                                    onChange={(e) => updateSpiritHuntSlot(slot.slotKey, () => ({ title: e.target.value }))}
+                                    className="rounded-2xl"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Khung giờ</Label>
+                                  <Input
+                                    value={slot.timeLabel}
+                                    onChange={(e) => updateSpiritHuntSlot(slot.slotKey, () => ({ timeLabel: e.target.value }))}
+                                    placeholder="Ví dụ: 12:00 - 13:00"
+                                    className="rounded-2xl"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <CardTitle className="text-lg">{slot.title}</CardTitle>
+                                <p className="mt-1 text-sm text-slate-500">{slot.timeLabel || "Chưa đặt giờ"}</p>
+                              </div>
+                            )}
+                          </CardHeader>
+
+                          <CardContent className="space-y-4">
+                            {!isAdmin ? (
+                              selectedMembers.length === 0 ? (
+                                <SectionEmpty>Chưa có thành viên nào ở khung này.</SectionEmpty>
+                              ) : (
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedMembers.map((member) => {
+                                    const memberTitle = titleByMemberId.get(String(member.id));
+                                    return (
+                                      <div
+                                        key={`${slot.slotKey}-${member.id}`}
+                                        className="inline-flex items-center gap-2 rounded-full border bg-slate-50 px-3 py-2 text-sm"
+                                      >
+                                        <span>{member.name}</span>
+                                        {memberTitle?.name ? (
+                                          <Badge variant="outline" className={`rounded-full ${titleBadgeClass(memberTitle.name)}`}>
+                                            {memberTitle.name}
+                                          </Badge>
+                                        ) : null}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )
+                            ) : (
+                              <>
+                                <div className="relative">
+                                  <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                  <Input
+                                    value={memberSearchValue}
+                                    onChange={(e) =>
+                                      setSpiritHuntMemberSearch((prev) => ({ ...prev, [slot.slotKey]: e.target.value }))
+                                    }
+                                    placeholder="Tìm thành viên..."
+                                    className="rounded-2xl pl-9"
+                                  />
+                                </div>
+
+                                <ScrollArea className="h-[280px] pr-3">
+                                  <div className="space-y-3">
+                                    {filteredSlotMembers.map((member) => {
+                                      const checked = slot.memberIds.includes(String(member.id));
+                                      const memberTitle = titleByMemberId.get(String(member.id));
+                                      return (
+                                        <label
+                                          key={`${slot.slotKey}-${member.id}`}
+                                          className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition hover:bg-slate-50"
+                                        >
+                                          <Checkbox checked={checked} onCheckedChange={() => toggleSpiritHuntMember(slot.slotKey, member.id)} />
+                                          <div className="flex-1">
+                                            <div className="flex items-start justify-between gap-3">
+                                              <div>
+                                                <p className="font-medium">{member.name}</p>
+                                              </div>
+                                              {memberTitle?.name ? (
+                                                <Badge variant="outline" className={`rounded-full ${titleBadgeClass(memberTitle.name)}`}>
+                                                  {memberTitle.name}
+                                                </Badge>
+                                              ) : null}
+                                            </div>
+                                          </div>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                </ScrollArea>
+
+                                <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-600">
+                                  <div>
+                                    Đã chọn: <span className="font-semibold text-slate-900">{selectedMembers.length}</span> thành viên
+                                  </div>
+                                  {selectedMembers.length > 0 ? (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      {selectedMembers.map((member) => {
+                                        const memberTitle = titleByMemberId.get(String(member.id));
+                                        return (
+                                          <div
+                                            key={`${slot.slotKey}-selected-${member.id}`}
+                                            className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs"
+                                          >
+                                            <span>{member.name}</span>
+                                            {memberTitle?.name ? (
+                                              <Badge variant="outline" className={`rounded-full ${titleBadgeClass(memberTitle.name)}`}>
+                                                {memberTitle.name}
+                                              </Badge>
+                                            ) : null}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>

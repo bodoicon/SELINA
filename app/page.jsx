@@ -121,6 +121,10 @@ function formatMemberMeta(member) {
   return parts.join(" • ");
 }
 
+function isFormerMember(member) {
+  return Boolean(member?.leftGuild);
+}
+
 function isInvalidRefreshTokenError(error) {
   const message = String(error?.message || error || "").toLowerCase();
   return message.includes("invalid refresh token") || message.includes("refresh token not found");
@@ -503,6 +507,7 @@ function EditMemberForm({ member, onSave }) {
   const [name, setName] = useState(member.name || "");
   const [birthYear, setBirthYear] = useState(member.birthYear ? String(member.birthYear) : "");
   const [gender, setGender] = useState(member.gender || "");
+  const [leftGuild, setLeftGuild] = useState(Boolean(member.leftGuild));
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -538,6 +543,18 @@ function EditMemberForm({ member, onSave }) {
           </Select>
         </div>
       </div>
+      <div className="space-y-2">
+        <Label>Trạng thái hội</Label>
+        <Select value={leftGuild ? "former" : "active"} onValueChange={(value) => setLeftGuild(value === "former")}>
+          <SelectTrigger className="rounded-2xl">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Đang trong hội</SelectItem>
+            <SelectItem value="former">Đã rời hội</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <Button
         className="w-full rounded-2xl"
         disabled={saving}
@@ -547,6 +564,7 @@ function EditMemberForm({ member, onSave }) {
             name,
             birthYear: birthYear ? Number(birthYear) : null,
             gender,
+            leftGuild,
           });
           setSaving(false);
           setMessage(result.message);
@@ -892,7 +910,7 @@ export default function HoaHoiGameCanvasApp() {
     }
     try {
       const [membersRes, flowersRes] = await Promise.all([
-        supabase.from("members").select("id, name, birth_year, gender").order("name", { ascending: true }),
+        supabase.from("members").select("id, name, birth_year, gender, left_guild").order("name", { ascending: true }),
         supabase.from("flowers").select("id, name, group_name, icon_url").order("name", { ascending: true }),
       ]);
 
@@ -904,6 +922,7 @@ export default function HoaHoiGameCanvasApp() {
           name: m.name,
           birthYear: m.birth_year || null,
           gender: m.gender || "",
+          leftGuild: Boolean(m.left_guild),
         })));
         setFlowers((flowersRes.data || []).map((f) => ({ id: String(f.id), name: f.name, group: f.group_name, iconUrl: f.icon_url || "" })));
         setLastSyncedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
@@ -1040,32 +1059,58 @@ export default function HoaHoiGameCanvasApp() {
     return counts;
   }, [ownerships]);
 
+  const activeMembers = useMemo(() => members.filter((member) => !isFormerMember(member)), [members]);
+  const formerMembers = useMemo(() => members.filter((member) => isFormerMember(member)), [members]);
+  const activeMemberIds = useMemo(() => new Set(activeMembers.map((member) => String(member.id))), [activeMembers]);
+  const activeOwnerships = useMemo(() => ownerships.filter((row) => activeMemberIds.has(String(row.memberId))), [ownerships, activeMemberIds]);
+  const activeMemberFlowerCounts = useMemo(() => {
+    const counts = {};
+    activeOwnerships.forEach((row) => {
+      const key = String(row.memberId);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [activeOwnerships]);
+
+  const activeOwnersByFlower = useMemo(() => {
+    const map = new Map();
+    flowers.forEach((flower) => map.set(String(flower.id), []));
+    activeOwnerships.forEach((row) => {
+      const memberName = memberNameById.get(String(row.memberId));
+      if (!memberName) return;
+      const list = map.get(String(row.flowerId)) || [];
+      if (!list.includes(memberName)) list.push(memberName);
+      map.set(String(row.flowerId), list);
+    });
+    return map;
+  }, [flowers, activeOwnerships, memberNameById]);
+
   const summary = useMemo(() => {
-    const ownedFlowerIds = new Set(ownerships.map((x) => String(x.flowerId)));
+    const ownedFlowerIds = new Set(activeOwnerships.map((x) => String(x.flowerId)));
     return {
-      totalMembers: members.length,
+      totalMembers: activeMembers.length,
       totalFlowers: flowers.length,
       ownedFlowers: ownedFlowerIds.size,
       missingFlowers: flowers.length - ownedFlowerIds.size,
       completionRate: flowers.length ? Math.round((ownedFlowerIds.size / flowers.length) * 100) : 0,
     };
-  }, [members, flowers, ownerships]);
+  }, [activeMembers, flowers, activeOwnerships]);
 
   const topMembers = useMemo(() => {
-    return [...members]
-      .map((member) => ({ ...member, ownedCount: memberFlowerCounts[String(member.id)] || 0 }))
+    return [...activeMembers]
+      .map((member) => ({ ...member, ownedCount: activeMemberFlowerCounts[String(member.id)] || 0 }))
       .sort((a, b) => (b.ownedCount || 0) - (a.ownedCount || 0))
       .slice(0, 3);
-  }, [members, memberFlowerCounts]);
+  }, [activeMembers, activeMemberFlowerCounts]);
 
   const groupOwnedCounts = useMemo(() => {
-    const ownedFlowerIds = new Set(ownerships.map((row) => String(row.flowerId)));
+    const ownedFlowerIds = new Set(activeOwnerships.map((row) => String(row.flowerId)));
     const counts = { Đỏ: 0, Vàng: 0, Tím: 0, Lam: 0, Lục: 0 };
     flowers.forEach((flower) => {
       if (ownedFlowerIds.has(String(flower.id))) counts[flower.group] = (counts[flower.group] || 0) + 1;
     });
     return counts;
-  }, [flowers, ownerships]);
+  }, [flowers, activeOwnerships]);
 
   const groupProgressRows = useMemo(() => {
     return MEMBER_FLOWER_GROUP_ORDER.map((group) => {
@@ -1075,21 +1120,21 @@ export default function HoaHoiGameCanvasApp() {
     });
   }, [flowers, groupOwnedCounts]);
 
-  const missingFlowers = useMemo(() => flowers.filter((flower) => !ownersByFlower.get(String(flower.id))?.length), [flowers, ownersByFlower]);
+  const missingFlowers = useMemo(() => flowers.filter((flower) => !activeOwnersByFlower.get(String(flower.id))?.length), [flowers, activeOwnersByFlower]);
   const rareFlowers = useMemo(
     () =>
       [...flowers]
         .filter((flower) => {
-          const count = ownersByFlower.get(String(flower.id))?.length || 0;
+          const count = activeOwnersByFlower.get(String(flower.id))?.length || 0;
           return count >= 1 && count <= 3;
         })
         .sort((a, b) => {
-          const countA = ownersByFlower.get(String(a.id))?.length || 0;
-          const countB = ownersByFlower.get(String(b.id))?.length || 0;
+          const countA = activeOwnersByFlower.get(String(a.id))?.length || 0;
+          const countB = activeOwnersByFlower.get(String(b.id))?.length || 0;
           if (countA !== countB) return countA - countB;
           return a.name.localeCompare(b.name, "vi");
         }),
-    [flowers, ownersByFlower]
+    [flowers, activeOwnersByFlower]
   );
 
   const filteredMissingFlowers = useMemo(() => missingFlowers.filter((flower) => dashboardMissingGroupFilter === "all" || flower.group === dashboardMissingGroupFilter), [missingFlowers, dashboardMissingGroupFilter]);
@@ -1102,6 +1147,9 @@ export default function HoaHoiGameCanvasApp() {
         .sort((a, b) => (b.ownedCount || 0) - (a.ownedCount || 0)),
     [members, memberFlowerCounts, memberSearch]
   );
+
+  const filteredActiveMembers = useMemo(() => filteredMembers.filter((member) => !isFormerMember(member)), [filteredMembers]);
+  const filteredFormerMembers = useMemo(() => filteredMembers.filter((member) => isFormerMember(member)), [filteredMembers]);
 
   const filteredExistingMembers = useMemo(() => {
     const q = memberPickerSearch.trim().toLowerCase();
@@ -1377,7 +1425,7 @@ export default function HoaHoiGameCanvasApp() {
     if (error) return { error: `Không tạo được thành viên mới: ${error.message}` };
     await logAction({ actionType: "add_member", actorName: user?.email || "Quản trị hội", targetType: "member", targetName: data.name, details: "Thêm thành viên mới" });
     await loadAllData();
-    return { member: { id: String(data.id), name: data.name, birthYear: null, gender: "" } };
+    return { member: { id: String(data.id), name: data.name, birthYear: null, gender: "", leftGuild: false } };
   }
 
   function toggleFlowerSelection(flowerId) {
@@ -1491,6 +1539,7 @@ export default function HoaHoiGameCanvasApp() {
     const trimmed = String(payload?.name || "").trim();
     const birthYear = payload?.birthYear ?? null;
     const gender = payload?.gender ? normalizeMemberGender(payload.gender) : null;
+    const leftGuild = Boolean(payload?.leftGuild);
 
     if (!trimmed) return { ok: false, message: "Tên thành viên không được để trống." };
     if (birthYear !== null && (!Number.isInteger(birthYear) || birthYear < 1900 || birthYear > new Date().getFullYear())) {
@@ -1503,6 +1552,7 @@ export default function HoaHoiGameCanvasApp() {
         name: trimmed,
         birth_year: birthYear,
         gender: gender || null,
+        left_guild: leftGuild,
       })
       .eq("id", memberId);
 
@@ -1919,48 +1969,118 @@ export default function HoaHoiGameCanvasApp() {
                   <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Tìm theo tên thành viên..." className="rounded-2xl pl-9 font-sans text-slate-900" />
                 </div>
-                <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {filteredMembers.map((member) => {
-                    const ownedCount = memberFlowerCounts[String(member.id)] || 0;
-                    const memberPercent = summary.totalFlowers ? Math.round((ownedCount / summary.totalFlowers) * 100) : 0;
-                    const memberCircleStyle = memberProgressCircleStyle(memberPercent);
-                    return (
-                      <Card key={member.id} className="rounded-[24px]">
-                        <CardHeader>
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="space-y-1">
-                              <CardTitle className="text-lg leading-snug sm:text-xl">{member.name}</CardTitle>
-                              {formatMemberMeta(member) ? <p className="text-sm text-slate-500">{formatMemberMeta(member)}</p> : null}
-                              {titleByMemberId.get(String(member.id))?.name ? (
-                                <Badge variant="outline" className={`rounded-full ${titleBadgeClass(titleByMemberId.get(String(member.id))?.name)}`}>{titleByMemberId.get(String(member.id))?.name}</Badge>
-                              ) : null}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary">{ownedCount} hoa</Badge>
-                              {isAdmin ? (
-                                <Dialog>
-                                  <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger>
-                                  <DialogContent className="rounded-3xl">
-                                    <DialogHeader><DialogTitle>Sửa thông tin thành viên</DialogTitle></DialogHeader>
-                                    <EditMemberForm member={member} onSave={(payload) => renameMember(member.id, payload)} />
-                                  </DialogContent>
-                                </Dialog>
-                              ) : null}
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div className="flex items-center gap-3 sm:gap-4">
-                            <CircleProgress percent={memberPercent} strokeColor={memberCircleStyle.strokeColor} glowClass={memberCircleStyle.glowClass} />
-                            <div className="text-sm text-slate-600">
-                              <p>Tiến độ sưu tập</p>
-                              <p className="font-medium">{ownedCount}/{summary.totalFlowers}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="rounded-full border-slate-200 bg-slate-50 text-slate-700">Thành viên hiện tại</Badge>
+                      <span className="text-sm text-slate-500">{filteredActiveMembers.length} người</span>
+                    </div>
+                    {filteredActiveMembers.length === 0 ? (
+                      <SectionEmpty>Không có thành viên hiện tại phù hợp.</SectionEmpty>
+                    ) : (
+                      <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {filteredActiveMembers.map((member) => {
+                          const ownedCount = memberFlowerCounts[String(member.id)] || 0;
+                          const memberPercent = summary.totalFlowers ? Math.round((ownedCount / summary.totalFlowers) * 100) : 0;
+                          const memberCircleStyle = memberProgressCircleStyle(memberPercent);
+                          return (
+                            <Card key={member.id} className="rounded-[24px]">
+                              <CardHeader>
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                  <div className="space-y-1">
+                                    <CardTitle className="text-lg leading-snug sm:text-xl">{member.name}</CardTitle>
+                                    {formatMemberMeta(member) ? <p className="text-sm text-slate-500">{formatMemberMeta(member)}</p> : null}
+                                    {titleByMemberId.get(String(member.id))?.name ? (
+                                      <Badge variant="outline" className={`rounded-full ${titleBadgeClass(titleByMemberId.get(String(member.id))?.name)}`}>{titleByMemberId.get(String(member.id))?.name}</Badge>
+                                    ) : null}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="secondary">{ownedCount} hoa</Badge>
+                                    {isAdmin ? (
+                                      <Dialog>
+                                        <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger>
+                                        <DialogContent className="rounded-3xl">
+                                          <DialogHeader><DialogTitle>Sửa thông tin thành viên</DialogTitle></DialogHeader>
+                                          <EditMemberForm member={member} onSave={(payload) => renameMember(member.id, payload)} />
+                                        </DialogContent>
+                                      </Dialog>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-3">
+                                <div className="flex items-center gap-3 sm:gap-4">
+                                  <CircleProgress percent={memberPercent} strokeColor={memberCircleStyle.strokeColor} glowClass={memberCircleStyle.glowClass} />
+                                  <div className="text-sm text-slate-600">
+                                    <p>Tiến độ sưu tập</p>
+                                    <p className="font-medium">{ownedCount}/{summary.totalFlowers}</p>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-amber-700">Đã rời hội</Badge>
+                      <span className="text-sm text-slate-500">{filteredFormerMembers.length} người</span>
+                    </div>
+                    {filteredFormerMembers.length === 0 ? (
+                      <SectionEmpty>Không có thành viên đã rời hội phù hợp.</SectionEmpty>
+                    ) : (
+                      <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {filteredFormerMembers.map((member) => {
+                          const ownedCount = memberFlowerCounts[String(member.id)] || 0;
+                          const memberPercent = summary.totalFlowers ? Math.round((ownedCount / summary.totalFlowers) * 100) : 0;
+                          const memberCircleStyle = memberProgressCircleStyle(memberPercent);
+                          return (
+                            <Card key={member.id} className="rounded-[24px] border-amber-200/70 bg-amber-50/30">
+                              <CardHeader>
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                  <div className="space-y-1">
+                                    <CardTitle className="text-lg leading-snug sm:text-xl">{member.name}</CardTitle>
+                                    {formatMemberMeta(member) ? <p className="text-sm text-slate-500">{formatMemberMeta(member)}</p> : null}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-amber-700">Đã rời hội</Badge>
+                                      {titleByMemberId.get(String(member.id))?.name ? (
+                                        <Badge variant="outline" className={`rounded-full ${titleBadgeClass(titleByMemberId.get(String(member.id))?.name)}`}>{titleByMemberId.get(String(member.id))?.name}</Badge>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="secondary">{ownedCount} hoa</Badge>
+                                    {isAdmin ? (
+                                      <Dialog>
+                                        <DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger>
+                                        <DialogContent className="rounded-3xl">
+                                          <DialogHeader><DialogTitle>Sửa thông tin thành viên</DialogTitle></DialogHeader>
+                                          <EditMemberForm member={member} onSave={(payload) => renameMember(member.id, payload)} />
+                                        </DialogContent>
+                                      </Dialog>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-3">
+                                <div className="flex items-center gap-3 sm:gap-4">
+                                  <CircleProgress percent={memberPercent} strokeColor={memberCircleStyle.strokeColor} glowClass={memberCircleStyle.glowClass} />
+                                  <div className="text-sm text-slate-600">
+                                    <p>Tiến độ sưu tập cá nhân</p>
+                                    <p className="font-medium">{ownedCount}/{summary.totalFlowers}</p>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

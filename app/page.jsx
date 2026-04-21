@@ -95,6 +95,10 @@ function isFormerMember(member) {
   return Boolean(member?.leftGuild);
 }
 
+function shouldShowFormerMemberInLookup(member) {
+  return !isFormerMember(member) || Boolean(member?.showInLookup);
+}
+
 function extractFlowerNamesFromHistoryDetails(details) {
   const text = String(details || "").trim();
   if (!text) return [];
@@ -285,6 +289,7 @@ function EditMemberForm({ member, onSave }) {
   const [birthYear, setBirthYear] = useState(member.birthYear ? String(member.birthYear) : "");
   const [gender, setGender] = useState(member.gender || "");
   const [leftGuild, setLeftGuild] = useState(Boolean(member.leftGuild));
+  const [showInLookup, setShowInLookup] = useState(Boolean(member.showInLookup));
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   return (
@@ -321,9 +326,22 @@ function EditMemberForm({ member, onSave }) {
           </SelectContent>
         </Select>
       </div>
+      {leftGuild ? (
+        <div className="space-y-2">
+          <Label>Danh sách hoa trong mục tra cứu</Label>
+          <Select value={showInLookup ? "on" : "off"} onValueChange={(value) => setShowInLookup(value === "on")}>
+            <SelectTrigger className="rounded-2xl"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="on">Bật</SelectItem>
+              <SelectItem value="off">Tắt</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-slate-500">Bật: vẫn tìm được trong mục tra cứu nhưng không tính vào tiến độ hội. Tắt: ẩn khỏi các mục tra cứu.</p>
+        </div>
+      ) : null}
       <Button className="w-full rounded-2xl" disabled={saving} onClick={async () => {
         setSaving(true);
-        const result = await onSave({ name, birthYear: birthYear ? Number(birthYear) : null, gender, leftGuild });
+        const result = await onSave({ name, birthYear: birthYear ? Number(birthYear) : null, gender, leftGuild, showInLookup });
         setSaving(false);
         setMessage(result.message);
       }}>{saving ? "Đang lưu..." : "Lưu thông tin thành viên"}</Button>
@@ -620,11 +638,11 @@ export default function HoaHoiGameCanvasApp() {
     }
     try {
       const [membersRes, flowersRes] = await Promise.all([
-        supabase.from("members").select("id, name, birth_year, gender, left_guild").order("name", { ascending: true }),
+        supabase.from("members").select("id, name, birth_year, gender, left_guild, show_in_lookup").order("name", { ascending: true }),
         supabase.from("flowers").select("id, name, group_name, icon_url").order("name", { ascending: true }),
       ]);
       if (membersRes.error || flowersRes.error) throw new Error(membersRes.error?.message || flowersRes.error?.message || "Không tải được dữ liệu.");
-      setMembers((membersRes.data || []).map((m) => ({ id: String(m.id), name: m.name, birthYear: m.birth_year || null, gender: m.gender || "", leftGuild: Boolean(m.left_guild) })));
+      setMembers((membersRes.data || []).map((m) => ({ id: String(m.id), name: m.name, birthYear: m.birth_year || null, gender: m.gender || "", leftGuild: Boolean(m.left_guild), showInLookup: Boolean(m.show_in_lookup) })) );
       setFlowers((flowersRes.data || []).map((f) => ({ id: String(f.id), name: f.name, group: f.group_name, iconUrl: f.icon_url || "" })));
       setLastSyncedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
       const extra = [loadOwnershipData()];
@@ -685,10 +703,14 @@ export default function HoaHoiGameCanvasApp() {
     return map;
   }, [memberTitles, titleById]);
 
+  const lookupVisibleMembers = useMemo(() => members.filter((m) => shouldShowFormerMemberInLookup(m)), [members]);
+  const lookupVisibleMemberIds = useMemo(() => new Set(lookupVisibleMembers.map((m) => String(m.id))), [lookupVisibleMembers]);
+
   const ownersByFlower = useMemo(() => {
     const map = new Map();
     flowers.forEach((f) => map.set(String(f.id), []));
     ownerships.forEach((row) => {
+      if (!lookupVisibleMemberIds.has(String(row.memberId))) return;
       const name = memberNameById.get(String(row.memberId));
       if (!name) return;
       const list = map.get(String(row.flowerId)) || [];
@@ -696,7 +718,7 @@ export default function HoaHoiGameCanvasApp() {
       map.set(String(row.flowerId), list);
     });
     return map;
-  }, [flowers, ownerships, memberNameById]);
+  }, [flowers, ownerships, memberNameById, lookupVisibleMemberIds]);
 
   const memberFlowerCounts = useMemo(() => {
     const counts = {};
@@ -857,8 +879,8 @@ export default function HoaHoiGameCanvasApp() {
   }, [ownerships, flowerById]);
   const filteredExistingMembers = useMemo(() => members.filter((m) => m.name.toLowerCase().includes(memberPickerSearch.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name, "vi")), [members, memberPickerSearch]);
   const filteredFlowers = useMemo(() => flowers.filter((flower) => normalizeFlowerLookupText(flower.name).includes(normalizeFlowerLookupText(flowerSearch))), [flowers, flowerSearch]);
-  const filteredMemberFlowerLookupOptions = useMemo(() => members.filter((m) => !memberFlowerLookupSearch.trim() || m.name.toLowerCase().includes(memberFlowerLookupSearch.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name, "vi")), [members, memberFlowerLookupSearch]);
-  const selectedMemberFlowerLookup = useMemo(() => members.find((m) => String(m.id) === String(memberFlowerLookup)) || null, [members, memberFlowerLookup]);
+  const filteredMemberFlowerLookupOptions = useMemo(() => lookupVisibleMembers.filter((m) => !memberFlowerLookupSearch.trim() || m.name.toLowerCase().includes(memberFlowerLookupSearch.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name, "vi")), [lookupVisibleMembers, memberFlowerLookupSearch]);
+  const selectedMemberFlowerLookup = useMemo(() => lookupVisibleMembers.find((m) => String(m.id) === String(memberFlowerLookup)) || null, [lookupVisibleMembers, memberFlowerLookup]);
   const selectedExistingMember = useMemo(() => members.find((m) => String(m.id) === String(selectedExistingMemberId)) || null, [members, selectedExistingMemberId]);
 
   const flowersBySelectedMember = useMemo(() => {
@@ -1099,7 +1121,7 @@ export default function HoaHoiGameCanvasApp() {
   async function renameMember(memberId, payload) {
     const trimmed = String(payload?.name || "").trim();
     if (!trimmed) return { ok: false, message: "Tên thành viên không được để trống." };
-    const { error } = await supabase.from("members").update({ name: trimmed, birth_year: payload?.birthYear ?? null, gender: payload?.gender || null, left_guild: Boolean(payload?.leftGuild) }).eq("id", memberId);
+    const { error } = await supabase.from("members").update({ name: trimmed, birth_year: payload?.birthYear ?? null, gender: payload?.gender || null, left_guild: Boolean(payload?.leftGuild), show_in_lookup: Boolean(payload?.showInLookup) }).eq("id", memberId);
     if (error) return { ok: false, message: `Không sửa được thông tin thành viên: ${error.message}` };
     await loadAllData({ includeTitles: titlesLoaded, includeHistory: historyLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
     return { ok: true, message: "Đã cập nhật thông tin thành viên." };
@@ -1107,7 +1129,7 @@ export default function HoaHoiGameCanvasApp() {
 
   async function restoreFormerMember(member) {
     if (!isAdmin) return;
-    const { error } = await supabase.from("members").update({ left_guild: false }).eq("id", member.id);
+    const { error } = await supabase.from("members").update({ left_guild: false, show_in_lookup: false }).eq("id", member.id);
     if (error) return;
     await logAction({
       actionType: "restore_member",
@@ -1115,6 +1137,21 @@ export default function HoaHoiGameCanvasApp() {
       targetType: "member",
       targetName: member.name,
       details: "Cho thành viên vào hội lại",
+    });
+    await loadAllData({ includeTitles: titlesLoaded, includeHistory: historyLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+  }
+
+  async function toggleFormerMemberLookup(member) {
+    if (!isAdmin || !isFormerMember(member)) return;
+    const nextValue = !Boolean(member.showInLookup);
+    const { error } = await supabase.from("members").update({ show_in_lookup: nextValue }).eq("id", member.id);
+    if (error) return;
+    await logAction({
+      actionType: "toggle_former_member_lookup",
+      actorName: user?.email || "Quản trị hội",
+      targetType: "member",
+      targetName: member.name,
+      details: nextValue ? "Bật danh sách hoa cho mục tra cứu" : "Tắt danh sách hoa cho mục tra cứu",
     });
     await loadAllData({ includeTitles: titlesLoaded, includeHistory: historyLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
   }
@@ -1431,7 +1468,7 @@ export default function HoaHoiGameCanvasApp() {
                                     </DialogContent>
                                   </Dialog>
                                   {isAdmin ? <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-lg px-2 text-[10px]">Sửa tên</Button></DialogTrigger><DialogContent className="rounded-3xl font-sans" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}><DialogHeader><DialogTitle>Sửa thông tin thành viên</DialogTitle></DialogHeader><EditMemberForm member={member} onSave={(payload) => renameMember(member.id, payload)} /></DialogContent></Dialog> : null}
-                                </div></div></CardHeader><CardContent><div className="flex items-center gap-4"><CircleProgress percent={percent} strokeColor={style.strokeColor} glowClass={style.glowClass} /><div><p className="text-sm text-slate-500">Tiến độ sưu tập</p><p className="text-lg font-semibold">{ownedCount}/{summary.totalFlowers}</p></div></div></CardContent></Card>; })}</div>{filteredFormerMembers.length > 0 ? <div className="space-y-3"><div className="flex items-center gap-2"><Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">Đã rời hội</Badge><span className="text-sm text-slate-500">{filteredFormerMembers.length} người</span></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredFormerMembers.map((member) => <Card key={member.id} className="rounded-[24px] border-amber-200/60 bg-amber-50/30"><CardHeader><div className="flex items-start justify-between gap-3"><CardTitle className="text-xl">{member.name}</CardTitle>{isAdmin ? <Button variant="outline" size="sm" className="h-8 rounded-xl px-3 text-[11px]" onClick={() => restoreFormerMember(member)}>Cho vào hội lại</Button> : null}</div></CardHeader><CardContent><p className="text-sm text-slate-500">{memberFlowerCounts[String(member.id)] || 0} hoa đã sở hữu</p></CardContent></Card>)}</div></div> : null}</CardContent></Card>
+                                </div></div></CardHeader><CardContent><div className="flex items-center gap-4"><CircleProgress percent={percent} strokeColor={style.strokeColor} glowClass={style.glowClass} /><div><p className="text-sm text-slate-500">Tiến độ sưu tập</p><p className="text-lg font-semibold">{ownedCount}/{summary.totalFlowers}</p></div></div></CardContent></Card>; })}</div>{filteredFormerMembers.length > 0 ? <div className="space-y-3"><div className="flex items-center gap-2"><Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">Đã rời hội</Badge><span className="text-sm text-slate-500">{filteredFormerMembers.length} người</span></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredFormerMembers.map((member) => <Card key={member.id} className="rounded-[24px] border-amber-200/60 bg-amber-50/30"><CardHeader><div className="flex items-start justify-between gap-3"><div className="space-y-2"><CardTitle className="text-xl">{member.name}</CardTitle><div className="flex flex-wrap gap-2"><Badge variant="outline" className={member.showInLookup ? "border-green-200 bg-green-50 text-green-700" : "border-slate-200 bg-slate-100 text-slate-600"}>{member.showInLookup ? "Danh sách hoa: Bật" : "Danh sách hoa: Tắt"}</Badge></div></div><div className="flex flex-wrap gap-2">{isAdmin ? <Button variant="outline" size="sm" className="h-8 rounded-xl px-3 text-[11px]" onClick={() => toggleFormerMemberLookup(member)}>{member.showInLookup ? "Tắt danh sách hoa" : "Bật danh sách hoa"}</Button> : null}{isAdmin ? <Button variant="outline" size="sm" className="h-8 rounded-xl px-3 text-[11px]" onClick={() => restoreFormerMember(member)}>Cho vào hội lại</Button> : null}</div></div></CardHeader><CardContent><p className="text-sm text-slate-500">{memberFlowerCounts[String(member.id)] || 0} hoa đã sở hữu</p><p className="mt-2 text-xs text-slate-500">Bật: vẫn tìm được trong mục tra cứu theo hoa nhưng không tính vào tiến độ hội. Tắt: ẩn khỏi các mục tra cứu.</p></CardContent></Card>)}</div></div> : null}</CardContent></Card>
           </TabsContent>
 
           <TabsContent value="flowerlookup" className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle>Tra cứu theo hoa</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={flowerSearch} onChange={(e) => setFlowerSearch(e.target.value)} placeholder="Tìm theo tên hoa..." className="rounded-2xl pl-9" /></div><div className="space-y-3">{filteredFlowers.map((flower) => <div key={flower.id} className="rounded-3xl border p-4"><div className="flex items-start justify-between gap-3"><div className="flex items-start gap-3"><FlowerThumbnail flower={flower} size="sm" /><div><p className="font-semibold">{flower.name}</p><p className="mt-1 text-sm text-slate-500">Nhóm {flower.group}</p></div></div><div className="flex items-center gap-2"><Badge variant="secondary">{ownersByFlower.get(String(flower.id))?.length || 0} người</Badge>{isAdmin ? <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger><DialogContent className="rounded-3xl font-sans" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}><DialogHeader><DialogTitle>Sửa hoa</DialogTitle></DialogHeader><EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} /></DialogContent></Dialog> : null}</div></div><div className="mt-3 flex flex-wrap gap-2">{(ownersByFlower.get(String(flower.id)) || []).map((owner) => <Badge key={`${flower.id}-${owner}`} variant="secondary">{owner}</Badge>)}</div></div>)}</div></CardContent></Card></TabsContent>

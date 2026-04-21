@@ -360,6 +360,73 @@ function EditFlowerForm({ flower, onSave }) {
   );
 }
 
+function MemberFlowersCheckDialogContent({ member, flowersByGroup }) {
+  const [searchText, setSearchText] = useState("");
+  const normalizedSearch = normalizeFlowerLookupText(searchText);
+  const filteredFlowersByGroup = useMemo(() => {
+    const next = { Đỏ: [], Vàng: [], Tím: [], Lam: [], Lục: [] };
+    MEMBER_FLOWER_GROUP_ORDER.forEach((group) => {
+      next[group] = (flowersByGroup[group] || []).filter((flower) => {
+        if (!normalizedSearch) return true;
+        return normalizeFlowerLookupText(flower.name).includes(normalizedSearch);
+      });
+    });
+    return next;
+  }, [flowersByGroup, normalizedSearch]);
+
+  const totalFiltered = useMemo(
+    () => Object.values(filteredFlowersByGroup).reduce((sum, list) => sum + list.length, 0),
+    [filteredFlowersByGroup]
+  );
+
+  return (
+    <div className="space-y-3 font-sans" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[15px] font-semibold text-slate-900">{member.name}</p>
+          <p className="text-[11px] text-slate-500">Toàn bộ hoa đang sở hữu</p>
+        </div>
+        <Badge variant="secondary" className="text-[11px]">
+          {totalFiltered}/{Object.values(flowersByGroup).reduce((sum, list) => sum + list.length, 0)} hoa
+        </Badge>
+      </div>
+
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+        <Input
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          placeholder="Gõ để tìm nhanh 1 loại hoa..."
+          className="rounded-2xl pl-9"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+        {MEMBER_FLOWER_GROUP_ORDER.map((group) => (
+          <div key={group} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-2.5">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <Badge variant="outline" className={`${groupBadgeClass(group)} text-[10px]`}>{group}</Badge>
+              <span className="text-[10px] font-semibold text-slate-500">{filteredFlowersByGroup[group]?.length || 0}</span>
+            </div>
+            <div className="max-h-[325px] space-y-1.5 overflow-y-auto pr-1">
+              {(filteredFlowersByGroup[group] || []).length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-200 bg-white px-2.5 py-2 text-[10px] text-slate-400">Không có kết quả</div>
+              ) : (
+                filteredFlowersByGroup[group].map((flower) => (
+                  <div key={`${member.id}-${group}-${flower.id}`} className="flex items-center gap-2 rounded-xl border bg-white px-2.5 py-2">
+                    <FlowerThumbnail flower={flower} size="sm" />
+                    <span className="block break-words text-[10px] font-medium text-slate-700">{flower.name}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function HoaHoiGameCanvasApp() {
   const [flowers, setFlowers] = useState([]);
   const [members, setMembers] = useState([]);
@@ -698,6 +765,22 @@ export default function HoaHoiGameCanvasApp() {
   const filteredMembers = useMemo(() => [...members].map((m) => ({ ...m, ownedCount: memberFlowerCounts[String(m.id)] || 0 })).filter((m) => m.name.toLowerCase().includes(memberSearch.trim().toLowerCase())).sort((a, b) => b.ownedCount - a.ownedCount), [members, memberFlowerCounts, memberSearch]);
   const filteredActiveMembers = useMemo(() => filteredMembers.filter((m) => !isFormerMember(m)), [filteredMembers]);
   const filteredFormerMembers = useMemo(() => filteredMembers.filter((m) => isFormerMember(m)), [filteredMembers]);
+  const memberFlowersByMemberId = useMemo(() => {
+    const grouped = {};
+    ownerships.forEach((row) => {
+      const flower = flowerById.get(String(row.flowerId));
+      if (!flower) return;
+      const memberId = String(row.memberId);
+      if (!grouped[memberId]) grouped[memberId] = { Đỏ: [], Vàng: [], Tím: [], Lam: [], Lục: [] };
+      grouped[memberId][flower.group].push(flower);
+    });
+    Object.values(grouped).forEach((groupMap) => {
+      MEMBER_FLOWER_GROUP_ORDER.forEach((group) => {
+        groupMap[group] = (groupMap[group] || []).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+      });
+    });
+    return grouped;
+  }, [ownerships, flowerById]);
   const filteredExistingMembers = useMemo(() => members.filter((m) => m.name.toLowerCase().includes(memberPickerSearch.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name, "vi")), [members, memberPickerSearch]);
   const filteredFlowers = useMemo(() => flowers.filter((flower) => normalizeFlowerLookupText(flower.name).includes(normalizeFlowerLookupText(flowerSearch))), [flowers, flowerSearch]);
   const filteredMemberFlowerLookupOptions = useMemo(() => members.filter((m) => !memberFlowerLookupSearch.trim() || m.name.toLowerCase().includes(memberFlowerLookupSearch.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name, "vi")), [members, memberFlowerLookupSearch]);
@@ -1219,7 +1302,21 @@ export default function HoaHoiGameCanvasApp() {
           </TabsContent>
 
           <TabsContent value="members" className="space-y-4">
-            <Card className="rounded-[28px]"><CardHeader><CardTitle>Thành viên</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Tìm theo tên thành viên..." className="rounded-2xl pl-9" /></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredActiveMembers.map((member) => { const ownedCount = memberFlowerCounts[String(member.id)] || 0; const percent = summary.totalFlowers ? Math.round((ownedCount / summary.totalFlowers) * 100) : 0; const style = memberProgressCircleStyle(percent); const memberTitle = titleByMemberId.get(String(member.id)); return <Card key={member.id} className="rounded-[24px]"><CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle className="text-xl">{member.name}</CardTitle>{formatMemberMeta(member) ? <p className="mt-1 text-sm text-slate-500">{formatMemberMeta(member)}</p> : null}{memberTitle?.name ? <Badge variant="outline" className={`mt-2 ${titleBadgeClass(memberTitle.name)}`}>{memberTitle.name}</Badge> : null}</div><div className="flex items-center gap-2"><Badge variant="secondary">{ownedCount} hoa</Badge>{isAdmin ? <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger><DialogContent className="rounded-3xl font-sans" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}><DialogHeader><DialogTitle>Sửa thông tin thành viên</DialogTitle></DialogHeader><EditMemberForm member={member} onSave={(payload) => renameMember(member.id, payload)} /></DialogContent></Dialog> : null}</div></div></CardHeader><CardContent><div className="flex items-center gap-4"><CircleProgress percent={percent} strokeColor={style.strokeColor} glowClass={style.glowClass} /><div><p className="text-sm text-slate-500">Tiến độ sưu tập</p><p className="text-lg font-semibold">{ownedCount}/{summary.totalFlowers}</p></div></div></CardContent></Card>; })}</div>{filteredFormerMembers.length > 0 ? <div className="space-y-3"><div className="flex items-center gap-2"><Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">Đã rời hội</Badge><span className="text-sm text-slate-500">{filteredFormerMembers.length} người</span></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredFormerMembers.map((member) => <Card key={member.id} className="rounded-[24px] border-amber-200/60 bg-amber-50/30"><CardHeader><CardTitle className="text-xl">{member.name}</CardTitle></CardHeader><CardContent><p className="text-sm text-slate-500">{memberFlowerCounts[String(member.id)] || 0} hoa đã sở hữu</p></CardContent></Card>)}</div></div> : null}</CardContent></Card>
+            <Card className="rounded-[28px]"><CardHeader><CardTitle>Thành viên</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Tìm theo tên thành viên..." className="rounded-2xl pl-9" /></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredActiveMembers.map((member) => { const ownedCount = memberFlowerCounts[String(member.id)] || 0; const percent = summary.totalFlowers ? Math.round((ownedCount / summary.totalFlowers) * 100) : 0; const style = memberProgressCircleStyle(percent); const memberTitle = titleByMemberId.get(String(member.id)); return <Card key={member.id} className="relative rounded-[24px]"><CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle className="text-xl">{member.name}</CardTitle>{formatMemberMeta(member) ? <p className="mt-1 text-sm text-slate-500">{formatMemberMeta(member)}</p> : null}{memberTitle?.name ? <Badge variant="outline" className={`mt-2 ${titleBadgeClass(memberTitle.name)}`}>{memberTitle.name}</Badge> : null}</div><div className="flex items-center gap-2">
+                                  <Badge variant="secondary">{ownedCount} hoa</Badge>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="outline" size="sm" className="rounded-2xl">Check hoa</Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="rounded-3xl font-sans sm:max-w-7xl" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+                                      <DialogHeader>
+                                        <DialogTitle>Check hoa thành viên</DialogTitle>
+                                      </DialogHeader>
+                                      <MemberFlowersCheckDialogContent member={member} flowersByGroup={memberFlowersByMemberId[String(member.id)] || { Đỏ: [], Vàng: [], Tím: [], Lam: [], Lục: [] }} />
+                                    </DialogContent>
+                                  </Dialog>
+                                  {isAdmin ? <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger><DialogContent className="rounded-3xl font-sans" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}><DialogHeader><DialogTitle>Sửa thông tin thành viên</DialogTitle></DialogHeader><EditMemberForm member={member} onSave={(payload) => renameMember(member.id, payload)} /></DialogContent></Dialog> : null}
+                                </div></div></CardHeader><CardContent><div className="flex items-center gap-4"><CircleProgress percent={percent} strokeColor={style.strokeColor} glowClass={style.glowClass} /><div><p className="text-sm text-slate-500">Tiến độ sưu tập</p><p className="text-lg font-semibold">{ownedCount}/{summary.totalFlowers}</p></div></div></CardContent></Card>; })}</div>{filteredFormerMembers.length > 0 ? <div className="space-y-3"><div className="flex items-center gap-2"><Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">Đã rời hội</Badge><span className="text-sm text-slate-500">{filteredFormerMembers.length} người</span></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filteredFormerMembers.map((member) => <Card key={member.id} className="rounded-[24px] border-amber-200/60 bg-amber-50/30"><CardHeader><CardTitle className="text-xl">{member.name}</CardTitle></CardHeader><CardContent><p className="text-sm text-slate-500">{memberFlowerCounts[String(member.id)] || 0} hoa đã sở hữu</p></CardContent></Card>)}</div></div> : null}</CardContent></Card>
           </TabsContent>
 
           <TabsContent value="flowerlookup" className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle>Tra cứu theo hoa</CardTitle></CardHeader><CardContent className="space-y-4"><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={flowerSearch} onChange={(e) => setFlowerSearch(e.target.value)} placeholder="Tìm theo tên hoa..." className="rounded-2xl pl-9" /></div><div className="space-y-3">{filteredFlowers.map((flower) => <div key={flower.id} className="rounded-3xl border p-4"><div className="flex items-start justify-between gap-3"><div className="flex items-start gap-3"><FlowerThumbnail flower={flower} size="sm" /><div><p className="font-semibold">{flower.name}</p><p className="mt-1 text-sm text-slate-500">Nhóm {flower.group}</p></div></div><div className="flex items-center gap-2"><Badge variant="secondary">{ownersByFlower.get(String(flower.id))?.length || 0} người</Badge>{isAdmin ? <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-2xl">Sửa tên</Button></DialogTrigger><DialogContent className="rounded-3xl font-sans" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}><DialogHeader><DialogTitle>Sửa hoa</DialogTitle></DialogHeader><EditFlowerForm flower={flower} onSave={(payload) => renameFlower(flower.id, payload)} /></DialogContent></Dialog> : null}</div></div><div className="mt-3 flex flex-wrap gap-2">{(ownersByFlower.get(String(flower.id)) || []).map((owner) => <Badge key={`${flower.id}-${owner}`} variant="secondary">{owner}</Badge>)}</div></div>)}</div></CardContent></Card></TabsContent>

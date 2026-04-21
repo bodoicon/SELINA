@@ -1155,8 +1155,8 @@ export default function HoaHoiGameCanvasApp() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid h-auto w-full grid-cols-4 rounded-[20px] border border-white/70 bg-white/85 p-1.5 md:flex md:flex-nowrap md:items-stretch md:gap-1.5">
-            {visibleTabs.map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="min-h-[52px] rounded-xl text-xs whitespace-normal data-[state=active]:bg-slate-900 data-[state=active]:text-white md:min-w-0 md:flex-1 md:px-3 md:text-sm">{tab.label}</TabsTrigger>)}
+          <TabsList className="grid h-auto w-full grid-cols-2 items-stretch gap-1.5 rounded-[20px] border border-white/70 bg-white/85 p-1.5 sm:grid-cols-4 md:flex md:flex-nowrap md:items-stretch md:gap-1.5">
+            {visibleTabs.map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="h-auto min-h-[52px] w-full rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-normal break-words data-[state=active]:bg-slate-900 data-[state=active]:text-white md:min-w-0 md:flex-1 md:px-3 md:text-sm">{tab.label}</TabsTrigger>)}
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">

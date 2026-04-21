@@ -1111,7 +1111,7 @@ export default function HoaHoiGameCanvasApp() {
   ];
 
   return (
-    <div className="min-h-screen font-sans antialiased text-slate-900 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),transparent_28%),radial-gradient(circle_at_right,_rgba(168,85,247,0.12),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] p-4 md:p-8">
+    <div className="min-h-screen antialiased text-slate-900 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),transparent_28%),radial-gradient(circle_at_right,_rgba(168,85,247,0.12),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] p-4 md:p-8" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
         <div className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/85 p-4 shadow-[0_20px_70px_-30px_rgba(15,23,42,0.35)] backdrop-blur sm:p-5 md:rounded-[32px] md:p-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500">Selina Flower Dashboard</div>
@@ -1155,9 +1155,46 @@ export default function HoaHoiGameCanvasApp() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid h-auto w-full grid-cols-2 items-stretch gap-1.5 rounded-[20px] border border-white/70 bg-white/85 p-1.5 sm:grid-cols-4 md:flex md:flex-nowrap md:items-stretch md:gap-1.5">
-            {visibleTabs.map((tab) => <TabsTrigger key={tab.value} value={tab.value} className="h-auto min-h-[52px] w-full rounded-xl px-3 py-2 text-center text-xs leading-tight whitespace-normal break-words data-[state=active]:bg-slate-900 data-[state=active]:text-white md:min-w-0 md:flex-1 md:px-3 md:text-sm">{tab.label}</TabsTrigger>)}
-          </TabsList>
+          <div className="grid grid-cols-3 auto-rows-fr gap-2 rounded-[20px] border border-white/70 bg-white/85 p-2 md:hidden">
+            {visibleTabs.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setActiveTab(tab.value)}
+                className={`min-h-[56px] w-full rounded-2xl px-2 py-3 text-center text-[11px] leading-tight break-words transition-all ${activeTab === tab.value ? "bg-slate-900 text-white shadow-md" : "bg-transparent text-slate-600"}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div
+            className="hidden md:flex md:w-full md:items-center md:gap-2 md:rounded-[28px] md:border md:border-slate-200/80 md:bg-white/90 md:p-2 md:shadow-sm"
+            style={{
+              fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            }}
+          >
+            {visibleTabs.map((tab) => {
+              const active = activeTab === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveTab(tab.value)}
+                  className={`flex h-12 min-w-0 flex-1 items-center justify-center rounded-[18px] px-3 text-center text-[13px] font-medium leading-tight transition-all duration-200 ${
+                    active
+                      ? "bg-slate-900 text-white shadow-sm"
+                      : "bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                  style={{
+                    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                  }}
+                >
+                  <span className="line-clamp-2 break-words">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
           <TabsContent value="dashboard" className="space-y-4">
             <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr_1fr]">

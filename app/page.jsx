@@ -1147,7 +1147,7 @@ export default function HoaHoiGameCanvasApp() {
           {lastSyncedAt ? <div className="mt-4 text-xs text-slate-500">Đồng bộ lần cuối: {lastSyncedAt}</div> : null}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <StatCard icon={<Users className="h-5 w-5" />} title="Thành viên" value={summary.totalMembers} />
           <StatCard icon={<Flower2 className="h-5 w-5" />} title="Tổng loại hoa" value={summary.totalFlowers} />
           <StatCard icon={<Database className="h-5 w-5" />} title="Hội đã sở hữu" value={summary.ownedFlowers} />

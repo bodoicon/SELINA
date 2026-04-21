@@ -1484,156 +1484,216 @@ export default function HoaHoiGameCanvasApp() {
           <TabsContent value="history" className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle>Lịch sử cập nhật</CardTitle></CardHeader><CardContent>{!historyLoaded ? <p className="text-sm text-slate-600">Đang tải lịch sử...</p> : historyEntries.length === 0 ? <SectionEmpty>Chưa có lịch sử thao tác.</SectionEmpty> : <div className="space-y-3">{historyEntries.map((log) => <div key={log.id} className="rounded-3xl border p-4"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{log.targetName || "-"}</p>{log.memberTitle?.name ? <Badge variant="outline" className={titleBadgeClass(log.memberTitle.name)}>{log.memberTitle.name}</Badge> : null}{log.summaryText ? <span className="text-sm text-slate-500">• {log.summaryText}</span> : null}</div>{log.flowerItems.length > 0 ? <div className="mt-3 flex flex-wrap gap-2">{log.flowerItems.map((item, index) => <div key={`${log.id}-${item.name}-${index}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2"><FlowerThumbnail flower={item.flower} size="sm" /><span className="text-sm font-medium">{item.name}</span>{item.flower ? <Badge variant="outline" className={groupBadgeClass(item.flower.group)}>{item.flower.group}</Badge> : null}</div>)}</div> : <p className="mt-2 text-sm text-slate-600">{log.details || "-"}</p>}<div className="mt-2 text-xs text-slate-500">{log.createdAt ? new Date(log.createdAt).toLocaleString("vi-VN") : "-"} • {log.actorName || "Hệ thống"}</div></div>)}</div>}</CardContent></Card></TabsContent>
 
           <TabsContent value="spirithunt" className="space-y-4">
-            <div className="grid gap-4 xl:grid-cols-2">
-              <Card className="rounded-[28px]">
-                <CardHeader className="space-y-3">
-                  <div className="flex items-center justify-between gap-3"><CardTitle>Săn hoa linh</CardTitle>{isAdmin ? <Button onClick={saveSpiritHuntSlots} className="rounded-2xl" disabled={savingSpiritHunt}>{savingSpiritHunt ? "Đang lưu..." : "Lưu"}</Button> : null}</div>
-                  {spiritHuntMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{spiritHuntMessage}</div> : null}
-                </CardHeader>
-                <CardContent className="space-y-4">
+            <Card className="rounded-[28px]">
+              <CardHeader className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle>Săn hoa linh</CardTitle>
+                  {isAdmin ? <Button onClick={saveSpiritHuntSlots} className="rounded-2xl" disabled={savingSpiritHunt}>{savingSpiritHunt ? "Đang lưu..." : "Lưu"}</Button> : null}
+                </div>
+                {spiritHuntMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{spiritHuntMessage}</div> : null}
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 xl:grid-cols-2">
                   {spiritHuntSlots.map((slot) => {
                     const selectedMembers = slot.memberIds.map((id) => memberById.get(String(id))).filter(Boolean);
                     const memberSearchValue = spiritHuntMemberSearch[slot.slotKey] || "";
                     const filteredSlotMembers = members.filter((member) => member.name.toLowerCase().includes(memberSearchValue.trim().toLowerCase()));
-                    return <Card key={slot.slotKey} className="rounded-[24px] border shadow-none"><CardHeader className="space-y-3">{isAdmin ? <div className="grid gap-3 sm:grid-cols-2"><div className="space-y-2"><Label>Tên khung</Label><Input value={slot.title} onChange={(e) => updateSpiritHuntSlot(slot.slotKey, () => ({ title: e.target.value }))} className="rounded-2xl" /></div><div className="space-y-2"><Label>Khung giờ</Label><Input value={slot.timeLabel} onChange={(e) => updateSpiritHuntSlot(slot.slotKey, () => ({ timeLabel: e.target.value }))} className="rounded-2xl" /></div></div> : <div><CardTitle className="text-lg">{slot.title}</CardTitle><p className="text-sm text-slate-500">{slot.timeLabel || "Chưa đặt giờ"}</p></div>}</CardHeader><CardContent className="space-y-4">{isAdmin ? <><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={memberSearchValue} onChange={(e) => setSpiritHuntMemberSearch((prev) => ({ ...prev, [slot.slotKey]: e.target.value }))} placeholder="Tìm thành viên..." className="rounded-2xl pl-9" /></div><ScrollArea className="h-[220px] pr-3"><div className="space-y-3">{filteredSlotMembers.map((member) => { const checked = slot.memberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return <label key={`${slot.slotKey}-${member.id}`} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleSpiritHuntMember(slot.slotKey, member.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{member.name}</p></div>{memberTitle?.name ? <Badge variant="outline" className={titleBadgeClass(memberTitle.name)}>{memberTitle.name}</Badge> : null}</div></div></label>; })}</div></ScrollArea><div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-600 space-y-3">
-                                  <div>
-                                    Đã chọn: <span className="font-semibold text-slate-900">{selectedMembers.length}</span> thành viên
-                                  </div>
-                                  <div className="flex flex-wrap gap-2">
-                                    {selectedMembers.length === 0 ? (
-                                      <span className="text-slate-400">Chưa chọn thành viên nào.</span>
-                                    ) : (
-                                      selectedMembers.map((member) => {
-                                        const memberTitle = titleByMemberId.get(String(member.id));
-                                        return (
-                                          <div key={`selected-spirit-${slot.slotKey}-${member.id}`} className="inline-flex max-w-full items-center gap-2 rounded-full border bg-white px-3 py-2 text-sm">
-                                            <span className="break-words">{member.name}</span>
-                                            {memberTitle?.name ? (
-                                              <Badge variant="outline" className={titleBadgeClass(memberTitle.name)}>
-                                                {memberTitle.name}
-                                              </Badge>
-                                            ) : null}
+                    return (
+                      <Card key={slot.slotKey} className="rounded-[22px] border shadow-none">
+                        <CardHeader className="space-y-2 pb-3 text-[75%]">
+                          {isAdmin ? (
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <div className="space-y-1.5">
+                                <Label className="text-[11px]">Tên khung</Label>
+                                <Input value={slot.title} onChange={(e) => updateSpiritHuntSlot(slot.slotKey, () => ({ title: e.target.value }))} className="h-9 rounded-2xl text-[12px]" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-[11px]">Khung giờ</Label>
+                                <Input value={slot.timeLabel} onChange={(e) => updateSpiritHuntSlot(slot.slotKey, () => ({ timeLabel: e.target.value }))} className="h-9 rounded-2xl text-[12px]" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <CardTitle className="text-base">{slot.title}</CardTitle>
+                              <p className="text-[12px] text-slate-500">{slot.timeLabel || "Chưa đặt giờ"}</p>
+                            </div>
+                          )}
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-0 text-[75%]">
+                          {isAdmin ? (
+                            <>
+                              <div className="relative">
+                                <Search className="pointer-events-none absolute left-3 top-3 h-3.5 w-3.5 text-slate-400" />
+                                <Input value={memberSearchValue} onChange={(e) => setSpiritHuntMemberSearch((prev) => ({ ...prev, [slot.slotKey]: e.target.value }))} placeholder="Tìm thành viên..." className="h-9 rounded-2xl pl-9 text-[12px]" />
+                              </div>
+                              <ScrollArea className="h-[170px] pr-2">
+                                <div className="space-y-2.5">
+                                  {filteredSlotMembers.map((member) => {
+                                    const checked = slot.memberIds.includes(String(member.id));
+                                    const memberTitle = titleByMemberId.get(String(member.id));
+                                    return (
+                                      <label key={`${slot.slotKey}-${member.id}`} className="flex cursor-pointer items-start gap-2.5 rounded-2xl border p-3 hover:bg-slate-50">
+                                        <Checkbox checked={checked} onCheckedChange={() => toggleSpiritHuntMember(slot.slotKey, member.id)} />
+                                        <div className="flex-1">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                              <p className="text-[12px] font-medium leading-snug">{member.name}</p>
+                                            </div>
+                                            {memberTitle?.name ? <Badge variant="outline" className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}
                                           </div>
-                                        );
-                                      })
-                                    )}
-                                  </div>
-                                </div></> : <div className="flex flex-wrap gap-2">{selectedMembers.length === 0 ? <SectionEmpty>Chưa có thành viên nào ở khung này.</SectionEmpty> : selectedMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <div key={`${slot.slotKey}-${member.id}`} className="inline-flex items-center gap-2 rounded-full border bg-slate-50 px-3 py-2 text-sm"><span>{member.name}</span>{memberTitle?.name ? <Badge variant="outline" className={titleBadgeClass(memberTitle.name)}>{memberTitle.name}</Badge> : null}</div>; })}</div>}</CardContent></Card>;
-                  })}
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-[28px]">
-                <CardHeader className="space-y-3">
-                  <div className="flex items-center justify-between gap-3"><CardTitle>Ưu tiên đua hội</CardTitle>{isAdmin ? <Button onClick={savePriorityRace} className="rounded-2xl" disabled={savingPriorityRace}>{savingPriorityRace ? "Đang lưu..." : "Lưu"}</Button> : null}</div>
-                  {priorityRaceMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{priorityRaceMessage}</div> : null}
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isAdmin ? <><div className="space-y-2">
-                    <Label>Chọn thành viên ưu tiên</Label>
-                    <Dialog open={priorityRaceMemberPickerOpen} onOpenChange={setPriorityRaceMemberPickerOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start rounded-2xl">
-                          {priorityRaceMember ? priorityRaceMember.name : "Chọn thành viên"}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="rounded-[28px] sm:max-w-lg font-sans" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
-                        <DialogHeader>
-                          <DialogTitle>Chọn thành viên ưu tiên</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-3">
-                          <div className="relative">
-                            <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                            <Input
-                              value={priorityRaceMemberSearch}
-                              onChange={(e) => setPriorityRaceMemberSearch(e.target.value)}
-                              placeholder="Gõ tên thành viên..."
-                              className="rounded-2xl pl-9"
-                            />
-                          </div>
-                          <ScrollArea className="h-[320px] pr-3">
-                            <div className="space-y-2">
-                              {filteredPriorityRaceMembers.map((member) => {
+                                        </div>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </ScrollArea>
+                              <div className="rounded-2xl border bg-slate-50 p-3 text-[12px] text-slate-600 space-y-2.5">
+                                <div>
+                                  Đã chọn: <span className="font-semibold text-slate-900">{selectedMembers.length}</span> thành viên
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedMembers.length === 0 ? (
+                                    <span className="text-slate-400">Chưa chọn thành viên nào.</span>
+                                  ) : (
+                                    selectedMembers.map((member) => {
+                                      const memberTitle = titleByMemberId.get(String(member.id));
+                                      return (
+                                        <div key={`selected-spirit-${slot.slotKey}-${member.id}`} className="inline-flex max-w-full items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[12px]">
+                                          <span className="break-words">{member.name}</span>
+                                          {memberTitle?.name ? <Badge variant="outline" className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {selectedMembers.length === 0 ? <SectionEmpty>Chưa có thành viên nào ở khung này.</SectionEmpty> : selectedMembers.map((member) => {
                                 const memberTitle = titleByMemberId.get(String(member.id));
-                                return (
-                                  <button
-                                    key={member.id}
-                                    type="button"
-                                    onClick={() => {
-                                      setPriorityRaceForm({ memberId: String(member.id), flowerIds: [] });
-                                      setPriorityRaceFlowerSearch("");
-                                      setPriorityRaceSelectedFlowerSearch("");
-                                      setPriorityRaceGroupFilter("all");
-                                      setPriorityRaceMemberPickerOpen(false);
-                                    }}
-                                    className="flex w-full items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 text-left hover:bg-slate-50"
-                                  >
-                                    <span className="break-words font-medium">{member.name}</span>
-                                    {memberTitle?.name ? (
-                                      <Badge variant="outline" className={titleBadgeClass(memberTitle.name)}>
-                                        {memberTitle.name}
-                                      </Badge>
-                                    ) : null}
-                                  </button>
-                                );
+                                return <div key={`${slot.slotKey}-${member.id}`} className="inline-flex items-center gap-2 rounded-full border bg-slate-50 px-3 py-1.5 text-[12px]"><span>{member.name}</span>{memberTitle?.name ? <Badge variant="outline" className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>;
                               })}
                             </div>
-                          </ScrollArea>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>{priorityRaceMember ? <>
-                    <div className="space-y-3">
-                      <Label>Chọn hoa trong bộ sưu tập của {priorityRaceMember.name}</Label>
-                      <div className="grid gap-3 md:grid-cols-[1fr_180px]">
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[28px]">
+              <CardHeader className="space-y-3">
+                <div className="flex items-center justify-between gap-3"><CardTitle>Ưu tiên đua hội</CardTitle>{isAdmin ? <Button onClick={savePriorityRace} className="rounded-2xl" disabled={savingPriorityRace}>{savingPriorityRace ? "Đang lưu..." : "Lưu"}</Button> : null}</div>
+                {priorityRaceMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{priorityRaceMessage}</div> : null}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isAdmin ? <><div className="space-y-2">
+                  <Label>Chọn thành viên ưu tiên</Label>
+                  <Dialog open={priorityRaceMemberPickerOpen} onOpenChange={setPriorityRaceMemberPickerOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start rounded-2xl">
+                        {priorityRaceMember ? priorityRaceMember.name : "Chọn thành viên"}
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="rounded-[28px] sm:max-w-lg font-sans" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+                      <DialogHeader>
+                        <DialogTitle>Chọn thành viên ưu tiên</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-3">
                         <div className="relative">
                           <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                          <Input value={priorityRaceFlowerSearch} onChange={(e) => setPriorityRaceFlowerSearch(e.target.value)} placeholder="Tìm hoa đang sở hữu..." className="rounded-2xl pl-9" />
+                          <Input
+                            value={priorityRaceMemberSearch}
+                            onChange={(e) => setPriorityRaceMemberSearch(e.target.value)}
+                            placeholder="Gõ tên thành viên..."
+                            className="rounded-2xl pl-9"
+                          />
                         </div>
-                        <Select value={priorityRaceGroupFilter} onValueChange={setPriorityRaceGroupFilter}>
-                          <SelectTrigger className="rounded-2xl"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Tất cả nhóm</SelectItem>
-                            {MEMBER_FLOWER_GROUP_ORDER.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <ScrollArea className="h-[220px] pr-3">
-                        <div className="space-y-3">
-                          {filteredPriorityRaceAvailableFlowers.map((flower) => {
-                            const checked = priorityRaceForm.flowerIds.includes(String(flower.id));
-                            return <label key={`priority-race-${flower.id}`} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => togglePriorityRaceFlower(flower.id)} /><FlowerThumbnail flower={flower} size="sm" /><div className="min-w-0 flex-1"><p className="font-medium break-words">{flower.name}</p></div><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></label>;
-                          })}
-                        </div>
-                      </ScrollArea>
-                    </div>
-                    <div className="rounded-3xl border p-4">
-                      <div className="mb-3 flex items-center justify-between">
-                        <Label>Đang chọn</Label>
-                        <Badge variant="secondary">{priorityRaceSelectedFlowers.length} hoa</Badge>
-                      </div>
-                      <div className="relative mb-3">
-                        <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                        <Input value={priorityRaceSelectedFlowerSearch} onChange={(e) => setPriorityRaceSelectedFlowerSearch(e.target.value)} placeholder="Tìm trong hoa đang chọn..." className="rounded-2xl pl-9" />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {filteredPriorityRaceSelectedFlowers.length === 0 ? <SectionEmpty>Chưa có hoa nào đang chọn.</SectionEmpty> : filteredPriorityRaceSelectedFlowers.map((flower) => <div key={`selected-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2 text-sm"><FlowerThumbnail flower={flower} size="sm" /><span>{flower.name}</span><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></div>)}
-                      </div>
-                      {(() => {
-                        const existingEntry = priorityRaceEntries.find((entry) => String(entry.memberId) === String(priorityRaceMember.id));
-                        if (!existingEntry || existingEntry.flowerIds.length === 0) return null;
-                        return (
-                          <div className="mt-3 rounded-2xl border bg-white p-3 text-sm text-slate-600">
-                            Người này hiện đã có <span className="font-semibold text-slate-900">{existingEntry.flowerIds.length}</span> hoa trong danh sách bên dưới. Khi bấm lưu sẽ cộng dồn thêm, không thay thế.
+                        <ScrollArea className="h-[320px] pr-3">
+                          <div className="space-y-2">
+                            {filteredPriorityRaceMembers.map((member) => {
+                              const memberTitle = titleByMemberId.get(String(member.id));
+                              return (
+                                <button
+                                  key={member.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setPriorityRaceForm({ memberId: String(member.id), flowerIds: [] });
+                                    setPriorityRaceFlowerSearch("");
+                                    setPriorityRaceSelectedFlowerSearch("");
+                                    setPriorityRaceGroupFilter("all");
+                                    setPriorityRaceMemberPickerOpen(false);
+                                  }}
+                                  className="flex w-full items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 text-left hover:bg-slate-50"
+                                >
+                                  <span className="break-words font-medium">{member.name}</span>
+                                  {memberTitle?.name ? (
+                                    <Badge variant="outline" className={titleBadgeClass(memberTitle.name)}>
+                                      {memberTitle.name}
+                                    </Badge>
+                                  ) : null}
+                                </button>
+                              );
+                            })}
                           </div>
-                        );
-                      })()}
+                        </ScrollArea>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>{priorityRaceMember ? <>
+                  <div className="space-y-3">
+                    <Label>Chọn hoa trong bộ sưu tập của {priorityRaceMember.name}</Label>
+                    <div className="grid gap-3 md:grid-cols-[1fr_180px]">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input value={priorityRaceFlowerSearch} onChange={(e) => setPriorityRaceFlowerSearch(e.target.value)} placeholder="Tìm hoa đang sở hữu..." className="rounded-2xl pl-9" />
+                      </div>
+                      <Select value={priorityRaceGroupFilter} onValueChange={setPriorityRaceGroupFilter}>
+                        <SelectTrigger className="rounded-2xl"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tất cả nhóm</SelectItem>
+                          {MEMBER_FLOWER_GROUP_ORDER.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </> : <SectionEmpty>Hãy chọn một thành viên để chọn hoa ưu tiên.</SectionEmpty>}</> : null}
-                  <div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between gap-3"><Label className="text-[12px]">Danh sách ưu tiên đua hội đã lưu</Label><div className="relative w-full max-w-xs"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={priorityRaceListSearch} onChange={(e) => setPriorityRaceListSearch(e.target.value)} placeholder="Tìm trong danh sách..." className="h-9 rounded-2xl pl-9 text-[12px]" /></div></div><div className="space-y-3">{filteredPriorityRaceEntries.length === 0 ? <SectionEmpty>Chưa có dòng ưu tiên đua hội nào được lưu.</SectionEmpty> : filteredPriorityRaceEntries.map((entry) => { const memberTitle = entry.member ? titleByMemberId.get(String(entry.member.id)) : null; return <div key={entry.id} className="rounded-2xl border bg-white p-4 space-y-3"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="text-[13px] font-semibold text-slate-900">{entry.member?.name || "Không rõ thành viên"}</span>{memberTitle?.name ? <Badge variant="outline" className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div>{isAdmin ? <div className="flex items-center gap-2"><Badge variant="secondary" className="text-[10px]">{priorityRaceListSearch.trim() ? `${entry.flowersForEntry.length}/${entry.totalFlowersForEntry} hoa` : `${entry.flowersForEntry.length} hoa`}</Badge><Button type="button" variant="outline" size="sm" className="h-7 rounded-xl px-2 text-[10px]" onClick={() => removePriorityRaceEntry(entry.id)} disabled={savingPriorityRace}>Xoá</Button></div> : null}</div><div className="flex flex-wrap gap-2">{entry.flowersForEntry.map((flower) => <div key={`${entry.id}-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-2.5 py-1.5 text-[12px]"><FlowerThumbnail flower={flower} size="sm" /><span className="text-[12px]">{flower.name}</span><Badge variant="outline" className={`${groupBadgeClass(flower.group)} text-[10px]`}>{flower.group}</Badge>{isAdmin ? <Button type="button" variant="outline" size="sm" className="h-6 rounded-full px-2 text-[10px]" onClick={() => removePriorityRaceFlowerFromEntry(entry.id, flower.id)} disabled={savingPriorityRace}>Gỡ</Button> : null}</div>)}</div></div>; })}</div></div>
-                </CardContent>
-              </Card>
-            </div>
+                    <ScrollArea className="h-[220px] pr-3">
+                      <div className="space-y-3">
+                        {filteredPriorityRaceAvailableFlowers.map((flower) => {
+                          const checked = priorityRaceForm.flowerIds.includes(String(flower.id));
+                          return <label key={`priority-race-${flower.id}`} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => togglePriorityRaceFlower(flower.id)} /><FlowerThumbnail flower={flower} size="sm" /><div className="min-w-0 flex-1"><p className="font-medium break-words">{flower.name}</p></div><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></label>;
+                        })}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                  <div className="rounded-3xl border p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <Label>Đang chọn</Label>
+                      <Badge variant="secondary">{priorityRaceSelectedFlowers.length} hoa</Badge>
+                    </div>
+                    <div className="relative mb-3">
+                      <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                      <Input value={priorityRaceSelectedFlowerSearch} onChange={(e) => setPriorityRaceSelectedFlowerSearch(e.target.value)} placeholder="Tìm trong hoa đang chọn..." className="rounded-2xl pl-9" />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {filteredPriorityRaceSelectedFlowers.length === 0 ? <SectionEmpty>Chưa có hoa nào đang chọn.</SectionEmpty> : filteredPriorityRaceSelectedFlowers.map((flower) => <div key={`selected-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2 text-sm"><FlowerThumbnail flower={flower} size="sm" /><span>{flower.name}</span><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></div>)}
+                    </div>
+                    {(() => {
+                      const existingEntry = priorityRaceEntries.find((entry) => String(entry.memberId) === String(priorityRaceMember.id));
+                      if (!existingEntry || existingEntry.flowerIds.length === 0) return null;
+                      return (
+                        <div className="mt-3 rounded-2xl border bg-white p-3 text-sm text-slate-600">
+                          Người này hiện đã có <span className="font-semibold text-slate-900">{existingEntry.flowerIds.length}</span> hoa trong danh sách bên dưới. Khi bấm lưu sẽ cộng dồn thêm, không thay thế.
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </> : <SectionEmpty>Hãy chọn một thành viên để chọn hoa ưu tiên.</SectionEmpty>}</> : null}
+                <div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between gap-3"><Label className="text-[12px]">Danh sách ưu tiên đua hội đã lưu</Label><div className="relative w-full max-w-xs"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={priorityRaceListSearch} onChange={(e) => setPriorityRaceListSearch(e.target.value)} placeholder="Tìm trong danh sách..." className="h-9 rounded-2xl pl-9 text-[12px]" /></div></div><div className="space-y-3">{filteredPriorityRaceEntries.length === 0 ? <SectionEmpty>Chưa có dòng ưu tiên đua hội nào được lưu.</SectionEmpty> : filteredPriorityRaceEntries.map((entry) => { const memberTitle = entry.member ? titleByMemberId.get(String(entry.member.id)) : null; return <div key={entry.id} className="rounded-2xl border bg-white p-4 space-y-3"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="text-[13px] font-semibold text-slate-900">{entry.member?.name || "Không rõ thành viên"}</span>{memberTitle?.name ? <Badge variant="outline" className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div>{isAdmin ? <div className="flex items-center gap-2"><Badge variant="secondary" className="text-[10px]">{priorityRaceListSearch.trim() ? `${entry.flowersForEntry.length}/${entry.totalFlowersForEntry} hoa` : `${entry.flowersForEntry.length} hoa`}</Badge><Button type="button" variant="outline" size="sm" className="h-7 rounded-xl px-2 text-[10px]" onClick={() => removePriorityRaceEntry(entry.id)} disabled={savingPriorityRace}>Xoá</Button></div> : null}</div><div className="flex flex-wrap gap-2">{entry.flowersForEntry.map((flower) => <div key={`${entry.id}-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-2.5 py-1.5 text-[12px]"><FlowerThumbnail flower={flower} size="sm" /><span className="text-[12px]">{flower.name}</span><Badge variant="outline" className={`${groupBadgeClass(flower.group)} text-[10px]`}>{flower.group}</Badge>{isAdmin ? <Button type="button" variant="outline" size="sm" className="h-6 rounded-full px-2 text-[10px]" onClick={() => removePriorityRaceFlowerFromEntry(entry.id, flower.id)} disabled={savingPriorityRace}>Gỡ</Button> : null}</div>)}</div></div>; })}</div></div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

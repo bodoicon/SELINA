@@ -493,6 +493,7 @@ export default function HoaHoiGameCanvasApp() {
   const [priorityRaceMessage, setPriorityRaceMessage] = useState("");
   const [savingPriorityRace, setSavingPriorityRace] = useState(false);
   const [priorityRaceFlowerSearch, setPriorityRaceFlowerSearch] = useState("");
+  const [priorityRaceGroupFilter, setPriorityRaceGroupFilter] = useState("all");
   const [priorityRaceSelectedFlowerSearch, setPriorityRaceSelectedFlowerSearch] = useState("");
   const [priorityRaceListSearch, setPriorityRaceListSearch] = useState("");
   const [priorityRaceMemberPickerOpen, setPriorityRaceMemberPickerOpen] = useState(false);
@@ -910,12 +911,26 @@ export default function HoaHoiGameCanvasApp() {
   const priorityRaceAvailableFlowers = useMemo(() => {
     if (!priorityRaceMember) return [];
     const owned = new Set(ownerships.filter((row) => String(row.memberId) === String(priorityRaceMember.id)).map((row) => String(row.flowerId)));
-    return flowers.filter((flower) => owned.has(String(flower.id))).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    const groupOrder = MEMBER_FLOWER_GROUP_ORDER.reduce((acc, group, index) => {
+      acc[group] = index;
+      return acc;
+    }, {});
+    return flowers
+      .filter((flower) => owned.has(String(flower.id)))
+      .sort((a, b) => {
+        const byGroup = (groupOrder[a.group] ?? 99) - (groupOrder[b.group] ?? 99);
+        if (byGroup !== 0) return byGroup;
+        return a.name.localeCompare(b.name, "vi");
+      });
   }, [priorityRaceMember, ownerships, flowers]);
   const filteredPriorityRaceAvailableFlowers = useMemo(() => {
     const q = normalizeFlowerLookupText(priorityRaceFlowerSearch);
-    return priorityRaceAvailableFlowers.filter((flower) => !q || normalizeFlowerLookupText(flower.name).includes(q));
-  }, [priorityRaceAvailableFlowers, priorityRaceFlowerSearch]);
+    return priorityRaceAvailableFlowers.filter((flower) => {
+      const matchSearch = !q || normalizeFlowerLookupText(flower.name).includes(q);
+      const matchGroup = priorityRaceGroupFilter === "all" || flower.group === priorityRaceGroupFilter;
+      return matchSearch && matchGroup;
+    });
+  }, [priorityRaceAvailableFlowers, priorityRaceFlowerSearch, priorityRaceGroupFilter]);
   const priorityRaceSelectedFlowers = useMemo(() => {
     const selectedIds = new Set(priorityRaceForm.flowerIds.map(String));
     return flowers.filter((flower) => selectedIds.has(String(flower.id))).sort((a, b) => a.name.localeCompare(b.name, "vi"));
@@ -929,12 +944,18 @@ export default function HoaHoiGameCanvasApp() {
     return priorityRaceEntries
       .map((entry) => {
         const member = memberById.get(String(entry.memberId)) || null;
-        const flowersForEntry = entry.flowerIds.map((id) => flowerById.get(String(id))).filter(Boolean);
-        const lineText = `${member?.name || "Không rõ thành viên"} ưu tiên ${flowersForEntry.map((flower) => flower.name).join(", ")}`;
-        const flowerSearchText = normalizeFlowerLookupText(flowersForEntry.map((flower) => flower.name).join(" "));
-        return { ...entry, member, flowersForEntry, lineText, searchText: flowerSearchText };
+        const allFlowersForEntry = entry.flowerIds.map((id) => flowerById.get(String(id))).filter(Boolean);
+        const matchedFlowersForEntry = q
+          ? allFlowersForEntry.filter((flower) => normalizeFlowerLookupText(flower.name).includes(q))
+          : allFlowersForEntry;
+        return {
+          ...entry,
+          member,
+          flowersForEntry: matchedFlowersForEntry,
+          totalFlowersForEntry: allFlowersForEntry.length,
+        };
       })
-      .filter((entry) => !q || entry.searchText.includes(q));
+      .filter((entry) => entry.flowersForEntry.length > 0);
   }, [priorityRaceEntries, priorityRaceListSearch, memberById, flowerById]);
 
   const filteredPriorityRaceMembers = useMemo(() => {
@@ -1216,6 +1237,7 @@ export default function HoaHoiGameCanvasApp() {
     setPriorityRaceForm(DEFAULT_PRIORITY_RACE_FORM);
     setPriorityRaceFlowerSearch("");
     setPriorityRaceSelectedFlowerSearch("");
+    setPriorityRaceGroupFilter("all");
     setPriorityRaceMemberSearch("");
     setPriorityRaceMessage(`Đã cộng thêm hoa ưu tiên cho ${savedMember?.name || "Không rõ thành viên"}.`);
   }
@@ -1504,6 +1526,7 @@ export default function HoaHoiGameCanvasApp() {
                                       setPriorityRaceForm({ memberId: String(member.id), flowerIds: [] });
                                       setPriorityRaceFlowerSearch("");
                                       setPriorityRaceSelectedFlowerSearch("");
+                                      setPriorityRaceGroupFilter("all");
                                       setPriorityRaceMemberPickerOpen(false);
                                     }}
                                     className="flex w-full items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 text-left hover:bg-slate-50"
@@ -1522,8 +1545,44 @@ export default function HoaHoiGameCanvasApp() {
                         </div>
                       </DialogContent>
                     </Dialog>
-                  </div>{priorityRaceMember ? <><div className="space-y-3"><Label>Chọn hoa trong bộ sưu tập của {priorityRaceMember.name}</Label><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={priorityRaceFlowerSearch} onChange={(e) => setPriorityRaceFlowerSearch(e.target.value)} placeholder="Tìm hoa đang sở hữu..." className="rounded-2xl pl-9" /></div><ScrollArea className="h-[220px] pr-3"><div className="space-y-3">{filteredPriorityRaceAvailableFlowers.map((flower) => { const checked = priorityRaceForm.flowerIds.includes(String(flower.id)); return <label key={`priority-race-${flower.id}`} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => togglePriorityRaceFlower(flower.id)} /><FlowerThumbnail flower={flower} size="sm" /><div className="min-w-0 flex-1"><p className="font-medium break-words">{flower.name}</p></div><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></label>; })}</div></ScrollArea></div><div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between"><Label>Đang chọn</Label><Badge variant="secondary">{priorityRaceSelectedFlowers.length} hoa</Badge></div><div className="relative mb-3"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={priorityRaceSelectedFlowerSearch} onChange={(e) => setPriorityRaceSelectedFlowerSearch(e.target.value)} placeholder="Tìm trong hoa đang chọn..." className="rounded-2xl pl-9" /></div><div className="flex flex-wrap gap-2">{filteredPriorityRaceSelectedFlowers.length === 0 ? <SectionEmpty>Chưa có hoa nào đang chọn.</SectionEmpty> : filteredPriorityRaceSelectedFlowers.map((flower) => <div key={`selected-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2 text-sm"><FlowerThumbnail flower={flower} size="sm" /><span>{flower.name}</span><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></div>)}</div>
-                      {priorityRaceMember && (() => {
+                  </div>{priorityRaceMember ? <>
+                    <div className="space-y-3">
+                      <Label>Chọn hoa trong bộ sưu tập của {priorityRaceMember.name}</Label>
+                      <div className="grid gap-3 md:grid-cols-[1fr_180px]">
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                          <Input value={priorityRaceFlowerSearch} onChange={(e) => setPriorityRaceFlowerSearch(e.target.value)} placeholder="Tìm hoa đang sở hữu..." className="rounded-2xl pl-9" />
+                        </div>
+                        <Select value={priorityRaceGroupFilter} onValueChange={setPriorityRaceGroupFilter}>
+                          <SelectTrigger className="rounded-2xl"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Tất cả nhóm</SelectItem>
+                            {MEMBER_FLOWER_GROUP_ORDER.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <ScrollArea className="h-[220px] pr-3">
+                        <div className="space-y-3">
+                          {filteredPriorityRaceAvailableFlowers.map((flower) => {
+                            const checked = priorityRaceForm.flowerIds.includes(String(flower.id));
+                            return <label key={`priority-race-${flower.id}`} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => togglePriorityRaceFlower(flower.id)} /><FlowerThumbnail flower={flower} size="sm" /><div className="min-w-0 flex-1"><p className="font-medium break-words">{flower.name}</p></div><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></label>;
+                          })}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                    <div className="rounded-3xl border p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <Label>Đang chọn</Label>
+                        <Badge variant="secondary">{priorityRaceSelectedFlowers.length} hoa</Badge>
+                      </div>
+                      <div className="relative mb-3">
+                        <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input value={priorityRaceSelectedFlowerSearch} onChange={(e) => setPriorityRaceSelectedFlowerSearch(e.target.value)} placeholder="Tìm trong hoa đang chọn..." className="rounded-2xl pl-9" />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {filteredPriorityRaceSelectedFlowers.length === 0 ? <SectionEmpty>Chưa có hoa nào đang chọn.</SectionEmpty> : filteredPriorityRaceSelectedFlowers.map((flower) => <div key={`selected-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2 text-sm"><FlowerThumbnail flower={flower} size="sm" /><span>{flower.name}</span><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge></div>)}
+                      </div>
+                      {(() => {
                         const existingEntry = priorityRaceEntries.find((entry) => String(entry.memberId) === String(priorityRaceMember.id));
                         if (!existingEntry || existingEntry.flowerIds.length === 0) return null;
                         return (
@@ -1531,8 +1590,10 @@ export default function HoaHoiGameCanvasApp() {
                             Người này hiện đã có <span className="font-semibold text-slate-900">{existingEntry.flowerIds.length}</span> hoa trong danh sách bên dưới. Khi bấm lưu sẽ cộng dồn thêm, không thay thế.
                           </div>
                         );
-                      })()}</div></> : <SectionEmpty>Hãy chọn một thành viên để chọn hoa ưu tiên.</SectionEmpty>}</> : null}
-                  <div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between gap-3"><Label>Danh sách ưu tiên đua hội đã lưu</Label><div className="relative w-full max-w-xs"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={priorityRaceListSearch} onChange={(e) => setPriorityRaceListSearch(e.target.value)} placeholder="Tìm trong danh sách..." className="rounded-2xl pl-9" /></div></div><div className="space-y-3">{filteredPriorityRaceEntries.length === 0 ? <SectionEmpty>Chưa có dòng ưu tiên đua hội nào được lưu.</SectionEmpty> : filteredPriorityRaceEntries.map((entry) => { const memberTitle = entry.member ? titleByMemberId.get(String(entry.member.id)) : null; return <div key={entry.id} className="rounded-2xl border bg-white p-4 space-y-3"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-slate-900">{entry.member?.name || "Không rõ thành viên"}</span>{memberTitle?.name ? <Badge variant="outline" className={titleBadgeClass(memberTitle.name)}>{memberTitle.name}</Badge> : null}</div></div>{isAdmin ? <div className="flex items-center gap-2"><Badge variant="secondary">{entry.flowersForEntry.length} hoa</Badge><Button type="button" variant="outline" size="sm" className="rounded-2xl" onClick={() => removePriorityRaceEntry(entry.id)} disabled={savingPriorityRace}>Xoá</Button></div> : null}</div><div className="flex flex-wrap gap-2">{entry.flowersForEntry.map((flower) => <div key={`${entry.id}-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2 text-sm"><FlowerThumbnail flower={flower} size="sm" /><span>{flower.name}</span><Badge variant="outline" className={groupBadgeClass(flower.group)}>{flower.group}</Badge>{isAdmin ? <Button type="button" variant="outline" size="sm" className="h-7 rounded-full px-2 text-xs" onClick={() => removePriorityRaceFlowerFromEntry(entry.id, flower.id)} disabled={savingPriorityRace}>Gỡ</Button> : null}</div>)}</div></div>; })}</div></div>
+                      })()}
+                    </div>
+                  </> : <SectionEmpty>Hãy chọn một thành viên để chọn hoa ưu tiên.</SectionEmpty>}</> : null}
+                  <div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between gap-3"><Label className="text-[12px]">Danh sách ưu tiên đua hội đã lưu</Label><div className="relative w-full max-w-xs"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={priorityRaceListSearch} onChange={(e) => setPriorityRaceListSearch(e.target.value)} placeholder="Tìm trong danh sách..." className="h-9 rounded-2xl pl-9 text-[12px]" /></div></div><div className="space-y-3">{filteredPriorityRaceEntries.length === 0 ? <SectionEmpty>Chưa có dòng ưu tiên đua hội nào được lưu.</SectionEmpty> : filteredPriorityRaceEntries.map((entry) => { const memberTitle = entry.member ? titleByMemberId.get(String(entry.member.id)) : null; return <div key={entry.id} className="rounded-2xl border bg-white p-4 space-y-3"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="text-[13px] font-semibold text-slate-900">{entry.member?.name || "Không rõ thành viên"}</span>{memberTitle?.name ? <Badge variant="outline" className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div>{isAdmin ? <div className="flex items-center gap-2"><Badge variant="secondary" className="text-[10px]">{priorityRaceListSearch.trim() ? `${entry.flowersForEntry.length}/${entry.totalFlowersForEntry} hoa` : `${entry.flowersForEntry.length} hoa`}</Badge><Button type="button" variant="outline" size="sm" className="h-7 rounded-xl px-2 text-[10px]" onClick={() => removePriorityRaceEntry(entry.id)} disabled={savingPriorityRace}>Xoá</Button></div> : null}</div><div className="flex flex-wrap gap-2">{entry.flowersForEntry.map((flower) => <div key={`${entry.id}-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-2.5 py-1.5 text-[12px]"><FlowerThumbnail flower={flower} size="sm" /><span className="text-[12px]">{flower.name}</span><Badge variant="outline" className={`${groupBadgeClass(flower.group)} text-[10px]`}>{flower.group}</Badge>{isAdmin ? <Button type="button" variant="outline" size="sm" className="h-6 rounded-full px-2 text-[10px]" onClick={() => removePriorityRaceFlowerFromEntry(entry.id, flower.id)} disabled={savingPriorityRace}>Gỡ</Button> : null}</div>)}</div></div>; })}</div></div>
                 </CardContent>
               </Card>
             </div>

@@ -190,7 +190,7 @@ async function fetchAllOwnershipRows() {
 }
 
 function shouldLoadTitlesForTab(tab, isAdmin) {
-  return isAdmin || tab === "members" || tab === "history" || tab === "titlemanagement" || tab === "spirithunt";
+  return isAdmin || tab === "dashboard" || tab === "members" || tab === "history" || tab === "titlemanagement" || tab === "spirithunt";
 }
 
 function shouldLoadHistoryForTab(tab) {
@@ -798,14 +798,18 @@ export default function HoaHoiGameCanvasApp() {
 
   const summary = useMemo(() => {
     const ownedFlowerIds = new Set(activeOwnerships.map((x) => String(x.flowerId)));
+    const totalMembers = activeMembers.filter((member) => {
+      const memberTitle = titleByMemberId.get(String(member.id));
+      return String(memberTitle?.name || "").trim().toLowerCase() !== "clone";
+    }).length;
     return {
-      totalMembers: activeMembers.length,
+      totalMembers,
       totalFlowers: flowers.length,
       ownedFlowers: ownedFlowerIds.size,
       missingFlowers: flowers.length - ownedFlowerIds.size,
       completionRate: flowers.length ? Math.round((ownedFlowerIds.size / flowers.length) * 100) : 0,
     };
-  }, [activeMembers, flowers, activeOwnerships]);
+  }, [activeMembers, flowers, activeOwnerships, titleByMemberId]);
 
   const topMembers = useMemo(() => [...activeMembers].map((m) => ({ ...m, ownedCount: activeMemberFlowerCounts[String(m.id)] || 0 })).sort((a, b) => b.ownedCount - a.ownedCount).slice(0, 3), [activeMembers, activeMemberFlowerCounts]);
 
@@ -1787,7 +1791,7 @@ export default function HoaHoiGameCanvasApp() {
           </TabsContent>
 
           <TabsContent value="members" className="space-y-4">
-            <Card className="rounded-[28px]"><CardHeader><CardTitle>Thành viên</CardTitle></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 lg:grid-cols-[1fr_220px_220px] lg:items-end"><div className="hidden lg:block" /><div className="space-y-1"><Label>Sắp xếp theo</Label><Select value={memberSortField} onValueChange={(value) => {
+            <Card className="rounded-[28px]"><CardHeader><CardTitle>Thành viên</CardTitle><p className="mt-1 text-sm text-slate-500">Số lượng thành viên: {summary.totalMembers} • Số lượng account: {activeMembers.length}</p></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 lg:grid-cols-[1fr_220px_220px] lg:items-end"><div className="hidden lg:block" /><div className="space-y-1"><Label>Sắp xếp theo</Label><Select value={memberSortField} onValueChange={(value) => {
                 setMemberSortField(value);
                 if (value === "name") setMemberSortDirection("asc");
                 if (value === "flowers") setMemberSortDirection("desc");

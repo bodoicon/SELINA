@@ -534,7 +534,7 @@ export default function HoaHoiGameCanvasApp() {
   const [artFlowerSearchByType, setArtFlowerSearchByType] = useState({ mainFlowerIds: "", secondaryFlowerIds: "", accentFlowerIds: "" });
   const [artLookupMemberPickerOpen, setArtLookupMemberPickerOpen] = useState(false);
   const [artLookupMemberSearch, setArtLookupMemberSearch] = useState("");
-  const [artLookupMemberId, setArtLookupMemberId] = useState("none");
+  const [artLookupMemberId, setArtLookupMemberId] = useState("guild");
   const [artDashboardGroupFilter, setArtDashboardGroupFilter] = useState("all");
   const [artRareFlowerGroupFilter, setArtRareFlowerGroupFilter] = useState("all");
   const [uploadingArtVaseIcon, setUploadingArtVaseIcon] = useState(false);
@@ -546,6 +546,7 @@ export default function HoaHoiGameCanvasApp() {
   const isAdmin = useMemo(() => ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail), [userEmail]);
   const isManager = useMemo(() => MANAGER_EMAILS.map((x) => x.toLowerCase()).includes(userEmail), [userEmail]);
   const adminButtonLabel = useMemo(() => (isManager ? "Manager" : isAdmin ? "Admin" : "Đăng nhập"), [isAdmin, isManager]);
+  const canManageArt = useMemo(() => isAdmin || isManager, [isAdmin, isManager]);
 
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { isAdminRef.current = isAdmin; }, [isAdmin]);
@@ -1052,6 +1053,12 @@ export default function HoaHoiGameCanvasApp() {
 
   const filteredArtLookupMembers = useMemo(() => lookupVisibleMembers.filter((member) => !artLookupMemberSearch.trim() || member.name.toLowerCase().includes(artLookupMemberSearch.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name, "vi")), [lookupVisibleMembers, artLookupMemberSearch]);
   const selectedArtLookupMember = useMemo(() => lookupVisibleMembers.find((member) => String(member.id) === String(artLookupMemberId)) || null, [lookupVisibleMembers, artLookupMemberId]);
+  const isGuildArtLookup = artLookupMemberId === "guild";
+  const scopedArtOwnerships = useMemo(() => {
+    if (isGuildArtLookup) return activeOwnerships;
+    if (!selectedArtLookupMember) return [];
+    return ownerships.filter((row) => String(row.memberId) === String(selectedArtLookupMember.id));
+  }, [isGuildArtLookup, activeOwnerships, ownerships, selectedArtLookupMember]);
 
   const filteredArtFlowersByType = useMemo(() => {
     const build = (key) => {
@@ -1074,10 +1081,10 @@ export default function HoaHoiGameCanvasApp() {
   }, [artVases]);
 
   const artVaseStats = useMemo(() => {
-    const activeOwnedFlowerIds = new Set(activeOwnerships.map((row) => String(row.flowerId)));
+    const scopedOwnedFlowerIds = new Set(scopedArtOwnerships.map((row) => String(row.flowerId)));
     const ownedFlowerIdsByMember = new Map();
 
-    activeOwnerships.forEach((row) => {
+    scopedArtOwnerships.forEach((row) => {
       const memberId = String(row.memberId);
       const set = ownedFlowerIdsByMember.get(memberId) || new Set();
       set.add(String(row.flowerId));
@@ -1094,14 +1101,11 @@ export default function HoaHoiGameCanvasApp() {
         : 0;
 
       const ownedComboKeys = new Set();
-
       ownedFlowerIdsByMember.forEach((memberOwnedIds) => {
         const ownedMainIds = mainIds.filter((id) => memberOwnedIds.has(id));
         const ownedSecondaryIds = secondaryIds.filter((id) => memberOwnedIds.has(id));
         const ownedAccentIds = accentIds.filter((id) => memberOwnedIds.has(id));
-
         if (!ownedMainIds.length || !ownedSecondaryIds.length || !ownedAccentIds.length) return;
-
         ownedMainIds.forEach((mainId) => {
           ownedSecondaryIds.forEach((secondaryId) => {
             ownedAccentIds.forEach((accentId) => {
@@ -1112,24 +1116,13 @@ export default function HoaHoiGameCanvasApp() {
       });
 
       const ownedCombos = ownedComboKeys.size;
-
-      const uniqueFlowerIds = Array.from(new Set([
-        ...mainIds,
-        ...secondaryIds,
-        ...accentIds,
-      ]));
-      const ownedFlowerCount = uniqueFlowerIds.filter((id) => activeOwnedFlowerIds.has(String(id))).length;
+      const uniqueFlowerIds = Array.from(new Set([...mainIds, ...secondaryIds, ...accentIds]));
+      const ownedFlowerCount = uniqueFlowerIds.filter((id) => scopedOwnedFlowerIds.has(String(id))).length;
       const totalFlowerCount = uniqueFlowerIds.length;
 
-      return {
-        ...vase,
-        totalCombos,
-        ownedCombos,
-        ownedFlowerCount,
-        totalFlowerCount,
-      };
+      return { ...vase, totalCombos, ownedCombos, ownedFlowerCount, totalFlowerCount };
     });
-  }, [artVases, activeOwnerships]);
+  }, [artVases, scopedArtOwnerships]);
 
   const filteredArtVaseStats = useMemo(() => {
     const groupOrder = MEMBER_FLOWER_GROUP_ORDER.reduce((acc, group, index) => {
@@ -1182,12 +1175,11 @@ export default function HoaHoiGameCanvasApp() {
   }, [artUsedFlowerIds, flowerById, activeOwnersByFlower, artVases, artDashboardGroupFilter, artRareFlowerGroupFilter]);
 
   const artLookupSuggestions = useMemo(() => {
-    if (!selectedArtLookupMember) return [];
-    const ownedIds = new Set(ownerships.filter((row) => String(row.memberId) === String(selectedArtLookupMember.id)).map((row) => String(row.flowerId)));
     const groupOrder = MEMBER_FLOWER_GROUP_ORDER.reduce((acc, group, index) => {
       acc[group] = index;
       return acc;
     }, {});
+    const ownedIds = new Set(scopedArtOwnerships.map((row) => String(row.flowerId)));
     const map = new Map();
     artVases.forEach((vase) => {
       [...vase.mainFlowerIds, ...vase.secondaryFlowerIds, ...vase.accentFlowerIds].forEach((flowerId) => {
@@ -1205,7 +1197,7 @@ export default function HoaHoiGameCanvasApp() {
       if (byGroup !== 0) return byGroup;
       return a.flower.name.localeCompare(b.flower.name, "vi");
     });
-  }, [selectedArtLookupMember, ownerships, artVases, flowerById]);
+  }, [scopedArtOwnerships, artVases, flowerById]);
 
   async function signInAsAdmin() {
     setLoginMessage("");
@@ -1241,7 +1233,37 @@ export default function HoaHoiGameCanvasApp() {
   }
 
   async function logAction({ actionType, actorName = "Hệ thống", targetType, targetName, details = "" }) {
-    await supabase.from("action_logs").insert([{ action_type: actionType, actor_name: actorName, target_type: targetType, target_name: targetName, details }]);
+    const payload = {
+      action_type: actionType,
+      actor_name: actorName,
+      target_type: targetType,
+      target_name: targetName,
+      details,
+    };
+
+    const { data, error } = await supabase
+      .from("action_logs")
+      .insert([payload])
+      .select("id, action_type, actor_name, target_type, target_name, details, created_at")
+      .single();
+
+    if (error) return;
+
+    const nextLog = {
+      id: String(data.id),
+      actionType: data.action_type || "",
+      actorName: data.actor_name || "Hệ thống",
+      targetType: data.target_type || "",
+      targetName: data.target_name || "",
+      details: data.details || "",
+      createdAt: data.created_at || new Date().toISOString(),
+    };
+
+    setHistoryLogs((prev) => {
+      const merged = [nextLog, ...prev.filter((item) => String(item.id) !== String(nextLog.id))];
+      return merged.slice(0, 50);
+    });
+    setHistoryLoaded(true);
   }
 
   async function addFlowerToDatabase() {
@@ -1563,7 +1585,7 @@ export default function HoaHoiGameCanvasApp() {
   }
 
   async function uploadArtVaseIcon(file) {
-    if (!isAdmin || !file) return;
+    if (!canManageArt || !file) return;
     setUploadingArtVaseIcon(true);
     setArtVaseMessage("");
     try {
@@ -1594,7 +1616,7 @@ export default function HoaHoiGameCanvasApp() {
   }
 
   async function saveArtVase() {
-    if (!isAdmin) return;
+    if (!canManageArt) return;
     const name = String(artVaseForm.name || "").trim();
     if (!name) return setArtVaseMessage("Vui lòng nhập tên bình hoa.");
     setSavingArtVase(true);
@@ -1626,7 +1648,7 @@ export default function HoaHoiGameCanvasApp() {
   }
 
   async function deleteArtVase() {
-    if (!isAdmin || selectedArtVaseId === "new") return;
+    if (!canManageArt || selectedArtVaseId === "new") return;
     setSavingArtVase(true);
     const currentVase = artVases.find((item) => String(item.id) === String(selectedArtVaseId));
     const { error } = await supabase.from("art_vases").delete().eq("id", selectedArtVaseId);
@@ -1650,7 +1672,8 @@ export default function HoaHoiGameCanvasApp() {
     { value: "members", label: "Thành viên" },
     { value: "flowerlookup", label: "Tra cứu theo hoa" },
     { value: "memberflowerlookup", label: "Tra cứu theo thành viên" },
-    ...(isAdmin ? [{ value: "update", label: "Cập nhật sở hữu" }, { value: "addflower", label: "Hoa nghệ thuật" }, { value: "titlemanagement", label: "Quản lý chức danh" }] : []),
+    ...(isAdmin ? [{ value: "update", label: "Cập nhật sở hữu" }, { value: "titlemanagement", label: "Quản lý chức danh" }] : []),
+    { value: "addflower", label: "Hoa nghệ thuật" },
     { value: "history", label: "Lịch sử" },
     { value: "spirithunt", label: "Hoa linh/Đấu hội" },
   ];
@@ -2010,7 +2033,7 @@ export default function HoaHoiGameCanvasApp() {
             </TabsContent>
           ) : null}
 
-          {isAdmin ? (
+          {(
             <TabsContent value="addflower" className="space-y-4">
               <Card className="rounded-[28px]">
                 <CardHeader>
@@ -2043,7 +2066,7 @@ export default function HoaHoiGameCanvasApp() {
                         <div className="flex items-center gap-4 rounded-3xl border p-4">
                           <CircleProgress percent={artSummary.percent} />
                           <div>
-                            <p className="text-sm text-slate-500">Số lượng tổ hợp hoa nghệ thuật hội đã sở hữu, tính việc sở hữu 1 tổ hợp hoa hoàn chỉnh của mỗi một thành viên trong hội</p>
+                            <p className="text-sm text-slate-500">{isGuildArtLookup ? "Số lượng tổ hợp hoa nghệ thuật hội đã sở hữu, tính việc sở hữu 1 tổ hợp hoa hoàn chỉnh của mỗi một thành viên trong hội" : `Số lượng tổ hợp hoa nghệ thuật ${selectedArtLookupMember?.name || "thành viên"} đã sở hữu`}</p>
                             <p className="text-2xl font-bold">{artSummary.ownedCombos}/{artSummary.totalCombos}</p>
                           </div>
                         </div>
@@ -2090,7 +2113,7 @@ export default function HoaHoiGameCanvasApp() {
                         <Dialog open={artLookupMemberPickerOpen} onOpenChange={setArtLookupMemberPickerOpen}>
                           <DialogTrigger asChild>
                             <Button variant="outline" className="w-full justify-start rounded-2xl">
-                              {selectedArtLookupMember ? selectedArtLookupMember.name : "Chọn thành viên"}
+                              {isGuildArtLookup ? "Cả Hội" : selectedArtLookupMember ? selectedArtLookupMember.name : "Chọn thành viên"}
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="rounded-[28px] sm:max-w-lg font-sans" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
@@ -2104,6 +2127,16 @@ export default function HoaHoiGameCanvasApp() {
                               </div>
                               <ScrollArea className="h-[320px] pr-3">
                                 <div className="space-y-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setArtLookupMemberId("guild");
+                                      setArtLookupMemberPickerOpen(false);
+                                    }}
+                                    className={`w-full rounded-2xl border px-4 py-3 text-left hover:bg-slate-50 ${isGuildArtLookup ? "bg-slate-50 border-slate-300" : "bg-white"}`}
+                                  >
+                                    Cả Hội
+                                  </button>
                                   {filteredArtLookupMembers.map((member) => (
                                     <button
                                       key={member.id}
@@ -2125,8 +2158,8 @@ export default function HoaHoiGameCanvasApp() {
 
                         <ScrollArea className="h-[420px] pr-3">
                           <div className="space-y-3">
-                            {!selectedArtLookupMember ? (
-                              <SectionEmpty>Hãy chọn thành viên để xem các hoa cắm bình còn thiếu.</SectionEmpty>
+                            {artLookupMemberId === "none" ? (
+                              <SectionEmpty>Hãy chọn Cả Hội hoặc một thành viên để xem các hoa cắm bình chưa sở hữu.</SectionEmpty>
                             ) : artLookupSuggestions.length === 0 ? (
                               <SectionEmpty>Thành viên này hiện không thiếu hoa nào trong các bình đã tạo.</SectionEmpty>
                             ) : (
@@ -2189,7 +2222,7 @@ export default function HoaHoiGameCanvasApp() {
                     </CardContent>
                   </Card>
 
-                  <Card className="rounded-[28px]">
+                  {canManageArt ? <Card className="rounded-[28px]">
                     <CardHeader>
                       <CardTitle>Tạo và quản lý bình hoa</CardTitle>
                     </CardHeader>
@@ -2329,11 +2362,11 @@ export default function HoaHoiGameCanvasApp() {
                         ))}
                       </div>
                     </CardContent>
-                  </Card>
+                  </Card> : null}
                 </CardContent>
               </Card>
             </TabsContent>
-          ) : null}
+          )}
 
           {isAdmin ? <TabsContent value="titlemanagement" className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle>Quản lý chức danh</CardTitle></CardHeader><CardContent>{!titleFeatureAvailable ? <SectionEmpty>Supabase chưa có bảng titles và member_titles.</SectionEmpty> : <div className="grid gap-4 lg:grid-cols-[300px_1fr_360px]"><div className="rounded-3xl border p-4 space-y-4"><div className="space-y-2"><Label>Thêm chức danh mới</Label><Input value={newTitleName} onChange={(e) => setNewTitleName(e.target.value)} placeholder="Ví dụ: Trưởng nhóm" className="rounded-2xl" /></div><Button className="w-full rounded-2xl" onClick={addTitleToDatabase} disabled={savingTitle}><Plus className="mr-2 h-4 w-4" />Thêm chức danh</Button><div className="space-y-2"><Label>Chọn chức danh để trao</Label><Select value={selectedTitleId} onValueChange={setSelectedTitleId}><SelectTrigger className="rounded-2xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">-- Chọn chức danh --</SelectItem>{titles.map((title) => <SelectItem key={title.id} value={String(title.id)}>{title.name}</SelectItem>)}</SelectContent></Select></div><div className="relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={titleMemberSearch} onChange={(e) => setTitleMemberSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="rounded-2xl pl-9" /></div><Button className="w-full rounded-2xl" onClick={saveTitleAssignments} disabled={savingTitle}>Trao chức danh cho thành viên đã chọn</Button>{titleMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{titleMessage}</div> : null}</div><div className="rounded-3xl border p-4"><ScrollArea className="h-[720px] pr-3"><div className="space-y-3">{filteredTitleMembers.map((member) => { const checked = selectedTitleMemberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return <label key={member.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleTitleMember(member.id)} /><div className="flex-1"><p className="font-medium">{member.name}</p><p className="text-sm text-slate-500">{memberTitle?.name || "Chưa có chức danh"}</p></div></label>; })}</div></ScrollArea></div><div className="rounded-3xl border p-4"><div className="mb-3 relative"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={titleManageSearch} onChange={(e) => setTitleManageSearch(e.target.value)} placeholder="Tìm chức danh..." className="rounded-2xl pl-9" /></div><ScrollArea className="h-[720px] pr-3"><div className="space-y-4">{filteredTitles.map((title) => { const assignedMembers = membersByTitleId.get(String(title.id)) || []; return <div key={title.id} className="rounded-3xl border p-3"><div className="mb-3 flex items-center justify-between"><Badge variant="outline" className={titleBadgeClass(title.name)}>{title.name}</Badge><span className="text-sm font-semibold">{assignedMembers.length} người</span></div><div className="space-y-2">{assignedMembers.length === 0 ? <SectionEmpty>Chưa có thành viên nào</SectionEmpty> : assignedMembers.map((member) => <div key={`${title.id}-${member.id}`} className="flex items-center justify-between gap-3 rounded-2xl border p-2"><span className="text-sm font-medium break-words">{member.name}</span><Button variant="outline" size="sm" className="rounded-2xl" onClick={() => removeTitleFromMember(title.id, member.id)}>Gỡ</Button></div>)}</div></div>; })}</div></ScrollArea></div></div>}</CardContent></Card></TabsContent> : null}
 

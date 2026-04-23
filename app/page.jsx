@@ -2626,8 +2626,9 @@ export default function HoaHoiGameCanvasApp() {
                                     <span>để húp:</span>
                                     <div className="inline-flex flex-wrap items-center gap-2">
                                       {item.flowers.map((flower) => (
-                                        <span key={`${item.owner}-${flower.id}`} className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[12px] font-medium ${groupBadgeClass(flower.group)}`}>
-                                          {flower.name}
+                                        <span key={`${item.owner}-${flower.id}`} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-medium ${groupBadgeClass(flower.group)}`}>
+                                          <FlowerThumbnail flower={flower} size="sm" />
+                                          <span>{flower.name}</span>
                                         </span>
                                       ))}
                                     </div>

@@ -59,6 +59,8 @@ const TITLE_STYLES = {
   "ngọn cỏ ven đường": "border-slate-200 bg-slate-100 text-slate-700",
 };
 
+const VAR_OWNER_BADGE_CLASS = "inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[12px] font-semibold text-red-700";
+
 function groupBadgeClass(group) {
   return GROUP_STYLES[group] || "border-slate-200 bg-slate-50 text-slate-700";
 }
@@ -570,6 +572,12 @@ export default function HoaHoiGameCanvasApp() {
   const [artLookupMemberPickerOpen, setArtLookupMemberPickerOpen] = useState(false);
   const [artLookupMemberSearch, setArtLookupMemberSearch] = useState("");
   const [artLookupMemberId, setArtLookupMemberId] = useState("guild");
+  const [artLookupSuggestionSearch, setArtLookupSuggestionSearch] = useState("");
+  const [artSelectedSuggestionFlowerIds, setArtSelectedSuggestionFlowerIds] = useState([]);
+  const [artLookupSearchResults, setArtLookupSearchResults] = useState([]);
+  const [artVarSuggestions, setArtVarSuggestions] = useState([]);
+  const [artPriorityVarSearch, setArtPriorityVarSearch] = useState("");
+  const [artPriorityVarOwners, setArtPriorityVarOwners] = useState([]);
   const [artDashboardGroupFilter, setArtDashboardGroupFilter] = useState("all");
   const [artRareFlowerGroupFilter, setArtRareFlowerGroupFilter] = useState("all");
   const [uploadingArtVaseIcon, setUploadingArtVaseIcon] = useState(false);
@@ -1308,6 +1316,22 @@ export default function HoaHoiGameCanvasApp() {
     });
   }, [scopedArtOwnerships, artVases, flowerById]);
 
+  const filteredArtLookupSuggestions = useMemo(() => {
+    const q = normalizeFlowerLookupText(artLookupSuggestionSearch);
+    return artLookupSuggestions.filter((row) => !q || normalizeFlowerLookupText(row.flower.name).includes(q));
+  }, [artLookupSuggestions, artLookupSuggestionSearch]);
+
+  const artPriorityVarOwnerOptions = useMemo(() => {
+    const ownerSet = new Set();
+    artLookupSearchResults.forEach((row) => {
+      row.owners.forEach((owner) => ownerSet.add(owner));
+    });
+    const q = normalizeFlowerLookupText(artPriorityVarSearch);
+    return Array.from(ownerSet)
+      .filter((owner) => !q || normalizeFlowerLookupText(owner).includes(q))
+      .sort((a, b) => a.localeCompare(b, "vi"));
+  }, [artLookupSearchResults, artPriorityVarSearch]);
+
   async function signInAsAdmin() {
     setLoginMessage("");
     if (!loginEmail.trim() || !loginPassword.trim()) return setLoginMessage("Vui lòng nhập email và mật khẩu.");
@@ -1929,6 +1953,76 @@ export default function HoaHoiGameCanvasApp() {
     await loadArtVasesData();
   }
 
+  function toggleArtSuggestionFlower(flowerId) {
+    setArtSelectedSuggestionFlowerIds((prev) => prev.includes(String(flowerId)) ? prev.filter((id) => id !== String(flowerId)) : [...prev, String(flowerId)]);
+  }
+
+  function runArtSuggestionSearch() {
+    const selectedIds = new Set(artSelectedSuggestionFlowerIds.map(String));
+    const results = filteredArtLookupSuggestions
+      .filter((row) => selectedIds.has(String(row.flower.id)))
+      .map((row) => ({
+        ...row,
+        owners: (ownersByFlower.get(String(row.flower.id)) || []).slice().sort((a, b) => a.localeCompare(b, "vi")),
+      }));
+    setArtLookupSearchResults(results);
+    setArtVarSuggestions([]);
+  }
+
+  function runArtVarSuggestion() {
+    const priorityOwnerSet = new Set(artPriorityVarOwners.map(String));
+    const ownerMap = new Map();
+
+    artLookupSearchResults.forEach((row) => {
+      row.owners.forEach((owner) => {
+        const current = ownerMap.get(owner) || { owner, flowers: [] };
+        if (!current.flowers.some((item) => String(item.id) === String(row.flower.id))) {
+          current.flowers.push(row.flower);
+        }
+        ownerMap.set(owner, current);
+      });
+    });
+
+    const sortedOwners = Array.from(ownerMap.values())
+      .map((item) => ({
+        ...item,
+        flowers: item.flowers.sort((a, b) => {
+          const byGroup = (MEMBER_FLOWER_GROUP_ORDER.indexOf(a.group) ?? 99) - (MEMBER_FLOWER_GROUP_ORDER.indexOf(b.group) ?? 99);
+          if (byGroup !== 0) return byGroup;
+          return a.name.localeCompare(b.name, "vi");
+        }),
+      }))
+      .sort((a, b) => {
+        const aPriority = priorityOwnerSet.has(String(a.owner)) ? 0 : 1;
+        const bPriority = priorityOwnerSet.has(String(b.owner)) ? 0 : 1;
+        if (aPriority !== bPriority) return aPriority - bPriority;
+        if (b.flowers.length !== a.flowers.length) return b.flowers.length - a.flowers.length;
+        return a.owner.localeCompare(b.owner, "vi");
+      });
+
+    const assignedFlowerIds = new Set();
+    const grouped = sortedOwners
+      .map((item) => {
+        const uniqueRemainingFlowers = item.flowers.filter((flower) => {
+          const key = String(flower.id);
+          if (assignedFlowerIds.has(key)) return false;
+          assignedFlowerIds.add(key);
+          return true;
+        });
+        return {
+          ...item,
+          flowers: uniqueRemainingFlowers,
+        };
+      })
+      .filter((item) => item.flowers.length > 0);
+
+    setArtVarSuggestions(grouped);
+  }
+
+  function toggleArtPriorityVarOwner(owner) {
+    setArtPriorityVarOwners((prev) => prev.includes(String(owner)) ? prev.filter((item) => item !== String(owner)) : [...prev, String(owner)]);
+  }
+
   const visibleTabs = [
     { value: "dashboard", label: "Tổng quan" },
     { value: "members", label: "Thành viên" },
@@ -2419,28 +2513,130 @@ export default function HoaHoiGameCanvasApp() {
                           </DialogContent>
                         </Dialog>
 
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                          <Input value={artLookupSuggestionSearch} onChange={(e) => setArtLookupSuggestionSearch(e.target.value)} placeholder="Tìm trong danh sách gợi ý..." className="rounded-2xl pl-9" />
+                        </div>
+
                         <ScrollArea className="h-[420px] pr-3">
                           <div className="space-y-3">
                             {artLookupMemberId === "none" ? (
                               <SectionEmpty>Hãy chọn Cả Hội hoặc một thành viên để xem các hoa cắm bình chưa sở hữu.</SectionEmpty>
-                            ) : artLookupSuggestions.length === 0 ? (
+                            ) : filteredArtLookupSuggestions.length === 0 ? (
                               <SectionEmpty>Thành viên này hiện không thiếu hoa nào trong các bình đã tạo.</SectionEmpty>
                             ) : (
-                              artLookupSuggestions.map((row) => (
-                                <div key={row.flower.id} className="rounded-3xl border p-3">
-                                  <div className="flex items-start gap-3">
+                              filteredArtLookupSuggestions.map((row) => {
+                                const checked = artSelectedSuggestionFlowerIds.includes(String(row.flower.id));
+                                return (
+                                  <label key={row.flower.id} className="flex cursor-pointer items-start gap-3 rounded-3xl border p-3 hover:bg-slate-50">
+                                    <Checkbox checked={checked} onCheckedChange={() => toggleArtSuggestionFlower(row.flower.id)} />
                                     <FlowerThumbnail flower={row.flower} size="sm" />
                                     <div className="min-w-0 flex-1">
                                       <p className="font-semibold break-words">{row.flower.name}</p>
                                       <p className="mt-1 text-sm text-slate-500">Bình: {row.vaseNames.join(", ")}</p>
                                     </div>
                                     <Badge variant="outline" className={groupBadgeClass(row.flower.group)}>{row.flower.group}</Badge>
+                                  </label>
+                                );
+                              })
+                            )}
+                          </div>
+                        </ScrollArea>
+
+                        <div className="flex justify-end">
+                          <Button type="button" variant="outline" className="rounded-2xl" onClick={runArtSuggestionSearch}>Tìm kiếm</Button>
+                        </div>
+
+                        <div className="rounded-3xl border p-4">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <Label>Kết quả tìm kiếm người sở hữu</Label>
+                            <Badge variant="secondary">{artLookupSearchResults.length} hoa</Badge>
+                          </div>
+                          <div className="space-y-3">
+                            {artLookupSearchResults.length === 0 ? (
+                              <SectionEmpty>Hãy tick chọn các hoa trong danh sách gợi ý rồi bấm Tìm kiếm.</SectionEmpty>
+                            ) : (
+                              artLookupSearchResults.map((row) => (
+                                <div key={`owner-search-${row.flower.id}`} className="rounded-3xl border p-3">
+                                  <div className="flex items-start gap-3">
+                                    <FlowerThumbnail flower={row.flower} size="sm" />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <p className="font-semibold break-words">{row.flower.name}</p>
+                                        <Badge variant="outline" className={groupBadgeClass(row.flower.group)}>{row.flower.group}</Badge>
+                                      </div>
+                                      <p className="mt-1 text-sm text-slate-500">Bình: {row.vaseNames.join(", ")}</p>
+                                      <div className="mt-2 flex flex-wrap gap-2">
+                                        {row.owners.length === 0 ? <Badge variant="secondary">Chưa ai sở hữu</Badge> : row.owners.map((owner) => <Badge key={`${row.flower.id}-${owner}`} variant="secondary">{owner}</Badge>)}
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               ))
                             )}
                           </div>
-                        </ScrollArea>
+                        </div>
+
+                        <div className="rounded-3xl border p-4">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <Label>Chọn người ưu tiên var</Label>
+                            <Badge variant="secondary">{artPriorityVarOwners.length} người</Badge>
+                          </div>
+                          <div className="relative mb-3">
+                            <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                            <Input value={artPriorityVarSearch} onChange={(e) => setArtPriorityVarSearch(e.target.value)} placeholder="Tìm tên thành viên ưu tiên..." className="rounded-2xl pl-9" />
+                          </div>
+                          <ScrollArea className="h-[180px] pr-3">
+                            <div className="space-y-2">
+                              {artPriorityVarOwnerOptions.length === 0 ? (
+                                <SectionEmpty>Hãy bấm Tìm kiếm trước để có danh sách người sở hữu.</SectionEmpty>
+                              ) : (
+                                artPriorityVarOwnerOptions.map((owner) => {
+                                  const checked = artPriorityVarOwners.includes(String(owner));
+                                  return (
+                                    <label key={`priority-var-${owner}`} className="flex cursor-pointer items-center gap-3 rounded-2xl border p-3 hover:bg-slate-50">
+                                      <Checkbox checked={checked} onCheckedChange={() => toggleArtPriorityVarOwner(owner)} />
+                                      <span className="text-sm font-medium text-slate-700">{owner}</span>
+                                    </label>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </ScrollArea>
+
+                          <div className="flex justify-end">
+                            <Button type="button" variant="outline" className="rounded-2xl" onClick={runArtVarSuggestion}>Gợi ý</Button>
+                          </div>
+                        </div>
+
+                        <div className="rounded-3xl border p-4">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <Label>Gợi ý var nhau</Label>
+                            <Badge variant="secondary">{artVarSuggestions.length} người</Badge>
+                          </div>
+                          <div className="space-y-3">
+                            {artVarSuggestions.length === 0 ? (
+                              <SectionEmpty>Hãy bấm Gợi ý để gom danh sách theo người sở hữu.</SectionEmpty>
+                            ) : (
+                              artVarSuggestions.map((item) => (
+                                <div key={`var-${item.owner}`} className="rounded-3xl border p-3">
+                                  <div className="flex flex-wrap items-center gap-2 text-sm leading-7 text-slate-700">
+                                    <span>Hãy var</span>
+                                    <span className={VAR_OWNER_BADGE_CLASS}>{item.owner}</span>
+                                    <span>để húp:</span>
+                                    <div className="inline-flex flex-wrap items-center gap-2">
+                                      {item.flowers.map((flower) => (
+                                        <span key={`${item.owner}-${flower.id}`} className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[12px] font-medium ${groupBadgeClass(flower.group)}`}>
+                                          {flower.name}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   </div>

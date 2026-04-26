@@ -50,7 +50,7 @@ const TITLE_STYLES = {
 };
 
 const VAR_OWNER_BADGE_CLASS = "inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[12px] font-semibold text-red-700";
-const MEMBER_STAT_IMAGE = "data:image/png;base64,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+PErV65s3Lhx69atQ4cO6enpzs7ONWvWrF69unLlyu7du0+ePDl58uS6deuSkpL+/vvv6urq4uLi2bNnT5480Wq1S5cu7dmzR6/XGxsb09PTy5cvL126tL6+3mw2W7ZsmTdv3vTp0xsbG/Pz89va2jZs2NDV1fXJJ59cv359aWkpKysrKysrXq93xYoV69at8/Pzv/71rzt37ly+fHlmZubQoUP79u2bOXNm27ZtAwMDS5YskUgkGo1GUVFRS0vL8uXL79y5s2vXriNHjly7du3ixYufeeaZpUuXHj58+Omnn0qlUuPGjVu+fPnIkSNra2s7d+58+OGH/fv3P/jgg+XLl1dWVv7tb3+rV69evHjxwIEDH3/88Z07d3766adut1uSJL/97W9Xr1597bXX+vv7Dxw4cOrUqerq6m3bto2Njf369Tt16tQNGzYcOnTo5ZdfPnv27NTU1Nq1a7du3frss88mJiby8vKOHz/+5JNPduzY8f77758+fXr06NHR0VGWlpb29vbXX3/9r3/9a9euXaWlpb29vTVr1vzwww+7d+8uLy/fu3fv1q1bP/744+7du9va2t58883Tp0+fOHEiIyNjzpw5jz76aPny5Q8//PCzzz6bPn16fHx89OjR5ubm9evX79q1q7Cw0NHRceHChY2Njbt37x4+fHjXrl2bN2+eN2/e5s2bp6enDx48mJ2dvXz58unTp8fHx0uWLNmxY8fKlSt79+5dtWrVqVOnDhw48MILL1RVVX3wwQd79uxJTEw8fPjwO++8o9FoGhoaGhoadDqdjo6O9evXT5w4sWvXrhUrVjQ1NbW0tFZWVvbu3Xv69Ok2m01ERETXrl0bN24sLi6+9957P/7444ULF9ra2j788EOdTte8efOmTZv29vbOnDkzefLk6OhoFxcXW1tbAwMDN2/eZDKZQ4cOnTlzZvHixXv27DE2Nvbwww+PHz++Y8eOTZs2bd68uf/85z9Hjx7t2rUrNja2detWS0tLeXm53W5/8skn69at6+zsXL16dXFx8eGHH1qt1vz8/OPHj3/xxRfHjh0bHx8fHBx89dVXf/rpp8rKyg8//PDQoUNLliyxWCxeuHChqakpMTHx2muvpaWlHThwID8/PzY2dtOmTb/++uvQ0NCTJ0+2trYcOnRo48aNfX19X3zxRW5u7qRJk5YtW2Y0Gg0NDYWFhXv37s3KyhoYGGjduvXChQv79u3bvHnz+PHjmZmZ+fn5J0+eXL16dWJi4rZt28aPH//ss89KSkqSkpJ8fHwvXLjQ1NTk6+vr6upqf39/UVGRw+HYtGnT+vXrhw4d2r59+4kTJwYHB1u2bPnss89GRkYkEokjR44kJSVdvXp16NChhIQEY2Pj3NzcH3/88cGDB8fHx2NjY4uLi06dP79ix4+jRo0eOHKmoqEhLS1u1atX+/fvj4+MvvfTS8uXLly5d0ul0Z8+ePX78+P79+9esWdPX17dx48Yvv/xy5syZsbGxy5cvd3V1rVixIikpafPmzdnZ2YMGDZIk8fXXX2/fvj0hIaG2trbTp0/fuHFjW1tbQ0PDo0ePdu3a9a9//Wt+fn6VSiWRSJQk+eijj5YuXfrrX/968uTJxYsX9+/fP3jwYGNj49ChQzdu3Dh16lQymQwLC8vIyNhvv/2WkJAwfvz4bdu2vffeexcuXDhy5Mhr16517dr19NNPP/nkk56enrt27dq0aVPdunWbNm0aGhrKzMxs3Lhxz549kZGR6urqyZMn9+7d09PTv/vuu66urmPHjl26dOnTTz9NTExMTEysW7duw4YN8+fPz87OHj58uLa2VhAEqVQqvV4vEAisVqvPnj2bNm1KTk5OSUlJf39/f39/aGhoS5cu3bp1Kz8/f/PmzaNHj7a2tq5du5aZmXn33Xf/8Y9/nD59evLkybS0tC+++OK2bdtSU1N79uzp7Ozs2rVrz549iYmJ/fv3d+3a9cgjj3z66affffed1WqVJFlUVOTv78/Pz9+wYcPWrVu7du1av359bW3tqFGj0tLSJk2adPXq1ebm5vLly9u2bUtOTp4/f/7KlSsdHR1GoxEIBBYuXHj37t3t27dXVFTs3LkzJydn9erVixcvXrt2raGh4Y477khJSfH19S1duvT222+vW7cO8Pj4+GOPPZaQkHDo0KG0tLQff/yxUCg8ffr0m2++efz48fLy8tDQ0KVLl+7fv3/btm3btm3Lz8/XarW6urqSkpKUlJQkSc6fPz89Pf3kyZNZWVmRkZF9fX0mJiYPPPBAW1vb1atXT548efLkyYcfflhRUVFlZeWsWbMSExPnz58fPnx47ty5jRs3zp49u7W1de/evdOnTz9x4sSEhITBwcEvvvii3W6/9NJL165de/fuHT58ODMz89FHH/3www8nT54MDAyUlJT4+Pj8/PxTp06dOXNmaGjo008/3bJlS1pa2q5du0aOHNnb2zt48OBXX31VUlKSkJCQkJAQBAE0Gk1aWtrIkSMxMTErVqzIyspatWpVZmam3W5fv359Xl7em2++efTo0YULF87NzQ0ODh48eHDhwoXU1NTS0tK8vLxFixYdOHAgOzt7/fr1VqtVVlbWsGHD5s2bJ0+e7Nixw2q1zp07l56ePnjw4MqVK4eGhpYvX56dnS0tLd2+ffv9999/6dKl77777pw5c8rKyn7++edvvvlm//79W7ZsmTZtmpeXF41Gk0wmS5YsmTNnTkREhKenp5+f39dff71s2bKzZ8/+93//VxAE1tbWLVu2rFixIjMzMzs7+8c//nFhYeH48eP79u2bPXt2S0vLkSNH6uvrjx49Gh8f379//7lz58aNG3f8+PGkpKRXX331yy+/TExMXLhw4aFDhwoKCj744IP29vbx8fG5ubm0tLTt27fPmDFj+fLliYmJgYGBlJSU6dOnr1y5cu7cuZs2bfrll18mJiZycnI2btxYWFh49OjRli1bKioqPvroo5MnT7755ptfv35t2bJly5YtK1eu7NixY+PGjWFhYQ8//PDatWs7duzIy8ubMmXKzZs3Q0NDly9fXrhw4dy5c6dPn66trf3pp5/Onz+/fPny3r17MzMzlStXVlRU7Nu3Lzc3t3fv3sLCwpKSkmPHjlVVVY2Njfn5+ePHj9fX10+dOnXq1KmTJ08WFxezs7O7du26e/fuG2+8kZKSEolEUlJSbW1t+fn5dDqdYrHYsGHD9PR0SkqK3W5fuHChtrY2ODi4cuXKrl27jhw58scff5SUlNja2nbs2PHJJ59s3LhRr9cLgoDCwkL79u27du0yMzM7Oztzc3MXL15sbGwsLCxkMpnTpk1r3Lhx8uTJGzdu9PT0lJWVdXV1rVu3/v73v+fn5+/atSvPnj2+vr4uLi5RUVG2trYzZ86cPn06Pj4+KSkpK1as2LJlS2Zm5uOPP56QkPDcc8+NGjWqVq2aTCY7duzIzc3du3cvPz+/Z8+e+fn56enp48ePf/7556+//vr06dPVq1ePHz/+4osvWq1WQRCk0+nAwMCBAwdOnjx5/fr1nTt3Dhw48Oeff379+vXAwMC2bdv+/Oc/79ixIygoKCkp6ccff3zkyJGuXbtu3LhRW1tbY2Pjyy+/3L59e0tLS2lp6dKlSxcuXHj11Vdff/31zz77bObMmQkJCSEhIXv37o2NjYWHh5eXl6urq0uXLj18+HDv3r0XLly4du3aI0eO3L9//9SpU8PDw6dPn37vvffOnj17//79Z86cOTg4uH79+vT0dFZW1vr16w0NDRMnTgQGBn7++edkMpmcnJyEhIS0tLQNGzY8+eSTmZmZixcvXr9+fX5+/q5du5KSki5evHjgwIFPPvnk1atXr1y5MjAw8Pbbb5eXl0ul0tTUVH9/f319fQsLC2fPns3MzJw7d+7Xv/61ZMmS8ePHOzs7Q0NDFy5cWLt2bU5OTmFhYQ8//HBAQODIkSNVVVWdnZ2PP/74li1bgoODn3zyyWPHjm3cuPHNN9+4uLjMzMylS5euWbPmxIkTQ0ND77zzju3bt1dVVf3444/79+/Pzc3dunWrW7duU6dOraysmJqaurq6ysrK7775bs2bN3bt3e/fu3b17d2Vl5fz58w8//DB79uxVq1ZNmzbNzc3dvn17aWnp6dOn9+/fT0hIWL9+fXBwcHJycmRkZMuWLePGjfv8888pKSm8vLzdu3efPHlycnJy7dq1wcHBGTNm9PX1tW7dujfffDMqKmrx4sW3b9+ePHly/fr1RUVFQ0PDzZs3f/nlF7vdbrVam5ub165dS0pKOjo6Tp8+fefOnWlpaZs3b9bU1Fy8eHHz5s1vv/22Xq+fO3fu8uXLN27c2LVrV0JCQv78+f/85z9feOGF0NBQTk7OrFmzWltbc3Nzly9f7ty5c9WqVfPnz9+zZ8+bb75ZUlISi8VOnjw5bty4ioqKhIQEf39/aWlpQkLC6tWru3fvvn79+ubNm4eGhnr27Onu7v7888/ffPNNcnJy9+7d7e3t77zzTmJi4sKFC8ePH//oo48qKioGBgYyMjIaGhoeeughPz8/a2vr4OBgVlbW559/Pjg4mJKSUlBQkEwmW7du7e/vd3V1eXl5o0aN6urq9u3bFy1atHjx4jfffLNv375nzpypq6tLTEyMjIx87rnnwsLCioqKp59+Ghsb+/LLL7dt29bW1j5x4kRsbOyLL77YuXNnYmLi8uXLd+3atX79+uLi4pKSkj179rzzzjv19fWJiYk9e/Z4e3v7+vpKS0vT09PffvvtvXv3vvrqqxUrVvT09Fqt1unTp4ODg319fSkpKefPn5+dnS0uLj7zzDPj4+Pt27ffvHlz586d9+/fP3369N69e8PCwuLi4k6fPv3aa6+FhYWRkZFLly6dOXNm8+bNvb29hYWFo0ePjhw5kpycvH379lu3bg0ODr799tvl5eW7du3Kzc39/vvvP/7443r16r755pt6vT4pKUmv19u9e/fWrVsfffTRgoKC4ODgqVOnHj16dM+ePbt27frss8/eeeedpKSk9evXf/311z4+Pm3bti0uLq6trf3444+cnJwvvviiXq9PTU09ffr0mTNnqqqq3n333XfffVdXV9fW1ubn56elpR06dOjhhx8uKSl5+umnBwcHn3zyydatW7/88svVq1e//PLL3r17EolEIpFUV1f7+/u3bt36+eefj46O5uTkVFZWrlq1avny5QMDAzNmzLBYLD/88MOGDRsKCgqOHj36+uuvV6xYcfDgwZUrV06ZMmXt2rWdO3e+//77SUlJQ0NDu3bt8vLyQ4cO1dTU4uPjQ0NDQ4cOaTQa8fHx5cuXp6amVq9e3bBhQ21tbZGRkS+++KJ169aFCxfOnDkTGho6ffp0Q0PDxYsXq6urJ06cePz48alTp3Jycvbt2xMSEjo7Ozdu3Lh06dKpU6d0Oh0cHLxw4UL79u0rV65MTU0tLS0tLS2bN29OTEx89913U1NTx44dM5lMZWVlTz75pKGhYdGiRVu2bCksLBw9evTSpUsTExPd3d0bN25MSkqKjo7Oycn55ptv4uLiOjo6c+bMyc7ObtiwQalUZmZmhoaGS5cu3bp16+LFi48ePZo+fbrRaNy9e/f333+/Y8eOtLS0kydPHj58+Pvvv9+7d+/IkSM7d+6MjY0dOXIkLS0tNjZ248aN//jHP0pKSiZMmODp6fnQQw/19fXJycm7d+9u3rx5dnZ2y5YtbW1tiYmJ999//9KlS3fv3h0dHf3www9nz57Nz8/fvXt3TEzM0aNH79ix49q1a8uXLy8qKnruuee6uroWL15cVFQ0NDSsW7fuwIEDhw4d2r59+6FDh3r37r127drXX389NjY2Nzd37dq1q1ev3rx5s6KiosLCwu3bt9fW1i5evNjU1KSnp0dFRR0/fnzhwoWfPn0KgoCcnByLxXL16tUXX3xx8ODBbdu2Pffcc3PmzJk1a1ZiYuLhw4cXLlxYUlLi5eVlbW3t2LFj48eP79u3LzY2Njw8PD4+fs2aNaWlpbfffvvtt9/u3bt3+fLliYmJzz77bPLkyYMGDWrQoMHOnTtDQ0Pbtm2bOHEiLy+voKBg/fr1u3fv7tq1q7i4ePHiRd26dXft2hUSEhITE+fPn79t27a2trYdO3YcOHAgIyOjra2ttLS0gQMHdu/e3bp1a0FBQXx8fF1dXWJi4uHDhwsLC0uWLLl06dKzZ88ePnx4cHBwTEzM9evXp0+fPn78+JEjR958803p06f39/cfP368e/fuQ4cOXb16dWFh4YMPPjh16tSzZ8/Ozs7u27cvLy+voKBgy5YtFovF6Ojo5ORkWFjYQw89NGXKlOrq6u+++66trU0kEo2NjVFRUbGxsRMnTrz55ps1NTUpKSk2m63VatXX19fW1tbe3t6jR49ev359ZmYmOTl56dKlt2/fPnLkyMGDB3/99dcffPDBo0eP/v3vf0uS5OTJkzU1NU6n0/Ly8unTpw8fPvz999/7+/vPnj3buXPn0qVLhw4d+vDDD6uqqgKBQG1tbWNj45EjR1qt1j//+c9bt26tX79+27ZtP/744+joaGBgYMMGDXv27Fm9evXq1av79+9vbW398ssvV61a1draOnHiRHp6+tKlS+Pj4x0dHdu3b9+3b99f/vKX3bt3Ozs7JycnV65cOTU1dfny5WPHjjU1NQ8++KCjo2P79u39/f2zZ8+uWrUqKyt79OjR4cOHKyoqvL29L1++vH79+r59+8rLy4uLi7///e9Lly79/e9/P3r06A8//HD8+PE2m01TU1MikQgODi5ZsuSxxx5rbGxctWpVa2trb2/vmTNnli9fPm3atDFjxuj1+qSkpOTk5JUrV9rb2+Pj4xMTE9OmTRs1apSvr2/16tWdnZ3x8fGxsbH29vbe3t7AwED9+vWTJ08uW7asvLw8Ojp6xYoVycnJ6enpS5cundlsVldXr1ix4sMPP3z16tV5eXmPP/54V1fXs88+q9Vq8/PzX3zxxcLCwt27d6enp2vXrs3KyoqIiFizZk1tbe3AgQOzZs2aM2fOe++9JzY2NiEhYfny5Q0NDVFRUd7e3qSkpOeff37VqlUdHR1Hjx4dP368uLj42Wefvffee7W1tYmJiW+//fb27duXLVt24sSJhQsXjh49+s0336ysrOzZs6ezs3PHjh0bN26cOnWqvb39iy++uH379rlz587NzY2MjMzOzu7fv79r1659+vQ5efLkxx9/3L9/f1xc3NGjR/Pz82fOnDly5MjJkyeLi4uDg4NNTU2HDh0aGxtbt25t27atX79+u3btMjIyli5dOnz48CeffJKUlNSuXfvbb79dtGhRW1tbf39/06ZN8/PzS5cuPXfuXG9vb3p6+pQpU44fP/7XX39NT0/n5+fHx8f9/f0pKSkbNmy4dOnS6NGj8/PzV69enZub27hx44EDB6qrq+fPn9+6detf//rXv/3tb9evX79q1ar09PT333/f0dExf/78OXPm7NixY+fOnWvWrHn99dfDw8MXL15MS0vbs2dPT09Pe3v7kCFDgoODt27dWlBQsH379pycnNdeey0qKmrXrt3FixevWbNm48aNc+bM2bRpU3l5+f79+99++22WlpYrV64sW7YsLS2toKDg0KFDZ8+e/fLLLx0dHUNDQ6+++mq1Wv3qq68SEhIaGxvT0tKSkpLGjBmzatWq5cuXj46O3r59e3Jy8oMPPli8ePHEiRNtbW0XL17ctm1bYWHh0KFDVVVVq1at2rRpU05OzuLFi1qt1vnz59esWXPlypXz58/fuHFj06ZN+fn5CxcuTJw4sWvXriNHjkxNTd29e/eMGTMSExNLliz56KOPli1bNnHiRGlpaZs2bQoKCk6cOLF8+fLU1NQFCxbk5ORs3LhRUVGxdetWm82mUCg8fPjwZ5999rXXXquqqurXr9+OHTs2btz47LPPvvHGGw4dOrRv377c3NxdunRZv359QkJC48aN+/btS0xMXLVq1dGjR0eOHFmyZMlPP/30zTff7Nix4+WXX75w4UJ5eXkikUhPT79x40ZUVNTOnTvLysqSkpLOnDmTm5u7cOHCV155JTo6OnTo0L1798rLy0uXLg0PD6+trQ0ODubk5DRu3NjV1dXV1XXr1q0bNmyoqKhYu3ZtcnLy5s2bQ0NDvXv3Tpky5Y8//jh58mTTpk2pqakffvihXC5XWlr6+eefjx8/3r59+z//+Y/33nsvNDR0/vz5ffv2Ojo6Ojo6s2fP7tixIzs7+9KlS6+99ppWq3X8+PG5ubnp6en8/Pzvvvuuo6Nj8+bNsbGxV155JSoqau7cuStWrDhy5Mju3bsLCws9PT3l5eWff/75d999d+7cuSEhIStWrMjPz09ISAgKCn7++Wd3d/eFCxfy8/Nra2uLi4uZmZm9evUuX75cU1Ozfv16Y2NjQ0NDq1evTkpKOj4+vnjx4tGjR6dPny4pKXn77beDg4N5eXkffPCB1Wp98803W7Zsqa2tPXz48NmzZ1NTU3v27Llw4cL69etfvHjx9ddf379/f3Z2dtOmTR8+fPjZZ58dOHAgJiYmODj44IMPVq1atXPnzuDg4O7du5cvXw4ODjY3N1u3bj148ODvf//7q1evtmzZ4uvrW7NmjUQiodPpDA0NfX19y5YtO3To0N69e0uWLDl37tzNmzcnJSWlpaX79u2Lj4+3bNny+eefHzhwoFQqPXTo0NKlS+fPn0+lUq2trb6+vkePHo2NjV27do2Pj8/Pz9+zZ8/f//53Q0NDM2fOnDhxYnBw8JQpU4qKio4ePZo/f/6cOXPS0tIWLly4fv36W7du7dy5s7CwsKCgoLa2tt69e9evXz99+vTq1auHDx9esGBBWVnZ3r17KysrV65ceezYsb6+vsDAwJUrVwYGBs6ePfvkk09mZ2fPmjUrPDwcHx9/7bXXSkpK0tLSS5YsmT9//oQJE9LS0jZs2PD1119v2rRp9OjR69evv/baa2lpaenp6W+//fadd95RVFS0atWqVatWbd68+euvv2ZmZj744INbtmzp7e09fPhwQkJCa2vrvHnzduzYcfjw4XXr1v3666+5ubm9evXy8vJmzZp17NixCxcu5OfnR0dHc3Nzv/3221atWmVmZt5+++3x8fH8/PzKyso1a9a0t7d7e3uXLl26devW9PR0Q0PDyZMny8vLT548GRkZ2bBhQ0tLy5gxY6ampqtXr06ZMmX58uW9e/d+//33SkpKvvnmm5cvXz5+/PiHH3543rx5YWFhMplMOp0uPj5+6NChJ0+ebG5uNjY2rlix4vTp09OmTYuLi6urq0eOHBkcHJw6dWrBggXj4+MlJSX79u27ePFienr6pEmT3Nzczz77rKenR1tb29LS0rNnz549e7a5uXnHjh1VVVU9PT1du3a9cOHCvXv3N23a1LVrV2Ji4v79+6dPn56dnV2xYkVubm7btm1RUVHffvttvV6/c+dOV1fXww8/vGfPngULFvT19b311ltRUVFbtmy5ceNGZmZmcnJyyZIlv/76a9WqVbNmzbp69epPP/104MCB48eP79+/Pz4+fsyYMQMGDOjo6BgxYkRoaGi7du2SkpKOHTvW1tYuX748Pz9/7ty5RqPx2muvJSQkrFu37o033khKStq4ceP48ePjx48fP3780Ucf9fX1LViwQKfT0el0mZmZ5cuXb968OTs7u2XLluTk5KtXr06ePDkwMJCcnJw/f/6+ffu8vb3l5eVPPvlk586dtbW1c+bM2bNnT0hIiIuLi2fPnu3bt2/nzp2JiYlbtmw5fPjw5MmTH3/88Y8//ri4uLjV1dW5ubnCwsJ33303NDS0d+/eGzduDB8+vKSk5I033mjXrl3q6upbt27du3fv559/PjQ0tHbt2rNnzz5+/PiPP/7448ePJyUlDR06dOXKld27d8/Pz9+5c2eDBg0uXbq0fv36goKC4OBgXl7es88+W7FixYgRI8rLyxcsWHD9+vW8vLzq6uq8vLwZM2aUl5dnZ2f/9a9/NTQ0vP3225MmTQ4PD6+urr755ptvvvnmypUr+/fvj46O1tbWkydP7t69Ozs7GxoaUlJSFi1adOLEiS+//DIwMFCn0xkZGf379+fm5n744Yf27dtPnTp16dKl69evb968eX19fYODg3PmzPn000+7d+8uLi4uLy8fP378zTff7N69OzQ0ND4+3tbW9vDDD8+fP//TTz89fPhwZmbm0aNHz58/f8aMGaNHj+7du3fFihW7du2ys7OLi4uPHz/+6aefuru7s7OzR48eHT58+I033vD09NSpU0dHRxcsWPDyyy9v3LgxLCzs6NGjO3fufP/99w8dOrR27doJEybMnj07Pz8/Pj7+0EMPpaenP/jgg8OHD/f19ZWVlXV1dRkZGTEzM9evXb968OTMzM3r06HfffVfW1taTTz7ZvHlzYWHhqVOn+vv7U1NT8/Pzv/nmmxMnTjx58uSrr74qKSkZOXJkYWHhkiVLfvvtN51O19DQcPTo0Z49e44dO7Znz55jx45t2LBhy5YtYWFhgoKCLVu2LC4uXrVq1YYNGxYvXixJcvbs2b179+bPn3/v3r3Z2dliYmJmZmZZWVkqlUr19fW7d+82NDRcvXp1yZIlhYWFQ4cOTZs2rX79+ocOHVq6dOnAgQN79+7duXPn4MGDq1evPnXqVHx8/NGjR1euXHnkyJHFixevW7dOTk7Oy8vbsmXLL7/88s8//9y0aVNTU9O77747evTogQMH9u/fP3PmzIyMjIULF+7Zs+fEiRP37t37ww8/2Gw2nU6nUqn4+Phu3brl5+eXlJR8//33U6dODQ8PX7ly5TfffNPS0jJ69OhJkyYlJSXt2bMnPj5+9+7drVu3rl69ur6+vqKi4tlnn1VVVV24cOGAAQOamppvv/32qVOnQkJCVq5ceezYsbVr1x48eHBwcPDGG2+kpqYOHTo0MzNz0aJFf/vb35KSkhYvXqzT6RoaGpYvXx4eHh4dHa2vr8/Pz5fL5RUVFQ8++KDdbr/55pv79u3LzMxs3Lixc+fO1NTUQ4cO3b59Ozw8fM+ePcOGDVu2bNn69etDQ0Pbt29PS0u7fv16eHg4KysrW7duvXnz5gMHDgQHB9evXz948ODGjRvj4+PffvttQ0PD7NmzW7Zs2bVr17x585YtW3b+/Pk6nQ4LC4uJiVmyZMmaNWuSkpLi4uKFCxeWl5eHh4fX1tYGBwcrKiqWLFmydOnS0tLS4OBgQ0NDt27dKioqPvroo6ysrH379i1cuPCf//xnfX39mDFjvvjii4ODg2NjY1OnTj158mTz5s3r1q2TSCQ5OTm7du2KiYkpLS1t2rQpJiamvb09Pj4+Nzc3W1tbRUVF06dPr1u37tixYyNGjLh27drOnTtDQ0MvvfTS4sWLP/nkkwsXLixZsiQkJHTu3Pnyyy+3bNkyPDx8z549jRs3nj59+ocffti+fXuLxTpw4EBCQkJra2tAQICbm9v69evz8/O9e/eOjIxcvXp1S0vL9evXr1+/fvTo0dmzZ9PS0o4ePaqtrW3dunVbt26dPn26fPny+Pj4M2fO7NmzJzExMT8/f9u2bYGBgV26dLm5uStXrly/fj0rK+u///3v0aNHT548efHixevWrZs8efK2bdvU1NTly5dPmDAhJSXl0qVLixcvnjhx4sqVK3/88cfq6uqZM2empaX9+uuvycnJgwcP7ty5Mzk5OTs7W7JkSXV19fTp06+88kqv1+fl5d28efPGjRtbW1v79u2LiYkpKirq3bt3W1tbw8PDV65cefjw4Y8//ti6desRI0ZUWFjYsmVLeno6KSkpS5YsmTFjRmlp6cCBA2NjY7t37548eXL16tXh4eE5OTmVlZWPP/74o48+On78+I4dO3Jzc69fv56Tk/Puu+/q9Xq9Xq+ysrLExMTt27evW7eutbU1KioqLCwsBQUF9+/fv2XLln379m3ZsmXq6uq8vLzx8fFLly6VlpY6nY7Ly0vT09OTJ0/Gx8fX1tYWFhbu3Lnz9ddf37Fjx8yZM7du3RoaGj744IObN2/u2rVr3Lhx1dXVaWlpf/zjH2tra+3atR8+fDht2rSFCxf6+/u9vb1vvvnmpk2bXnrppb6+vvLy8nfffTc9Pb1ixYqMjIz9+/f37dt38ODBsWPH3n333crKyi1bthQXF+/cuXPt2rV79uxZv359QkJCTU3N/v37X3755fTp0+vXr19YWBgTE1NYWLhly5aEhITNmzfPmTNHq9U2bdr0+eefDw0NpaWlbd26NTIy8t5775WWlvr7+zt27Lh48eLnn3/e0dHx9NNP16xZEx8fX79+/eHDhzMyMpo0aXLo0KHCwsJXX321Wq1z5szRarUvvvhi586dR48erV279oQJE6ZMmbJ8+fIpU6aEhIS8vLx79uxp166dlZWVnJycjRs3RkZGzpw5s2bNmtzc3M2bN5eUlPj6+j766KNnz54NDAy8+eabvXr1Onr0aGJiYnp6+uLFiyMjI7t27U5NTa1Zs6a9vT0kJGTZsmXl5eWff/65rq4uJSVlzZo1Z86cWbJkyd69e6dOnXr06FFcXNzw4cNz5szJycnBwcH8/PyFCxeqq6u3bNmSkJDw8ccfHzlyJDMzc9WqVZ9++unEiRNSUlLWr1+fmJi4du3aZ599dnV1dfny5eLi4hUrVnTv3n3u3LmePXu6urr27t2bnp4+efLk5ORkUVFRcnJySEjI448/npCQ8Msvv2RkZPzwww8dHR2PPfbY8ePHt2/fnjp16g8//DA6Ovr666+np6ePHTvW0dGxefPmW7duHT16NDo6+vnnn2/evPntt9/u3LmzQ4cO2dnZP/74Y1NT04EDB8LCwvbt2x8+fPi3335bWFh46aWX9u7dW1FR4efnFx0dXVdXl5KS8vXXX79///6nn356+fLl9fX1jRs3vvPOO8uXL1+4cOH48ePffvttRkbGk08+mZ6e7uzsvH79esuWLfPnz9+6dWteXl5ubm7btm2Li4uSkpKbN2+eOXNmt27dU6dOPX78+P79+5csWfLyyy+npaXNnj17/vz5AwcOTJ8+vbCw8KOPPtrR0bFp06bDhw8/ffr0nTt3wsPD5eXlpaWl3bt3DwwMnDlz5syZM6+++uq2bdt++eWXysrKnj17rly5MnLkSPv27WfPnv3nP/95+vTp7du3r1u37uLFi2+++ebq1aubNm0aHh5esWLFtGnTdu/efejQoUOHDl2+fHnBggW2trbCwsL33ntPq9Vu2bJly5Ytd+7cKSsrY2NjY2NjV65cKS4uPnjw4NSpU/Hx8T/88MO0tLSlS5e2b98+Y8aM7OzsrVu3RkZGcnJy3n///fnz5zds2LC6urrTp08nJSVdunTpuXPnVqxYcfv27R9++OGzzz7r7e09dOjQvXv3fvnll7q6uvT09M6dO2fOnNmxY8fbb79dUlKyfPnyJUuWfPjhh927d798+fJTp06dPXu2R48eEydO7Nu3LzY2Njw8vHPnzlFRUSkpKf379//888+qqqoHH3xwz549y5Yte/fuTUpKWrBgwfHjx2vXrn3zzTc3b9783XffrV69es2aNbNnzx48eLB///5Fixbdu3dvwYIFjY2Nf/7zn9OmTbNarcHBwU2bNt28efP999+vWbNm/fr1U6dOHTp0qLy8/Pfffw8PDzdv3jwxMfHFF19s27Zt6dKl999/f+DAgZmZmQ4fPrx8+fKOHTvWrFmTn5+fnp6+adOmQ4cO/fjjj61bt16yZElJSUl5eXlJSUmFhYWrVq26du3a0aNHz5w5s2XLlnfffXfz5s2ZmZkpKSlz587dtWtXQ0NDaWnpyZMnV69efebMmR07dnz77bf9/f0TJ07csGHD7t27a2tr4+Pjjx49GhAQ8M0339TQ0LBy5cr58+c3bdr0n//8Z3Fx8fLlyz/44IPQ0NCvv/46KytLq9VOnz69evXqjRs3vv3225s2bTp37lypVMrMzMzOzq5evXrlypUbN26MjY0tXbo0PDx86NCh69evv/XWW0uXLh0bG3v8+PErV67U19e3bNmyVatWvfrqq6dPn75z58633367c+fO+fPn29raTp8+vWrVqkOHDr388ss3b948f/58dXX1m2++yc3NrV69+vXXX1dXV8+ePfvoo49Wrlw5c+fOtm3bUlNT586dy8vLS0hIOHny5L59+2ZmZg4cOPDpp5+mpqZWr1799ttvV6xY0dHRsWzZssDAQENDQ+PGjduyZUtMTEyLFi2am5t79ux5+umnR44cqa6u/vLLL6dNm8bHx4eHh7/99ts5OTnp6enJycmlS5dOnz49MzOzffv2M2fOXLx48YQJE4YMGdK9e/eiRYs2b948Z86cOXPm/Pzzz+fOnZs9e7a6urr33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";
+const MEMBER_STAT_IMAGE = "data:image/png;base64,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P/95+vTp7du3r1u37uLFi2+++ebq1aubNm0aHh5esWLFtGnTdu/efejQoUOHDl2+fHnBggW2trbCwsL33ntPq9Vu2bJly5Ytd+7cKSsrY2NjY2NjV65cKS4uPnjw4NSpU/Hx8T/88MO0tLSlS5e2b98+Y8aM7OzsrVu3RkZGcnJy3n///fnz5zds2LC6urrTp08nJSVdunTpuXPnVqxYcfv27R9++OGzzz7r7e09dOjQvXv3fvnll7q6uvT09M6dO2fOnNmxY8fbb79dUlKyfPnyJUuWfPjhh927d798+fJTp06dPXu2R48eEydO7Nu3LzY2Njw8vHPnzlFRUSkpKf379//888+qqqoHH3xwz549y5Yte/fuTUpKWrBgwfHjx2vXrn3zzTc3b9783XffrV69es2aNbNnzx48eLB///5Fixbdu3dvwYIFjY2Nf/7zn9OmTbNarcHBwU2bNt28efP999+vWbNm/fr1U6dOHTp0qLy8/Pfffw8PDzdv3jwxMfHFF19s27Zt6dKl999/f+DAgZmZmQ4fPrx8+fKOHTvWrFmTn5+fnp6+adOmQ4cO/fjjj61bt16yZElJSUl5eXlJSUmFhYWrVq26du3a0aNHz5w5s2XLlnfffXfz5s2ZmZkpKSlz587dtWtXQ0NDaWnpyZMnV69efebMmR07dnz77bf9/f0TJ07csGHD7t27a2tr4+Pjjx49GhAQ8M0339TQ0LBy5cr58+c3bdr0n//8Z3Fx8fLlyz/44IPQ0NCvv/46KytLq9VOnz69evXqjRs3vv3225s2bTp37lypVMrMzMzOzq5evXrlypUbN26MjY0tXbo0PDx86NCh69evv/XWW0uXLh0bG3v8+PErV67U19e3bNmyVatWvfrqq6dPn75z58633367c+fO+fPn29raTp8+vWrVqkOHDr388ss3b948f/58dXX1m2++yc3NrV69+vXXX1dXV8+ePfvoo49Wrlw5c+fOtm3bUlNT586dy8vLS0hIOHny5L59+2ZmZg4cOPDpp5+mpqZWr1799ttvV6xY0dHRsWzZssDAQENDQ+PGjduyZUtMTEyLFi2am5t79ux5+umnR44cqa6u/vLLL6dNm8bHx4eHh7/99ts5OTnp6enJycmlS5dOnz49MzOzffv2M2fOXLx48YQJE4YMGdK9e/eiRYs2b948Z86cOXPm/Pzzz+fOnZs9e7a6urr3338/PT19+vTp9u3bW7duXb9+fd26dfPnz2dmZiYmJhoZGf3www9PPvnk4cOHv/rqq3Xr1jU3N2dmZpYvX759+/Y2m81kMikpKXV1dVlZWY2NjbGxsdnZ2X379v3mm2/y8vKaNWvS0tKGDh36wAMPREZGhoaGbtq0acCAATU1NX/7298GBAQ0NjaWl5d37tyZmJio0+nGjBnzww8/JCQk9Pf3V61aVbFiRbFY3L59+8aNG6dOnRoaGpqZmTly5IjRaDx16lRsbOzYsWPp6elr164dPXr0wQcfjIyMbN++fcWKFcePH8/MzJyYmOjs7Bw0aNDo0aPj4+OXLFkyefLkCxcubN68+fvvv69fv75v376qqqqtW7dGR0f37NmTm5u7devW6upqV1fXb7/9VllZGR8f/+abb5YvX75x48aDBw9mZmYSEhL27NkzcuTIv/3tb1VVVStWrIhEIpWVlRs3bjQ0NHz55Zfv3r2bN28ODg5esGBBdnZ2Q0PDrVu3bt++3d/fn5mZmTZt2vTp0/fv39+5c2d8fHxgYODw4cMTExOzZ8+eOXPm9OnT79q1y8vL6+jo+PHHH3/22WfV1dXNmzePHDly8+bNM2fOXLFixfHjx9PS0goLC8+ePZufn5+RkZGTk5OSknLx4sW0tLTw8PDly5c3btxYUlJy8+bN3bt3h4WFY2NjX3zxRcuWLU1NTZs2bXr48OH58+fPnDnz7bff9u/fX1tbW1ZW5uXlTZ48OT09fcaMGX5+fmfOnPn++++7d+8uLCxctGjRO++8Mzk5+f7773/55Ze6urqzZ89mZGT89a9/HT9+fNmyZd7e3llZWQsXLly1alVJSckPP/yQkJAwYMCATZs2vfvuu7m5ub/97W8bNmyYOHHi6tWrQ0NDBw8eLCsrKzg4ePz48YULF06ePHnAgAHdunV79dVXo6OjV69eHRAQ0KxZs3/84x9vvvnm3LlzV65cue+++7Kysl27du3AgQPTpk2bNm1aU1Nz4MCB4eHhLVu23L9/f1NT07Vr187Nzf36668LCwuvv/56eXl58eLFv/32W2Rk5OHDh4ODg7t27Tp16pSgoKCLL74YFhYmEAjk5uY2b96cnZ3dsmXLF198kZaW5uPj89NPPxUVFZWUlHzzzTdvv/02LS1txYoVfX19AwYMSExM7N69u2bNml26dNHS0jp58uQdO3aEh4fPnj27a9euQ4cOnTx58vvvv3/06NGGhobY2Nj58+evWbNmxIgRQ4YMuXDhwiFDhvzggw9++eWXadOmnT17dvDgwT179lyzZk1AQMCFCxdWrFjR2tr64IMP3rp1a25u7oMPPli5cuWrr746MzMzffr0Gzdu7Nix48SJEwUFBZ999llqaio/Pz8qKmrYsGEzZ85MTU0NDQ2VlZV79uy5dOnSgQMHxo4dGxkZ2bVrV0xMjIGBgS1bthw7duzs2bO7du26e/fuW2+9dfHiRdOmTZeUlDzzzDO9vb0LFy48fPjwO++8M3ny5EmTJk2fPj02NvbFF1/8/vvvq1atysvLmzdvPnjw4LJly8LDw5cuXQoPDz9y5MihQ4fW1tY2bdq0bNmywYMH79ixY8OGDQsWLJg4cWJ8fPyWLVv++te/RkZGZs2aNX369OnTp1euXElLS3v11Vf79u2bN29eZmZmTU3NkCFD+vv7o6Oj3bt3r1+/fuzYsbi4uL1797a3tw8fPnzlypX8/PzFixf37dtXXl7+97//7d+/v7u7+6mnnnr11Vf79+9v3rx58+bNZ86cMXTo0M2bNwcGBv7jH/84b968/Pz8rVu33nrrrZUrV/bt2/f888/v3r27f//+gwcP7t69W1NT8+2336amptq0aXPo0KGDBg3au3fv3Llz9+/f7+vr27VrV2Ji4ujRozt27Dh79uyDBw+ePXv25s2b8vLy9evXl5aWli5dOmfOnL1793bp0sVoNObOnbtq1aqTJ08+ePBgfn7+2LFjCxYsWLFixdKlS+Pi4rZv37548eLzzz8/ceLEb7/99sKFC6Ojozdu3Hj69OlffPHF6dOnv/jiC2NjY/v27Tt8+PCff/65fPnyyspKf39/27Ztly1b9s0337z55psHDhz44YcfJk+evHnz5uHDh8fHx6dOnTp69Gh4eHj37t0JCQkzZsy4cOFCU1PTmDFjLl68GBwcLC4uPnLkyC+//JKXl3f06NHe3t6kpKSQkJC5c+fOnDkTExN79+7duXNnRUVFUVGR0WhcvHhx4sSJe/fu9fX1ffLJJ7t37961a1dvby8nJ2fhwoUHDx5cvHhxfn5+fHx8bW3t9OnTx48fT0pKmj9/fnh4eO/evaGhocoHnSgIIYQQQgghhBBCCCGEEEIIIYQQQgghhBBCCCGEEEIIIYQQQgghhBBCCCGEEEIIIYQQQgghhBBCCCGEEEIIIYQQQvxf8D9JrXyMstB5YQAAAABJRU5ErkJggg==";
 
 function cn(...parts) {
   return parts.filter(Boolean).join(" ");
@@ -355,6 +355,22 @@ function clearSupabaseAuthStorage() {
 }
 async function getSafeCurrentUser() {
   try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      if (isInvalidRefreshTokenError(sessionError)) {
+        clearSupabaseAuthStorage();
+        try { await supabase.auth.signOut({ scope: "local" }); } catch {}
+        return { user: null, message: "Phiên đăng nhập cũ đã hết hạn và đã được làm sạch.", shouldRetry: false };
+      }
+      if (isAuthLockError(sessionError)) return { user: null, message: "Trình duyệt đang đồng bộ phiên đăng nhập.", shouldRetry: true };
+      return { user: null, message: `Không đọc được phiên đăng nhập: ${sessionError.message}`, shouldRetry: false };
+    }
+
+    const sessionUser = sessionData?.session?.user || null;
+    if (!sessionUser) {
+      return { user: null, message: "", shouldRetry: false };
+    }
+
     const { data, error } = await supabase.auth.getUser();
     if (error) {
       if (isInvalidRefreshTokenError(error)) {
@@ -362,10 +378,13 @@ async function getSafeCurrentUser() {
         try { await supabase.auth.signOut({ scope: "local" }); } catch {}
         return { user: null, message: "Phiên đăng nhập cũ đã hết hạn và đã được làm sạch.", shouldRetry: false };
       }
-      if (isAuthLockError(error)) return { user: null, message: "Trình duyệt đang đồng bộ phiên đăng nhập.", shouldRetry: true };
-      return { user: null, message: `Không đọc được phiên đăng nhập: ${error.message}`, shouldRetry: false };
+      if (isAuthLockError(error)) {
+        return { user: sessionUser, message: "Trình duyệt đang đồng bộ phiên đăng nhập.", shouldRetry: true };
+      }
+      return { user: sessionUser, message: `Không xác minh được phiên đăng nhập: ${error.message}`, shouldRetry: false };
     }
-    return { user: data.user || null, message: "", shouldRetry: false };
+
+    return { user: data.user || sessionUser || null, message: "", shouldRetry: false };
   } catch (error) {
     if (isAuthLockError(error)) return { user: null, message: "Trình duyệt đang đồng bộ phiên đăng nhập.", shouldRetry: true };
     return { user: null, message: `Không khởi tạo được xác thực: ${error?.message || "Lỗi không xác định"}`, shouldRetry: false };
@@ -554,7 +573,7 @@ export default function HoaHoiGameCanvasApp() {
   const [flowerCreateMessage, setFlowerCreateMessage] = useState("");
   const [savingFlower, setSavingFlower] = useState(false);
   const [user, setUser] = useState(null);
-  const [loginEmail, setLoginEmail] = useState("");
+  const [loginNickname, setLoginNickname] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginMessage, setLoginMessage] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
@@ -604,13 +623,17 @@ export default function HoaHoiGameCanvasApp() {
   const [artDashboardGroupFilter, setArtDashboardGroupFilter] = useState("all");
   const [artRareFlowerGroupFilter, setArtRareFlowerGroupFilter] = useState("all");
   const [uploadingArtVaseIcon, setUploadingArtVaseIcon] = useState(false);
-  const [accountPermissions, setAccountPermissions] = useState([]);
+  const [accountIdentities, setAccountIdentities] = useState([]);
+  const [accountMemberPermissions, setAccountMemberPermissions] = useState([]);
   const [accountPermissionsLoaded, setAccountPermissionsLoaded] = useState(false);
   const [accountPermissionMessage, setAccountPermissionMessage] = useState("");
-  const [permissionEmailInput, setPermissionEmailInput] = useState("dinhsang199816@gmail.com");
-  const [permissionMemberId, setPermissionMemberId] = useState("none");
+  const [permissionEmailInput, setPermissionEmailInput] = useState("");
+  const [permissionNicknameInput, setPermissionNicknameInput] = useState("");
+  const [permissionRoleInput, setPermissionRoleInput] = useState("member_editor");
+  const [permissionMemberIds, setPermissionMemberIds] = useState([]);
+  const [permissionMemberSearch, setPermissionMemberSearch] = useState("");
   const [savingAccountPermission, setSavingAccountPermission] = useState(false);
-  const [currentAccountPermission, setCurrentAccountPermission] = useState(null);
+  const [currentAccountProfile, setCurrentAccountProfile] = useState(null);
   const [memberCheckDialogOpenId, setMemberCheckDialogOpenId] = useState(null);
   const [memberEditDialogOpenId, setMemberEditDialogOpenId] = useState(null);
   const [flowerEditDialogOpenId, setFlowerEditDialogOpenId] = useState(null);
@@ -620,6 +643,7 @@ export default function HoaHoiGameCanvasApp() {
   const [uploadingStatCardKey, setUploadingStatCardKey] = useState("");
   const [uploadingFlowerIconId, setUploadingFlowerIconId] = useState("");
   const [localStatCardAssetMap, setLocalStatCardAssetMap] = useState({});
+  const [editingAccountEmail, setEditingAccountEmail] = useState("");
 
   const activeTabRef = useRef("dashboard");
   const isAdminRef = useRef(false);
@@ -628,11 +652,18 @@ export default function HoaHoiGameCanvasApp() {
   const isAdmin = useMemo(() => ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail), [userEmail]);
   const isSuperAdmin = useMemo(() => SUPER_ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail), [userEmail]);
   const isManager = useMemo(() => MANAGER_EMAILS.map((x) => x.toLowerCase()).includes(userEmail), [userEmail]);
-  const adminButtonLabel = useMemo(() => (isManager ? "Manager" : isAdmin ? "Admin" : "Đăng nhập"), [isAdmin, isManager]);
+  const adminButtonLabel = useMemo(() => {
+    if (isManager) return "Manager";
+    if (isAdmin) return "Admin";
+    if (user && currentAccountProfile?.nickname) return currentAccountProfile.nickname;
+    if (user) return "Tài khoản";
+    return "Đăng nhập";
+  }, [isAdmin, isManager, user, currentAccountProfile]);
   const canManageArt = useMemo(() => isAdmin || isManager, [isAdmin, isManager]);
-  const isRestrictedEditor = useMemo(() => !isAdmin && currentAccountPermission?.role === "member_editor", [isAdmin, currentAccountPermission]);
+  const isRestrictedEditor = useMemo(() => !isAdmin && currentAccountProfile?.role === "member_editor" && Array.isArray(currentAccountProfile?.memberIds) && currentAccountProfile.memberIds.length > 0, [isAdmin, currentAccountProfile]);
   const canAccessOwnershipUpdate = useMemo(() => isAdmin || isRestrictedEditor, [isAdmin, isRestrictedEditor]);
-  const restrictedMemberId = useMemo(() => currentAccountPermission?.memberId ? String(currentAccountPermission.memberId) : "", [currentAccountPermission]);
+  const restrictedMemberIds = useMemo(() => Array.isArray(currentAccountProfile?.memberIds) ? currentAccountProfile.memberIds.map(String) : [], [currentAccountProfile]);
+  const restrictedMemberId = useMemo(() => restrictedMemberIds[0] || "", [restrictedMemberIds]);
 
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
   useEffect(() => { isAdminRef.current = isAdmin; }, [isAdmin]);
@@ -648,13 +679,13 @@ export default function HoaHoiGameCanvasApp() {
       if (result.user?.email) {
         const normalizedEmail = String(result.user.email).toLowerCase();
         if (!ADMIN_EMAILS.map((item) => item.toLowerCase()).includes(normalizedEmail)) {
-          const permission = await getAccountPermissionForEmail(normalizedEmail);
-          if (active) setCurrentAccountPermission(permission);
+          const profile = await getAccountAccessProfileForEmail(normalizedEmail);
+          if (active) setCurrentAccountProfile(profile);
         } else {
-          setCurrentAccountPermission(null);
+          setCurrentAccountProfile(null);
         }
       } else {
-        setCurrentAccountPermission(null);
+        setCurrentAccountProfile(null);
       }
       if (result.message) setLoginMessage(result.message);
       if (result.shouldRetry && attempt < 3) retryTimer = window.setTimeout(() => initAuth(attempt + 1), 500 + attempt * 300);
@@ -666,13 +697,13 @@ export default function HoaHoiGameCanvasApp() {
       if (session?.user?.email) {
         const normalizedEmail = String(session.user.email).toLowerCase();
         if (!ADMIN_EMAILS.map((item) => item.toLowerCase()).includes(normalizedEmail)) {
-          const permission = await getAccountPermissionForEmail(normalizedEmail);
-          if (active) setCurrentAccountPermission(permission);
+          const profile = await getAccountAccessProfileForEmail(normalizedEmail);
+          if (active) setCurrentAccountProfile(profile);
         } else {
-          setCurrentAccountPermission(null);
+          setCurrentAccountProfile(null);
         }
       } else {
-        setCurrentAccountPermission(null);
+        setCurrentAccountProfile(null);
       }
       if (session?.user) setLoginMessage("");
     });
@@ -759,18 +790,66 @@ export default function HoaHoiGameCanvasApp() {
     );
   }
   async function loadAccountPermissionsData() {
-    const { data, error } = await supabase.from("account_permissions").select("id, email, role, member_id").order("email", { ascending: true });
-    if (error) { setAccountPermissions([]); setAccountPermissionsLoaded(true); return; }
-    setAccountPermissions((data || []).map((row) => ({ id: String(row.id), email: String(row.email || "").toLowerCase(), role: row.role || "member_editor", memberId: row.member_id ? String(row.member_id) : "" })));
+    const [identitiesRes, permissionRowsRes, legacyRes] = await Promise.all([
+      supabase.from("account_identities").select("id, email, nickname, role").order("nickname", { ascending: true }),
+      supabase.from("account_member_permissions").select("id, account_email, member_id").order("account_email", { ascending: true }),
+      supabase.from("account_permissions").select("id, email, role, member_id").order("email", { ascending: true }),
+    ]);
+
+    if (!identitiesRes.error && !permissionRowsRes.error) {
+      setAccountIdentities((identitiesRes.data || []).map((row) => ({ id: String(row.id), email: String(row.email || "").toLowerCase(), nickname: String(row.nickname || ""), role: row.role || "member_editor" })));
+      setAccountMemberPermissions((permissionRowsRes.data || []).map((row) => ({ id: String(row.id), accountEmail: String(row.account_email || "").toLowerCase(), memberId: row.member_id ? String(row.member_id) : "" })));
+      setAccountPermissionsLoaded(true);
+      return;
+    }
+
+    if (!legacyRes.error) {
+      const legacyRows = (legacyRes.data || []).map((row, index) => ({ id: `legacy-${index}`, email: String(row.email || "").toLowerCase(), nickname: String(row.email || "").split("@")[0] || "", role: row.role || "member_editor", memberId: row.member_id ? String(row.member_id) : "" }));
+      const identityMap = new Map();
+      legacyRows.forEach((row) => {
+        if (!identityMap.has(row.email)) identityMap.set(row.email, { id: `legacy-${row.email}`, email: row.email, nickname: row.nickname, role: row.role });
+      });
+      setAccountIdentities(Array.from(identityMap.values()));
+      setAccountMemberPermissions(legacyRows.filter((row) => row.memberId).map((row, index) => ({ id: `legacy-perm-${index}`, accountEmail: row.email, memberId: row.memberId })));
+      setAccountPermissionsLoaded(true);
+      return;
+    }
+
+    setAccountIdentities([]);
+    setAccountMemberPermissions([]);
     setAccountPermissionsLoaded(true);
   }
-  async function getAccountPermissionForEmail(email) {
+
+  async function getAccountAccessProfileForEmail(email) {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     if (!normalizedEmail) return null;
-    const { data, error } = await supabase.from("account_permissions").select("id, email, role, member_id").eq("email", normalizedEmail).maybeSingle();
-    if (error || !data) return null;
-    return { id: String(data.id), email: String(data.email || "").toLowerCase(), role: data.role || "member_editor", memberId: data.member_id ? String(data.member_id) : "" };
+
+    const [identityRes, permissionsRes, legacyRes] = await Promise.all([
+      supabase.from("account_identities").select("id, email, nickname, role").eq("email", normalizedEmail).maybeSingle(),
+      supabase.from("account_member_permissions").select("id, account_email, member_id").eq("account_email", normalizedEmail),
+      supabase.from("account_permissions").select("id, email, role, member_id").eq("email", normalizedEmail),
+    ]);
+
+    if (!identityRes.error && identityRes.data) {
+      return { id: String(identityRes.data.id), email: String(identityRes.data.email || "").toLowerCase(), nickname: String(identityRes.data.nickname || ""), role: identityRes.data.role || "member_editor", memberIds: (permissionsRes.data || []).map((row) => String(row.member_id)).filter(Boolean) };
+    }
+
+    if (!legacyRes.error && (legacyRes.data || []).length > 0) {
+      const first = legacyRes.data[0];
+      return { id: `legacy-${normalizedEmail}`, email: normalizedEmail, nickname: normalizedEmail.split("@")[0] || "", role: first.role || "member_editor", memberIds: (legacyRes.data || []).map((row) => String(row.member_id)).filter(Boolean) };
+    }
+
+    return null;
   }
+
+  async function getAccountIdentityByNickname(rawNickname) {
+    const nickname = String(rawNickname || "").trim();
+    if (!nickname) return null;
+    const { data, error } = await supabase.from("account_identities").select("id, email, nickname, role").ilike("nickname", nickname).maybeSingle();
+    if (error || !data) return null;
+    return { id: String(data.id), email: String(data.email || "").toLowerCase(), nickname: String(data.nickname || ""), role: data.role || "member_editor" };
+  }
+  
   async function loadArtVasesData() {
     const { data, error } = await supabase.from("art_vases").select("id, name, icon_url, vase_group, main_flower_ids, secondary_flower_ids, accent_flower_ids").order("name", { ascending: true });
     if (error) { setArtVases([]); setArtVaseMessage("Chưa có bảng art_vases trong Supabase hoặc chưa tải được dữ liệu Hoa nghệ thuật."); setArtVasesLoaded(true); return; }
@@ -792,26 +871,65 @@ export default function HoaHoiGameCanvasApp() {
   }
   async function loadAllData(options = {}) {
     const { silent = false, includeTitles = false, includeHistory = false, includeSpiritHunt = false, includePriorityRace = false } = options;
-    if (!silent) { setLoading(true); setPageMessage(""); }
+    if (!silent) {
+      setLoading(true);
+      setPageMessage("");
+    }
+
+    const corePromise = Promise.all([
+      supabase.from("members").select("id, name, birth_year, gender, left_guild, show_in_lookup").order("name", { ascending: true }),
+      supabase.from("flowers").select("id, name, group_name, icon_url").order("name", { ascending: true }),
+    ]);
+
+    let releasedLoading = false;
+    const releaseLoading = (message = "") => {
+      if (silent || releasedLoading) return;
+      releasedLoading = true;
+      setLoading(false);
+      if (message) setPageMessage(message);
+    };
+
+    const softTimeout = window.setTimeout(() => {
+      releaseLoading("Canvas đang tải dữ liệu nền hơi chậm. Giao diện đã mở trước, dữ liệu sẽ tự cập nhật khi Supabase phản hồi xong.");
+    }, 2500);
+
     try {
-      const [membersRes, flowersRes] = await Promise.all([
-        supabase.from("members").select("id, name, birth_year, gender, left_guild, show_in_lookup").order("name", { ascending: true }),
-        supabase.from("flowers").select("id, name, group_name, icon_url").order("name", { ascending: true }),
-      ]);
-      if (membersRes.error || flowersRes.error) throw new Error(membersRes.error?.message || flowersRes.error?.message || "Không tải được dữ liệu.");
-      setMembers((membersRes.data || []).map((m) => ({ id: String(m.id), name: m.name, birthYear: m.birth_year || null, gender: m.gender || "", leftGuild: Boolean(m.left_guild), showInLookup: Boolean(m.show_in_lookup) })));
-      setFlowers((flowersRes.data || []).map((f) => ({ id: String(f.id), name: f.name, group: f.group_name, iconUrl: f.icon_url || "" })));
+      const [membersRes, flowersRes] = await corePromise;
+      window.clearTimeout(softTimeout);
+
+      if (membersRes.error || flowersRes.error) {
+        throw new Error(membersRes.error?.message || flowersRes.error?.message || "Không tải được dữ liệu.");
+      }
+
+      setMembers((membersRes.data || []).map((m) => ({
+        id: String(m.id),
+        name: m.name,
+        birthYear: m.birth_year || null,
+        gender: m.gender || "",
+        leftGuild: Boolean(m.left_guild),
+        showInLookup: Boolean(m.show_in_lookup),
+      })));
+      setFlowers((flowersRes.data || []).map((f) => ({
+        id: String(f.id),
+        name: f.name,
+        group: f.group_name,
+        iconUrl: f.icon_url || "",
+      })));
       setLastSyncedAt(new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-      const extra = [loadOwnershipData()];
-      if (includeTitles) extra.push(loadTitlesData());
-      if (includeHistory) extra.push(loadHistoryData());
-      if (includeSpiritHunt) extra.push(loadSpiritHuntData());
-      if (includePriorityRace) extra.push(loadPriorityRaceData());
-      await Promise.all(extra);
+
+      releaseLoading("");
+
+      const backgroundTasks = [
+        loadOwnershipData().catch((error) => setPageMessage(`Không tải được sở hữu hoa: ${error?.message || "Lỗi không xác định"}`)),
+      ];
+      if (includeTitles) backgroundTasks.push(loadTitlesData().catch((error) => setPageMessage(`Không tải được chức danh: ${error?.message || "Lỗi không xác định"}`)));
+      if (includeHistory) backgroundTasks.push(loadHistoryData().catch((error) => setPageMessage(`Không tải được lịch sử: ${error?.message || "Lỗi không xác định"}`)));
+      if (includeSpiritHunt) backgroundTasks.push(loadSpiritHuntData().catch((error) => setPageMessage(`Không tải được săn hoa linh: ${error?.message || "Lỗi không xác định"}`)));
+      if (includePriorityRace) backgroundTasks.push(loadPriorityRaceData().catch((error) => setPageMessage(`Không tải được ưu tiên đua hội: ${error?.message || "Lỗi không xác định"}`)));
+      Promise.allSettled(backgroundTasks);
     } catch (error) {
-      setPageMessage(`Không tải được dữ liệu: ${error?.message || "Lỗi không xác định"}`);
-    } finally {
-      if (!silent) setLoading(false);
+      window.clearTimeout(softTimeout);
+      releaseLoading(`Không tải được dữ liệu: ${error?.message || "Lỗi không xác định"}`);
     }
   }
 
@@ -941,7 +1059,10 @@ export default function HoaHoiGameCanvasApp() {
     Object.values(grouped).forEach((groupMap) => MEMBER_FLOWER_GROUP_ORDER.forEach((group) => { groupMap[group] = (groupMap[group] || []).sort((a, b) => a.name.localeCompare(b.name, "vi")); }));
     return grouped;
   }, [ownerships, flowerById]);
-  const filteredExistingMembers = useMemo(() => members.filter((m) => m.name.toLowerCase().includes(memberPickerSearch.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name, "vi")), [members, memberPickerSearch]);
+  const filteredExistingMembers = useMemo(() => {
+    const sourceMembers = isRestrictedEditor ? members.filter((member) => restrictedMemberIds.includes(String(member.id))) : members;
+    return sourceMembers.filter((m) => m.name.toLowerCase().includes(memberPickerSearch.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  }, [members, memberPickerSearch, isRestrictedEditor, restrictedMemberIds]);
   const filteredFlowers = useMemo(() => flowers.filter((flower) => normalizeFlowerLookupText(flower.name).includes(normalizeFlowerLookupText(flowerSearch))), [flowers, flowerSearch]);
   const filteredMemberFlowerLookupOptions = useMemo(() => lookupVisibleMembers.filter((m) => !memberFlowerLookupSearch.trim() || m.name.toLowerCase().includes(memberFlowerLookupSearch.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name, "vi")), [lookupVisibleMembers, memberFlowerLookupSearch]);
   const selectedMemberFlowerLookup = useMemo(() => lookupVisibleMembers.find((m) => String(m.id) === String(memberFlowerLookup)) || null, [lookupVisibleMembers, memberFlowerLookup]);
@@ -1148,32 +1269,48 @@ export default function HoaHoiGameCanvasApp() {
 
   async function signInAsAdmin() {
     setLoginMessage("");
-    if (!loginEmail.trim() || !loginPassword.trim()) return setLoginMessage("Vui lòng nhập email và mật khẩu.");
+    if (!loginNickname.trim() || !loginPassword.trim()) return setLoginMessage("Vui lòng nhập nickname và mật khẩu.");
     setLoggingIn(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPassword });
+      let resolvedEmail = "";
+      const rawLogin = loginNickname.trim();
+      if (rawLogin.includes("@")) {
+        resolvedEmail = rawLogin.toLowerCase();
+      } else {
+        const identity = await getAccountIdentityByNickname(rawLogin);
+        if (!identity?.email) {
+          setLoggingIn(false);
+          return setLoginMessage("Không tìm thấy nickname này. Hãy kiểm tra lại hoặc dùng email cũ để đăng nhập trong lúc chuyển đổi.");
+        }
+        resolvedEmail = identity.email;
+      }
+      const { data, error } = await supabase.auth.signInWithPassword({ email: resolvedEmail, password: loginPassword });
       if (error) return setLoginMessage(`Đăng nhập thất bại: ${error.message}`);
       const email = data.user?.email?.toLowerCase() || "";
-      const permission = await getAccountPermissionForEmail(email);
+      const profile = await getAccountAccessProfileForEmail(email);
       const allowedAdmin = ADMIN_EMAILS.map((item) => item.toLowerCase()).includes(email);
-      const allowedEditor = permission?.role === "member_editor" && permission?.memberId;
+      const allowedEditor = profile?.role === "member_editor" && Array.isArray(profile?.memberIds) && profile.memberIds.length > 0;
       if (!allowedAdmin && !allowedEditor) {
         await supabase.auth.signOut({ scope: "local" });
-        setUser(null); setCurrentAccountPermission(null);
+        setUser(null);
+        setCurrentAccountProfile(null);
         return setLoginMessage("Tài khoản này không có quyền truy cập chức năng quản trị/cập nhật.");
       }
-      setCurrentAccountPermission(allowedAdmin ? null : permission);
+      setCurrentAccountProfile(allowedAdmin ? null : profile);
       setUser(data.user || null);
-      setLoginPassword(""); setAdminDialogOpen(false);
+      setLoginPassword("");
+      setAdminDialogOpen(false);
     } catch (error) {
       setLoginMessage(`Đăng nhập thất bại: ${error?.message || "Lỗi không xác định"}`);
-    } finally { setLoggingIn(false); }
+    } finally {
+      setLoggingIn(false);
+    }
   }
   async function signOutAdmin() {
     if (loggingOut) return;
     setLoggingOut(true);
     try { await supabase.auth.signOut({ scope: "local" }); } catch {}
-    setUser(null); setCurrentAccountPermission(null); setLoginMessage(""); setLoginPassword(""); setLoggingOut(false);
+    setUser(null); setCurrentAccountProfile(null); setLoginMessage(""); setLoginPassword(""); setLoginNickname(""); setLoggingOut(false);
   }
   async function logAction({ actionType, actorName = "Hệ thống", targetType, targetName, details = "" }) {
     const payload = { action_type: actionType, actor_name: actorName, target_type: targetType, target_name: targetName, details };
@@ -1197,10 +1334,17 @@ export default function HoaHoiGameCanvasApp() {
     await loadAllData();
     setNewFlowerName(""); setNewFlowerIconUrl(""); setNewFlowerGroup("Lục"); setFlowerCreateMessage(`Đã thêm hoa mới: ${data.name}.`);
   }
-  useEffect(() => { if (isRestrictedEditor && restrictedMemberId) { setSelectedExistingMemberId(restrictedMemberId); setNewMemberName(""); } }, [isRestrictedEditor, restrictedMemberId]);
+  useEffect(() => {
+    if (isRestrictedEditor && restrictedMemberIds.length > 0) {
+      setNewMemberName("");
+      if (!restrictedMemberIds.includes(String(selectedExistingMemberId))) setSelectedExistingMemberId(String(restrictedMemberIds[0]));
+    }
+  }, [isRestrictedEditor, restrictedMemberIds, selectedExistingMemberId]);
   async function getOrCreateMember() {
     if (isRestrictedEditor) {
-      const restrictedMember = members.find((m) => String(m.id) === String(restrictedMemberId));
+      if (!selectedExistingMemberId || selectedExistingMemberId === "none") return { error: "Hãy chọn thành viên được cấp quyền cập nhật." };
+      if (!restrictedMemberIds.includes(String(selectedExistingMemberId))) return { error: "Tài khoản này không có quyền cập nhật cho thành viên đã chọn." };
+      const restrictedMember = members.find((m) => String(m.id) === String(selectedExistingMemberId));
       if (!restrictedMember) return { error: "Không tìm thấy thành viên được cấp quyền cập nhật." };
       return { member: restrictedMember };
     }
@@ -1610,6 +1754,24 @@ export default function HoaHoiGameCanvasApp() {
     if (error) return setPriorityRaceMessage(`Không lưu được danh sách đua 2 phẩm: ${error.message}`);
     setTwoGroupMemberIds(nextTwoGroup);
   }
+  async function clearOneQuestMembers() {
+    if (!isAdmin) return;
+    const { error } = await persistPriorityRaceConfig(priorityRaceEntries, [], completedMemberIds, twoGroupMemberIds);
+    if (error) return setPriorityRaceMessage(`Không xoá được danh sách còn 1 quest: ${error.message}`);
+    setOneQuestMemberIds([]);
+  }
+  async function clearCompletedMembers() {
+    if (!isAdmin) return;
+    const { error } = await persistPriorityRaceConfig(priorityRaceEntries, oneQuestMemberIds, [], twoGroupMemberIds);
+    if (error) return setPriorityRaceMessage(`Không xoá được danh sách hoàn thành: ${error.message}`);
+    setCompletedMemberIds([]);
+  }
+  async function clearTwoGroupMembers() {
+    if (!(isAdmin || isManager)) return;
+    const { error } = await persistPriorityRaceConfig(priorityRaceEntries, oneQuestMemberIds, completedMemberIds, []);
+    if (error) return setPriorityRaceMessage(`Không xoá được danh sách đua 2 phẩm: ${error.message}`);
+    setTwoGroupMemberIds([]);
+  }
 
   const visibleTabs = [
     { value: "dashboard", label: "Tổng quan" },
@@ -1625,7 +1787,7 @@ export default function HoaHoiGameCanvasApp() {
   ];
 
   if (loading) {
-    return <div className="min-h-screen bg-slate-50 p-8"><div className="mx-auto max-w-7xl rounded-3xl border bg-white p-8 text-slate-600">Đang tải dữ liệu...</div></div>;
+    return <div className="min-h-screen bg-slate-50 p-8"><div className="mx-auto max-w-7xl rounded-3xl border bg-white p-8 text-slate-600 space-y-3"><div>Đang tải dữ liệu...</div><div className="text-sm text-slate-500">Canvas sẽ tự mở giao diện sau vài giây kể cả khi Supabase phản hồi chậm.</div></div></div>;
   }
 
   return (
@@ -1652,7 +1814,7 @@ export default function HoaHoiGameCanvasApp() {
         <div className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/85 p-4 shadow-[0_20px_70px_-30px_rgba(15,23,42,0.35)] backdrop-blur sm:p-5 md:rounded-[32px] md:p-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500">Selina Flower Dashboard</div>
           <h1 className="mt-3 font-serif text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl" style={{ color: "#ec4899" }}>Quản Lý Hoa Hội SELINA</h1>
-          <p className="mt-3 max-w-3xl text-sm text-slate-600">Thành viên chỉ có thể tra cứu thông tin. Các chức năng quản trị chỉ hiển thị cho admin đã đăng nhập.</p>
+          <p className="mt-3 max-w-3xl text-sm text-slate-600">Thành viên chỉ có thể tra cứu thông tin. Các tài khoản quản trị/cập nhật đăng nhập bằng nickname để mở đúng quyền được cấp.</p>
           <div className="mt-5 flex flex-wrap items-center gap-2">
             {topMembers.map((member, index) => <div key={member.id} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs shadow-sm"><TrophyIcon className="h-3.5 w-3.5" /><span>Top {index + 1}: {member.name} ({member.ownedCount})</span></div>)}
             <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
@@ -1661,12 +1823,12 @@ export default function HoaHoiGameCanvasApp() {
                 <DialogHeader className="mb-6">
                   <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Selina Admin</div>
                   <DialogTitle className="mt-4 text-[28px] font-bold tracking-tight text-slate-950">{isAdmin ? "Tài khoản quản trị" : "Đăng nhập quản trị"}</DialogTitle>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">Đăng nhập để mở quyền quản trị và cập nhật dữ liệu của hội.</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">Đăng nhập bằng nickname + mật khẩu. Hệ thống sẽ tự map nickname sang email để dùng Supabase Auth an toàn.</p>
                 </DialogHeader>
-                {isAdmin ? (
+                {(isAdmin || isRestrictedEditor) ? (
                   <div className="space-y-4">
                     <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600">
-                      Đã đăng nhập với tài khoản: <span className="font-semibold text-slate-900">{user?.email}</span>
+                      Đã đăng nhập với tài khoản: <span className="font-semibold text-slate-900">{currentAccountProfile?.nickname ? `${currentAccountProfile.nickname} • ` : ""}{user?.email}</span>
                     </div>
                     <Button className="h-11 w-full rounded-2xl" variant="outline" onClick={signOutAdmin} disabled={loggingOut}>
                       {loggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
@@ -1675,8 +1837,8 @@ export default function HoaHoiGameCanvasApp() {
                 ) : (
                   <div className="space-y-5">
                     <div className="space-y-2.5">
-                      <Label className="text-[15px] font-semibold text-slate-700">Email quản trị</Label>
-                      <Input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="admin@email.com" className="h-12 rounded-[18px] border-slate-200 px-4 text-[15px]" />
+                      <Label className="text-[15px] font-semibold text-slate-700">Nickname đăng nhập</Label>
+                      <Input value={loginNickname} onChange={(e) => setLoginNickname(e.target.value)} placeholder="Nhập nickname..." className="h-12 rounded-[18px] border-slate-200 px-4 text-[15px]" />
                     </div>
                     <div className="space-y-2.5">
                       <Label className="text-[15px] font-semibold text-slate-700">Mật khẩu</Label>
@@ -1722,23 +1884,23 @@ export default function HoaHoiGameCanvasApp() {
               <CardContent className="space-y-4">
                 <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
                   <div className="space-y-4">
-                    {!isRestrictedEditor ? <div className="space-y-2">
-                      <Label>Chọn thành viên có sẵn</Label>
+                    <div className="space-y-2">
+                      <Label>{isRestrictedEditor ? "Chọn thành viên được cấp quyền" : "Chọn thành viên có sẵn"}</Label>
                       <Dialog open={memberPickerOpen} onOpenChange={setMemberPickerOpen}>
-                        <DialogTrigger asChild><Button variant="outline" className="w-full justify-start">{selectedExistingMember ? selectedExistingMember.name : "Chọn thành viên"}</Button></DialogTrigger>
+                        <DialogTrigger asChild><Button variant="outline" className="w-full justify-start">{selectedExistingMember ? selectedExistingMember.name : (isRestrictedEditor ? "Chọn thành viên được cấp quyền" : "Chọn thành viên")}</Button></DialogTrigger>
                         <DialogContent className="sm:max-w-lg">
-                          <DialogHeader><DialogTitle>Chọn thành viên</DialogTitle></DialogHeader>
+                          <DialogHeader><DialogTitle>{isRestrictedEditor ? "Chọn thành viên được cấp quyền" : "Chọn thành viên"}</DialogTitle></DialogHeader>
                           <div className="space-y-3">
                             <div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={memberPickerSearch} onChange={(e) => setMemberPickerSearch(e.target.value)} placeholder="Tìm thành viên..." className="pl-9" /></div>
                             <ScrollArea className="h-[320px] pr-3"><div className="space-y-2">{filteredExistingMembers.map((member) => <button key={member.id} type="button" onClick={() => { setSelectedExistingMemberId(String(member.id)); setMemberPickerOpen(false); }} className="w-full rounded-2xl border bg-white px-4 py-3 text-left hover:bg-slate-50">{member.name}</button>)}</div></ScrollArea>
                           </div>
                         </DialogContent>
                       </Dialog>
-                    </div> : null}
+                    </div>
                     {!isRestrictedEditor ? <div className="space-y-2">
                       <Label>Hoặc nhập thành viên mới</Label>
                       <Input value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} placeholder="Nhập tên thành viên mới..." disabled={selectedExistingMemberId !== "none"} />
-                    </div> : <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-600">Tài khoản này chỉ được cập nhật cho: <span className="font-semibold text-slate-900">{memberById.get(String(restrictedMemberId))?.name || restrictedMemberId}</span></div>}
+                    </div> : <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-600">Tài khoản này được phép cập nhật cho <span className="font-semibold text-slate-900">{restrictedMemberIds.length}</span> thành viên: <span className="font-semibold text-slate-900">{restrictedMemberIds.map((id) => memberById.get(String(id))?.name || id).join(", ")}</span></div>}
                     <div className="grid gap-3 md:grid-cols-[1fr_180px]">
                       <div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={updateSearch} onChange={(e) => setUpdateSearch(e.target.value)} placeholder="Tìm hoa cần thêm..." className="pl-9" /></div>
                       <Select value={updateGroupFilter} onValueChange={setUpdateGroupFilter}><SelectContent><SelectItem value="all">Tất cả nhóm</SelectItem>{FLOWER_GROUPS.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select>
@@ -1761,389 +1923,7 @@ export default function HoaHoiGameCanvasApp() {
             </Card>
             </div></TabsContent> : null}
 
-          <TabsContent value="addflower">
-  <div className="space-y-4">
-    <Card className="rounded-[28px]">
-      <CardHeader>
-        <CardTitle>Hoa nghệ thuật</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {artVaseMessage ? (
-          <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{artVaseMessage}</div>
-        ) : null}
-
-        <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr]">
-          <Card className="rounded-[24px] border shadow-none">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-lg">Dashboard hoa nghệ thuật</CardTitle>
-                <Select value={artDashboardGroupFilter} onValueChange={setArtDashboardGroupFilter}>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả phẩm</SelectItem>
-                    {MEMBER_FLOWER_GROUP_ORDER.map((g) => (
-                      <SelectItem key={g} value={g}>{g}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4 rounded-3xl border p-4">
-                <CircleProgress percent={artSummary.percent} />
-                <div>
-                  <p className="text-sm text-slate-500">
-                    {isGuildArtLookup
-                      ? "Số lượng tổ hợp hoa nghệ thuật hội đã sở hữu, tính việc sở hữu 1 tổ hợp hoa hoàn chỉnh của mỗi một thành viên trong hội"
-                      : `Số lượng tổ hợp hoa nghệ thuật ${selectedArtLookupMember?.name || "thành viên"} đã sở hữu`}
-                  </p>
-                  <p className="text-2xl font-bold">{artSummary.ownedCombos}/{artSummary.totalCombos}</p>
-                </div>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                {filteredArtVaseStats.map((vase) => {
-                  const vasePercent = vase.totalCombos ? Math.round((vase.ownedCombos / vase.totalCombos) * 100) : 0;
-                  const vaseStyle = memberProgressCircleStyle(vasePercent);
-                  return (
-                    <div key={vase.id} className="rounded-3xl border p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-start gap-3">
-                          {vase.iconUrl ? (
-                            <div className="h-11 w-11 overflow-hidden rounded-2xl border bg-white">
-                              <img src={vase.iconUrl} alt={vase.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
-                            </div>
-                          ) : (
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border bg-slate-50 text-slate-500">
-                              <PlaceholderFlowerIcon size="sm" />
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <div className="mb-1 flex flex-wrap items-center gap-2">
-                              <p className="font-semibold break-words">{vase.name}</p>
-                              <Badge className={groupBadgeClass(vase.vaseGroup)}>{vase.vaseGroup}</Badge>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                              <span>{vase.ownedCombos}/{vase.totalCombos} tổ hợp</span>
-                              <span>•</span>
-                              <span>{vase.ownedFlowerCount}/{vase.totalFlowerCount} hoa</span>
-                            </div>
-                          </div>
-                        </div>
-                        <CircleProgress percent={vasePercent} strokeColor={vaseStyle.strokeColor} glowClass={vaseStyle.glowClass} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-[24px] border shadow-none">
-            <CardHeader>
-              <CardTitle className="text-lg">Gợi ý hoa cắm bình chưa sở hữu</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Dialog open={artLookupMemberPickerOpen} onOpenChange={setArtLookupMemberPickerOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start">
-                    {isGuildArtLookup ? "Cả Hội" : selectedArtLookupMember ? selectedArtLookupMember.name : "Chọn thành viên"}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle>Chọn thành viên</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-3">
-                    <div className="relative">
-                      <div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div>
-                      <Input value={artLookupMemberSearch} onChange={(e) => setArtLookupMemberSearch(e.target.value)} placeholder="Tìm thành viên..." className="pl-9" />
-                    </div>
-                    <ScrollArea className="h-[320px] pr-3">
-                      <div className="space-y-2">
-                        <button
-                          type="button"
-                          onClick={() => { setArtLookupMemberId("guild"); setArtLookupMemberPickerOpen(false); }}
-                          className={cn("w-full rounded-2xl border px-4 py-3 text-left hover:bg-slate-50", isGuildArtLookup ? "bg-slate-50 border-slate-300" : "bg-white")}
-                        >
-                          Cả Hội
-                        </button>
-                        {filteredArtLookupMembers.map((member) => (
-                          <button
-                            key={member.id}
-                            type="button"
-                            onClick={() => { setArtLookupMemberId(String(member.id)); setArtLookupMemberPickerOpen(false); }}
-                            className="w-full rounded-2xl border bg-white px-4 py-3 text-left hover:bg-slate-50"
-                          >
-                            {member.name}
-                          </button>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              <div className="relative">
-                <div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div>
-                <Input value={artLookupSuggestionSearch} onChange={(e) => setArtLookupSuggestionSearch(e.target.value)} placeholder="Tìm trong danh sách gợi ý..." className="pl-9" />
-              </div>
-
-              <ScrollArea className="h-[420px] pr-3">
-                <div className="space-y-3">
-                  {artLookupMemberId === "none" ? (
-                    <SectionEmpty>Hãy chọn Cả Hội hoặc một thành viên để xem các hoa cắm bình chưa sở hữu.</SectionEmpty>
-                  ) : filteredArtLookupSuggestions.length === 0 ? (
-                    <SectionEmpty>Thành viên này hiện không thiếu hoa nào trong các bình đã tạo.</SectionEmpty>
-                  ) : (
-                    filteredArtLookupSuggestions.map((row) => {
-                      const checked = artSelectedSuggestionFlowerIds.includes(String(row.flower.id));
-                      return (
-                        <label key={row.flower.id} className="flex cursor-pointer items-start gap-3 rounded-3xl border p-3 hover:bg-slate-50">
-                          <Checkbox checked={checked} onCheckedChange={() => toggleArtSuggestionFlower(row.flower.id)} />
-                          <FlowerThumbnail flower={row.flower} size="sm" />
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold break-words">{row.flower.name}</p>
-                            <p className="mt-1 text-sm text-slate-500">Bình: {row.vaseNames.join(", ")}</p>
-                          </div>
-                          <Badge className={groupBadgeClass(row.flower.group)}>{row.flower.group}</Badge>
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-              </ScrollArea>
-
-              <div className="flex justify-end">
-                <Button type="button" variant="outline" onClick={runArtSuggestionSearch}>Tìm kiếm</Button>
-              </div>
-
-              <div className="rounded-3xl border p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <Label>Kết quả tìm kiếm người sở hữu</Label>
-                  <Badge variant="secondary">{artLookupSearchResults.length} hoa</Badge>
-                </div>
-                <div className="space-y-3">
-                  {artLookupSearchResults.length === 0 ? (
-                    <SectionEmpty>Hãy tick chọn các hoa trong danh sách gợi ý rồi bấm Tìm kiếm.</SectionEmpty>
-                  ) : (
-                    artLookupSearchResults.map((row) => (
-                      <div key={`owner-search-${row.flower.id}`} className="rounded-3xl border p-3">
-                        <div className="flex items-start gap-3">
-                          <FlowerThumbnail flower={row.flower} size="sm" />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="font-semibold break-words">{row.flower.name}</p>
-                              <Badge className={groupBadgeClass(row.flower.group)}>{row.flower.group}</Badge>
-                            </div>
-                            <p className="mt-1 text-sm text-slate-500">Bình: {row.vaseNames.join(", ")}</p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {row.owners.length === 0 ? (
-                                <Badge variant="secondary">Chưa ai sở hữu</Badge>
-                              ) : (
-                                row.owners.map((owner) => (
-                                  <Badge key={`${row.flower.id}-${owner}`} variant="secondary">{owner}</Badge>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-3xl border p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <Label>Chọn người ưu tiên var</Label>
-                  <Badge variant="secondary">{artPriorityVarOwners.length} người</Badge>
-                </div>
-                <div className="relative mb-3">
-                  <div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div>
-                  <Input value={artPriorityVarSearch} onChange={(e) => setArtPriorityVarSearch(e.target.value)} placeholder="Tìm tên thành viên ưu tiên..." className="pl-9" />
-                </div>
-                <ScrollArea className="h-[180px] pr-3">
-                  <div className="space-y-2">
-                    {artPriorityVarOwnerOptions.length === 0 ? (
-                      <SectionEmpty>Hãy bấm Tìm kiếm trước để có danh sách người sở hữu.</SectionEmpty>
-                    ) : (
-                      artPriorityVarOwnerOptions.map((owner) => {
-                        const checked = artPriorityVarOwners.includes(String(owner));
-                        return (
-                          <label key={`priority-var-${owner}`} className="flex cursor-pointer items-center gap-3 rounded-2xl border p-3 hover:bg-slate-50">
-                            <Checkbox checked={checked} onCheckedChange={() => toggleArtPriorityVarOwner(owner)} />
-                            <span className="text-sm font-medium text-slate-700">{owner}</span>
-                          </label>
-                        );
-                      })
-                    )}
-                  </div>
-                </ScrollArea>
-                <div className="mt-3 flex justify-end">
-                  <Button type="button" variant="outline" onClick={runArtVarSuggestion}>Gợi ý</Button>
-                </div>
-              </div>
-
-              <div className="rounded-3xl border p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <Label>Gợi ý var nhau</Label>
-                  <Badge variant="secondary">{artVarSuggestions.length} người</Badge>
-                </div>
-                <div className="space-y-3">
-                  {artVarSuggestions.length === 0 ? (
-                    <SectionEmpty>Hãy bấm Gợi ý để gom danh sách theo người sở hữu.</SectionEmpty>
-                  ) : (
-                    artVarSuggestions.map((item) => (
-                      <div key={`var-${item.owner}`} className="rounded-3xl border p-3">
-                        <div className="flex flex-wrap items-center gap-2 text-sm leading-7 text-slate-700">
-                          <span>Hãy var</span>
-                          <span className={VAR_OWNER_BADGE_CLASS}>{item.owner}</span>
-                          <span>để húp:</span>
-                          <div className="inline-flex flex-wrap items-center gap-2">
-                            {item.flowers.map((flower) => (
-                              <span key={`${item.owner}-${flower.id}`} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-medium ${groupBadgeClass(flower.group)}`}>
-                                <FlowerThumbnail flower={flower} size="sm" />
-                                <span>{flower.name}</span>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="rounded-[24px] border shadow-none">
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-lg">Hoa cắm bình ít người sở hữu (1-3)</CardTitle>
-              <Select value={artRareFlowerGroupFilter} onValueChange={setArtRareFlowerGroupFilter}>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả nhóm</SelectItem>
-                  {MEMBER_FLOWER_GROUP_ORDER.map((g) => (
-                    <SelectItem key={g} value={g}>{g}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[260px] pr-3">
-              <div className="space-y-3">
-                {artRareFlowers.length === 0 ? (
-                  <SectionEmpty>Chưa có hoa cắm bình nào rơi vào nhóm 1-3 người sở hữu.</SectionEmpty>
-                ) : (
-                  artRareFlowers.map((row) => (
-                    <div key={row.flower.id} className="rounded-3xl border p-3">
-                      <div className="flex items-start gap-3">
-                        <FlowerThumbnail flower={row.flower} size="sm" />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="font-semibold break-words">{row.flower.name}</p>
-                            <Badge className={groupBadgeClass(row.flower.group)}>{row.flower.group}</Badge>
-                          </div>
-                          <p className="text-sm text-slate-500">{row.ownerCount} người sở hữu</p>
-                          <p className="mt-1 text-sm text-slate-500">Bình: {row.vaseNames.join(", ")}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        {canManageArt ? (
-          <Card className="rounded-[28px]">
-            <CardHeader>
-              <CardTitle>Tạo và quản lý bình hoa</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 xl:grid-cols-[340px_1fr]">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Chọn bình hoa</Label>
-                  <Select value={selectedArtVaseId} onValueChange={(value) => {
-                    setSelectedArtVaseId(value);
-                    const vase = artVases.find((item) => String(item.id) === String(value));
-                    if (vase) setArtVaseFormFromVase(vase);
-                    else setArtVaseForm(DEFAULT_ART_VASE_FORM);
-                  }}>
-                    <SelectContent>
-                      <SelectItem value="new">+ Tạo bình hoa mới</SelectItem>
-                      {artVases.map((vase) => (
-                        <SelectItem key={vase.id} value={String(vase.id)}>{vase.name} • {vase.vaseGroup || "Lục"}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Tên bình hoa</Label>
-                  <Input value={artVaseForm.name} onChange={(e) => setArtVaseForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Ví dụ: Bình trăng tím" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Icon bình</Label>
-                  <Input value={artVaseForm.iconUrl} onChange={(e) => setArtVaseForm((prev) => ({ ...prev, iconUrl: e.target.value }))} placeholder="https://..." />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phẩm bình</Label>
-                  <Select value={artVaseForm.vaseGroup} onValueChange={(value) => setArtVaseForm((prev) => ({ ...prev, vaseGroup: value }))}>
-                    <SelectContent>
-                      {MEMBER_FLOWER_GROUP_ORDER.map((g) => (
-                        <SelectItem key={g} value={g}>{g}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Button onClick={saveArtVase} disabled={savingArtVase}>{savingArtVase ? "Đang lưu..." : selectedArtVaseId === "new" ? "Tạo bình hoa" : "Cập nhật bình hoa"}</Button>
-                  {selectedArtVaseId !== "new" ? <Button variant="outline" onClick={deleteArtVase} disabled={savingArtVase}>Xoá bình hoa</Button> : null}
-                </div>
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-3">
-                {[{ key: "mainFlowerIds", title: "Hoa chính" }, { key: "secondaryFlowerIds", title: "Hoa phụ" }, { key: "accentFlowerIds", title: "Hoa kèm" }].map((section) => (
-                  <div key={section.key} className="rounded-3xl border p-4">
-                    <div className="mb-3 flex items-center justify-between">
-                      <h3 className="font-semibold">{section.title}</h3>
-                      <Badge variant="secondary">{artVaseForm[section.key].length}/3</Badge>
-                    </div>
-                    <div className="relative mb-3">
-                      <div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div>
-                      <Input value={artFlowerSearchByType[section.key]} onChange={(e) => setArtFlowerSearchByType((prev) => ({ ...prev, [section.key]: e.target.value }))} placeholder={`Tìm ${section.title.toLowerCase()}...`} className="pl-9" />
-                    </div>
-                    <ScrollArea className="h-[360px] pr-3">
-                      <div className="space-y-3">
-                        {filteredArtFlowersByType[section.key].map((flower) => {
-                          const checked = artVaseForm[section.key].includes(String(flower.id));
-                          const blocked = !checked && artVaseForm[section.key].length >= 3;
-                          return (
-                            <label key={`${section.key}-${flower.id}`} className={cn("flex cursor-pointer items-start gap-3 rounded-2xl border p-3", blocked ? "opacity-50" : "hover:bg-slate-50")}>
-                              <Checkbox checked={checked} disabled={blocked} onCheckedChange={() => toggleArtVaseFlower(section.key, flower.id)} />
-                              <FlowerThumbnail flower={flower} size="sm" />
-                              <div className="min-w-0 flex-1">
-                                <p className="font-medium break-words">{flower.name}</p>
-                              </div>
-                              <Badge className={groupBadgeClass(flower.group)}>{flower.group}</Badge>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
-      </CardContent>
-    </Card>
-  </div>
-</TabsContent>
+          <TabsContent value="addflower"><div className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle>Hoa nghệ thuật</CardTitle></CardHeader><CardContent className="space-y-4">{artVaseMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{artVaseMessage}</div> : null}<div className="grid gap-4 xl:grid-cols-[1.15fr_1fr]"><Card className="rounded-[24px] border shadow-none"><CardHeader><div className="flex items-center justify-between gap-3"><CardTitle className="text-lg">Dashboard hoa nghệ thuật</CardTitle><Select value={artDashboardGroupFilter} onValueChange={setArtDashboardGroupFilter}><SelectContent><SelectItem value="all">Tất cả phẩm</SelectItem>{MEMBER_FLOWER_GROUP_ORDER.map((g) => (<SelectItem key={g} value={g}>{g}</SelectItem>))}</SelectContent></Select></div></CardHeader><CardContent className="space-y-4"><div className="flex items-center gap-4 rounded-3xl border p-4"><CircleProgress percent={artSummary.percent} /><div><p className="text-sm text-slate-500">{isGuildArtLookup ? "Số lượng tổ hợp hoa nghệ thuật hội đã sở hữu, tính việc sở hữu 1 tổ hợp hoa hoàn chỉnh của mỗi một thành viên trong hội" : `Số lượng tổ hợp hoa nghệ thuật ${selectedArtLookupMember?.name || "thành viên"} đã sở hữu`}</p><p className="text-2xl font-bold">{artSummary.ownedCombos}/{artSummary.totalCombos}</p></div></div><div className="grid gap-3 md:grid-cols-2">{filteredArtVaseStats.map((vase) => { const vasePercent = vase.totalCombos ? Math.round((vase.ownedCombos / vase.totalCombos) * 100) : 0; const vaseStyle = memberProgressCircleStyle(vasePercent); return (<div key={vase.id} className="rounded-3xl border p-3"><div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-start gap-3">{vase.iconUrl ? (<div className="h-11 w-11 overflow-hidden rounded-2xl border bg-white"><img src={vase.iconUrl} alt={vase.name} className="h-full w-full object-cover" loading="lazy" decoding="async" /></div>) : (<div className="flex h-11 w-11 items-center justify-center rounded-2xl border bg-slate-50 text-slate-500"><PlaceholderFlowerIcon size="sm" /></div>)}<div className="min-w-0"><div className="mb-1 flex flex-wrap items-center gap-2"><p className="font-semibold break-words">{vase.name}</p><Badge className={groupBadgeClass(vase.vaseGroup)}>{vase.vaseGroup}</Badge></div><div className="flex flex-wrap items-center gap-2 text-sm text-slate-500"><span>{vase.ownedCombos}/{vase.totalCombos} tổ hợp</span><span>•</span><span>{vase.ownedFlowerCount}/{vase.totalFlowerCount} hoa</span></div></div></div><CircleProgress percent={vasePercent} strokeColor={vaseStyle.strokeColor} glowClass={vaseStyle.glowClass} /></div></div>); })}</div></CardContent></Card><Card className="rounded-[24px] border shadow-none"><CardHeader><CardTitle className="text-lg">Gợi ý hoa cắm bình chưa sở hữu</CardTitle></CardHeader><CardContent className="space-y-4"><Dialog open={artLookupMemberPickerOpen} onOpenChange={setArtLookupMemberPickerOpen}><DialogTrigger asChild><Button variant="outline" className="w-full justify-start">{isGuildArtLookup ? "Cả Hội" : selectedArtLookupMember ? selectedArtLookupMember.name : "Chọn thành viên"}</Button></DialogTrigger><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>Chọn thành viên</DialogTitle></DialogHeader><div className="space-y-3"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={artLookupMemberSearch} onChange={(e) => setArtLookupMemberSearch(e.target.value)} placeholder="Tìm thành viên..." className="pl-9" /></div><ScrollArea className="h-[320px] pr-3"><div className="space-y-2"><button type="button" onClick={() => { setArtLookupMemberId("guild"); setArtLookupMemberPickerOpen(false); }} className={cn("w-full rounded-2xl border px-4 py-3 text-left hover:bg-slate-50", isGuildArtLookup ? "bg-slate-50 border-slate-300" : "bg-white")}>Cả Hội</button>{filteredArtLookupMembers.map((member) => (<button key={member.id} type="button" onClick={() => { setArtLookupMemberId(String(member.id)); setArtLookupMemberPickerOpen(false); }} className="w-full rounded-2xl border bg-white px-4 py-3 text-left hover:bg-slate-50">{member.name}</button>))}</div></ScrollArea></div></DialogContent></Dialog><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={artLookupSuggestionSearch} onChange={(e) => setArtLookupSuggestionSearch(e.target.value)} placeholder="Tìm trong danh sách gợi ý..." className="pl-9" /></div><ScrollArea className="h-[420px] pr-3"><div className="space-y-3">{artLookupMemberId === "none" ? (<SectionEmpty>Hãy chọn Cả Hội hoặc một thành viên để xem các hoa cắm bình chưa sở hữu.</SectionEmpty>) : filteredArtLookupSuggestions.length === 0 ? (<SectionEmpty>Thành viên này hiện không thiếu hoa nào trong các bình đã tạo.</SectionEmpty>) : (filteredArtLookupSuggestions.map((row) => { const checked = artSelectedSuggestionFlowerIds.includes(String(row.flower.id)); return (<label key={row.flower.id} className="flex cursor-pointer items-start gap-3 rounded-3xl border p-3 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleArtSuggestionFlower(row.flower.id)} /><FlowerThumbnail flower={row.flower} size="sm" /><div className="min-w-0 flex-1"><p className="font-semibold break-words">{row.flower.name}</p><p className="mt-1 text-sm text-slate-500">Bình: {row.vaseNames.join(", ")}</p></div><Badge className={groupBadgeClass(row.flower.group)}>{row.flower.group}</Badge></label>); }))}</div></ScrollArea><div className="flex justify-end"><Button type="button" variant="outline" onClick={runArtSuggestionSearch}>Tìm kiếm</Button></div><div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between gap-3"><Label>Kết quả tìm kiếm người sở hữu</Label><Badge variant="secondary">{artLookupSearchResults.length} hoa</Badge></div><div className="space-y-3">{artLookupSearchResults.length === 0 ? (<SectionEmpty>Hãy tick chọn các hoa trong danh sách gợi ý rồi bấm Tìm kiếm.</SectionEmpty>) : (artLookupSearchResults.map((row) => (<div key={`owner-search-${row.flower.id}`} className="rounded-3xl border p-3"><div className="flex items-start gap-3"><FlowerThumbnail flower={row.flower} size="sm" /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><p className="font-semibold break-words">{row.flower.name}</p><Badge className={groupBadgeClass(row.flower.group)}>{row.flower.group}</Badge></div><p className="mt-1 text-sm text-slate-500">Bình: {row.vaseNames.join(", ")}</p><div className="mt-2 flex flex-wrap gap-2">{row.owners.length === 0 ? (<Badge variant="secondary">Chưa ai sở hữu</Badge>) : (row.owners.map((owner) => (<Badge key={`${row.flower.id}-${owner}`} variant="secondary">{owner}</Badge>)))}</div></div></div></div>)))}</div></div><div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between gap-3"><Label>Chọn người ưu tiên var</Label><Badge variant="secondary">{artPriorityVarOwners.length} người</Badge></div><div className="relative mb-3"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={artPriorityVarSearch} onChange={(e) => setArtPriorityVarSearch(e.target.value)} placeholder="Tìm tên thành viên ưu tiên..." className="pl-9" /></div><ScrollArea className="h-[180px] pr-3"><div className="space-y-2">{artPriorityVarOwnerOptions.length === 0 ? (<SectionEmpty>Hãy bấm Tìm kiếm trước để có danh sách người sở hữu.</SectionEmpty>) : (artPriorityVarOwnerOptions.map((owner) => { const checked = artPriorityVarOwners.includes(String(owner)); return (<label key={`priority-var-${owner}`} className="flex cursor-pointer items-center gap-3 rounded-2xl border p-3 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleArtPriorityVarOwner(owner)} /><span className="text-sm font-medium text-slate-700">{owner}</span></label>); }))}</div></ScrollArea><div className="mt-3 flex justify-end"><Button type="button" variant="outline" onClick={runArtVarSuggestion}>Gợi ý</Button></div></div><div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between gap-3"><Label>Gợi ý var nhau</Label><Badge variant="secondary">{artVarSuggestions.length} người</Badge></div><div className="space-y-3">{artVarSuggestions.length === 0 ? (<SectionEmpty>Hãy bấm Gợi ý để gom danh sách theo người sở hữu.</SectionEmpty>) : (artVarSuggestions.map((item) => (<div key={`var-${item.owner}`} className="rounded-3xl border p-3"><div className="flex flex-wrap items-center gap-2 text-sm leading-7 text-slate-700"><span>Hãy var</span><span className={VAR_OWNER_BADGE_CLASS}>{item.owner}</span><span>để húp:</span><div className="inline-flex flex-wrap items-center gap-2">{item.flowers.map((flower) => (<span key={`${item.owner}-${flower.id}`} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-medium ${groupBadgeClass(flower.group)}`}><FlowerThumbnail flower={flower} size="sm" /><span>{flower.name}</span></span>))}</div></div></div>)))}</div></div></CardContent></Card></div><Card className="rounded-[24px] border shadow-none"><CardHeader><div className="flex items-center justify-between gap-3"><CardTitle className="text-lg">Hoa cắm bình ít người sở hữu (1-3)</CardTitle><Select value={artRareFlowerGroupFilter} onValueChange={setArtRareFlowerGroupFilter}><SelectContent><SelectItem value="all">Tất cả nhóm</SelectItem>{MEMBER_FLOWER_GROUP_ORDER.map((g) => (<SelectItem key={g} value={g}>{g}</SelectItem>))}</SelectContent></Select></div></CardHeader><CardContent><ScrollArea className="h-[260px] pr-3"><div className="space-y-3">{artRareFlowers.length === 0 ? (<SectionEmpty>Chưa có hoa cắm bình nào rơi vào nhóm 1-3 người sở hữu.</SectionEmpty>) : (artRareFlowers.map((row) => (<div key={row.flower.id} className="rounded-3xl border p-3"><div className="flex items-start gap-3"><FlowerThumbnail flower={row.flower} size="sm" /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><p className="font-semibold break-words">{row.flower.name}</p><Badge className={groupBadgeClass(row.flower.group)}>{row.flower.group}</Badge></div><p className="text-sm text-slate-500">{row.ownerCount} người sở hữu</p><p className="mt-1 text-sm text-slate-500">Bình: {row.vaseNames.join(", ")}</p></div></div></div>)))}</div></ScrollArea></CardContent></Card>{canManageArt ? (<Card className="rounded-[28px]"><CardHeader><CardTitle>Tạo và quản lý bình hoa</CardTitle></CardHeader><CardContent className="grid gap-4 xl:grid-cols-[340px_1fr]"><div className="space-y-4"><div className="space-y-2"><Label>Chọn bình hoa</Label><Select value={selectedArtVaseId} onValueChange={(value) => { setSelectedArtVaseId(value); const vase = artVases.find((item) => String(item.id) === String(value)); if (vase) setArtVaseFormFromVase(vase); else setArtVaseForm(DEFAULT_ART_VASE_FORM); }}><SelectContent><SelectItem value="new">+ Tạo bình hoa mới</SelectItem>{artVases.map((vase) => (<SelectItem key={vase.id} value={String(vase.id)}>{vase.name} • {vase.vaseGroup || "Lục"}</SelectItem>))}</SelectContent></Select></div><div className="space-y-2"><Label>Tên bình hoa</Label><Input value={artVaseForm.name} onChange={(e) => setArtVaseForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Ví dụ: Bình trăng tím" /></div><div className="space-y-2"><Label>Icon bình</Label><Input value={artVaseForm.iconUrl} onChange={(e) => setArtVaseForm((prev) => ({ ...prev, iconUrl: e.target.value }))} placeholder="https://..." /></div><div className="space-y-2"><Label>Phẩm bình</Label><Select value={artVaseForm.vaseGroup} onValueChange={(value) => setArtVaseForm((prev) => ({ ...prev, vaseGroup: value }))}><SelectContent>{MEMBER_FLOWER_GROUP_ORDER.map((g) => (<SelectItem key={g} value={g}>{g}</SelectItem>))}</SelectContent></Select></div><div className="grid gap-2"><Button onClick={saveArtVase} disabled={savingArtVase}>{savingArtVase ? "Đang lưu..." : selectedArtVaseId === "new" ? "Tạo bình hoa" : "Cập nhật bình hoa"}</Button>{selectedArtVaseId !== "new" ? <Button variant="outline" onClick={deleteArtVase} disabled={savingArtVase}>Xoá bình hoa</Button> : null}</div></div><div className="grid gap-4 xl:grid-cols-3">{[{ key: "mainFlowerIds", title: "Hoa chính" }, { key: "secondaryFlowerIds", title: "Hoa phụ" }, { key: "accentFlowerIds", title: "Hoa kèm" }].map((section) => (<div key={section.key} className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between"><h3 className="font-semibold">{section.title}</h3><Badge variant="secondary">{artVaseForm[section.key].length}/3</Badge></div><div className="relative mb-3"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={artFlowerSearchByType[section.key]} onChange={(e) => setArtFlowerSearchByType((prev) => ({ ...prev, [section.key]: e.target.value }))} placeholder={`Tìm ${section.title.toLowerCase()}...`} className="pl-9" /></div><ScrollArea className="h-[360px] pr-3"><div className="space-y-3">{filteredArtFlowersByType[section.key].map((flower) => { const checked = artVaseForm[section.key].includes(String(flower.id)); const blocked = !checked && artVaseForm[section.key].length >= 3; return (<label key={`${section.key}-${flower.id}`} className={cn("flex cursor-pointer items-start gap-3 rounded-2xl border p-3", blocked ? "opacity-50" : "hover:bg-slate-50")}><Checkbox checked={checked} disabled={blocked} onCheckedChange={() => toggleArtVaseFlower(section.key, flower.id)} /><FlowerThumbnail flower={flower} size="sm" /><div className="min-w-0 flex-1"><p className="font-medium break-words">{flower.name}</p></div><Badge className={groupBadgeClass(flower.group)}>{flower.group}</Badge></label>); })}</div></ScrollArea></div>))}</div></CardContent></Card>) : null}</CardContent></Card></div></TabsContent>
 
           {isAdmin ? <TabsContent value="titlemanagement"><div className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle>Quản lý chức danh</CardTitle></CardHeader><CardContent>{!titleFeatureAvailable ? <SectionEmpty>Supabase chưa có bảng titles và member_titles.</SectionEmpty> : <div className="grid gap-4 lg:grid-cols-[300px_1fr_360px]"><div className="rounded-3xl border p-4 space-y-4"><div className="space-y-2"><Label>Thêm chức danh mới</Label><Input value={newTitleName} onChange={(e) => setNewTitleName(e.target.value)} placeholder="Ví dụ: Trưởng nhóm" /></div><Button className="w-full" onClick={addTitleToDatabase} disabled={savingTitle}><PlusIcon className="mr-2 h-4 w-4" />Thêm chức danh</Button><div className="space-y-2"><Label>Chọn chức danh để trao</Label><Select value={selectedTitleId} onValueChange={setSelectedTitleId}><SelectContent><SelectItem value="none">-- Chọn chức danh --</SelectItem>{titles.map((title) => <SelectItem key={title.id} value={String(title.id)}>{title.name}</SelectItem>)}</SelectContent></Select></div><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={titleMemberSearch} onChange={(e) => setTitleMemberSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="pl-9" /></div><Button className="w-full" onClick={saveTitleAssignments} disabled={savingTitle}>Trao chức danh cho thành viên đã chọn</Button>{titleMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{titleMessage}</div> : null}</div><div className="rounded-3xl border p-4"><ScrollArea className="h-[720px] pr-3"><div className="space-y-3">{filteredTitleMembers.map((member) => { const checked = selectedTitleMemberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return <label key={member.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleTitleMember(member.id)} /><div className="flex-1"><p className="font-medium">{member.name}</p><p className="text-sm text-slate-500">{memberTitle?.name || "Chưa có chức danh"}</p></div></label>; })}</div></ScrollArea></div><div className="rounded-3xl border p-4"><div className="mb-3 relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={titleManageSearch} onChange={(e) => setTitleManageSearch(e.target.value)} placeholder="Tìm chức danh..." className="pl-9" /></div><ScrollArea className="h-[720px] pr-3"><div className="space-y-4">{filteredTitles.map((title) => { const assignedMembers = membersByTitleId.get(String(title.id)) || []; return <div key={title.id} className="rounded-3xl border p-3"><div className="mb-3 flex items-center justify-between"><Badge className={titleBadgeClass(title.name)}>{title.name}</Badge><span className="text-sm font-semibold">{assignedMembers.length} người</span></div><div className="space-y-2">{assignedMembers.length === 0 ? <SectionEmpty>Chưa có thành viên nào</SectionEmpty> : assignedMembers.map((member) => <div key={`${title.id}-${member.id}`} className="flex items-center justify-between gap-3 rounded-2xl border p-2"><span className="text-sm font-medium break-words">{member.name}</span><Button variant="outline" size="sm" onClick={() => removeTitleFromMember(title.id, member.id)}>Gỡ</Button></div>)}</div></div>; })}</div></ScrollArea></div></div>}</CardContent></Card></div></TabsContent> : null}
 
@@ -2172,11 +1952,22 @@ create policy "dashboard_stat_assets_delete"
 on public.dashboard_stat_assets
 for delete
 to authenticated
-using (true);</pre></div></CardContent></Card><Card className="rounded-[28px]"><CardHeader><CardTitle>Quản lý tài khoản cập nhật</CardTitle></CardHeader><CardContent className="space-y-4"><div className="space-y-4 rounded-3xl border p-4"><p className="text-sm text-slate-600">Tạo quyền cập nhật theo email. Ví dụ: dinhsang199816@gmail.com chỉ được cập nhật hoa cho thành viên Đình Sang. Việc tạo user đăng nhập thật thực hiện 1 lần trong Supabase Authentication &gt; Users, còn ở đây là phần gán quyền trong app.</p><div className="grid gap-4 lg:grid-cols-[1fr_260px_auto]"><div className="space-y-2"><Label>Email tài khoản</Label><Input value={permissionEmailInput} onChange={(e) => setPermissionEmailInput(e.target.value)} placeholder="email@example.com" /></div><div className="space-y-2"><Label>Chỉ được cập nhật cho thành viên</Label><Select value={permissionMemberId} onValueChange={setPermissionMemberId}><SelectContent><SelectItem value="none">-- Chọn thành viên --</SelectItem>{members.map((member) => <SelectItem key={member.id} value={String(member.id)}>{member.name}</SelectItem>)}</SelectContent></Select></div><div className="flex items-end"><Button disabled={savingAccountPermission} onClick={async () => { const email = String(permissionEmailInput || "").trim().toLowerCase(); if (!email) return setAccountPermissionMessage("Vui lòng nhập email tài khoản."); if (!permissionMemberId || permissionMemberId === "none") return setAccountPermissionMessage("Vui lòng chọn thành viên được phép cập nhật."); setSavingAccountPermission(true); const { error } = await supabase.from("account_permissions").upsert([{ email, role: "member_editor", member_id: permissionMemberId }], { onConflict: "email" }); setSavingAccountPermission(false); if (error) return setAccountPermissionMessage(`Không lưu được quyền tài khoản: ${error.message}`); await logAction({ actionType: "update_account_permission", actorName: user?.email || "Quản trị hội", targetType: "account_permission", targetName: email, details: `Chỉ cập nhật cho ${memberById.get(String(permissionMemberId))?.name || permissionMemberId}` }); setAccountPermissionMessage("Đã lưu quyền tài khoản cập nhật."); await loadAccountPermissionsData(); }}>{savingAccountPermission ? "Đang lưu..." : "Lưu quyền"}</Button></div></div>{accountPermissionMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{accountPermissionMessage}</div> : null}<div className="space-y-3">{accountPermissions.length === 0 ? <SectionEmpty>Chưa có tài khoản cập nhật nào được cấp quyền.</SectionEmpty> : accountPermissions.map((permission) => <div key={permission.id} className="flex flex-col gap-3 rounded-2xl border p-4 md:flex-row md:items-center md:justify-between"><div><p className="font-semibold text-slate-900">{permission.email}</p><p className="text-sm text-slate-500">Chỉ cập nhật cho: {memberById.get(String(permission.memberId))?.name || "Không rõ thành viên"}</p></div><Button variant="outline" onClick={async () => { const { error } = await supabase.from("account_permissions").delete().eq("id", permission.id); if (error) return setAccountPermissionMessage(`Không xoá được quyền tài khoản: ${error.message}`); await logAction({ actionType: "remove_account_permission", actorName: user?.email || "Quản trị hội", targetType: "account_permission", targetName: permission.email, details: "Xoá quyền cập nhật tài khoản" }); setAccountPermissionMessage("Đã xoá quyền tài khoản cập nhật."); await loadAccountPermissionsData(); }}>Xoá quyền</Button></div>)}</div></div></CardContent></Card><Card className="rounded-[28px]"><CardHeader><CardTitle>Thêm và quản lý hoa</CardTitle></CardHeader><CardContent className="space-y-4"><div className="grid gap-4 xl:grid-cols-[320px_1fr]"><div className="space-y-4 rounded-3xl border p-4"><div className="space-y-2"><Label>Tên hoa mới</Label><Input value={newFlowerName} onChange={(e) => setNewFlowerName(e.target.value)} placeholder="Nhập tên hoa..." /></div><div className="space-y-2"><Label>Nhóm hoa</Label><Select value={newFlowerGroup} onValueChange={setNewFlowerGroup}><SelectContent>{FLOWER_GROUPS.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Icon URL</Label><Input value={newFlowerIconUrl} onChange={(e) => setNewFlowerIconUrl(e.target.value)} placeholder="https://..." /></div><Button className="w-full" onClick={addFlowerToDatabase} disabled={savingFlower}>{savingFlower ? "Đang thêm..." : "Thêm hoa mới"}</Button>{flowerCreateMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{flowerCreateMessage}</div> : null}</div><div className="rounded-3xl border p-4"><div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px]"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={flowerManageSearch} onChange={(e) => setFlowerManageSearch(e.target.value)} placeholder="Tìm hoa..." className="pl-9" /></div><Select value={flowerManageGroupFilter} onValueChange={setFlowerManageGroupFilter}><SelectContent><SelectItem value="all">Tất cả nhóm</SelectItem>{FLOWER_GROUPS.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select></div><ScrollArea className="h-[520px] pr-3"><div className="space-y-3">{filteredManageFlowers.map((flower) => <div key={`admin-manage-${flower.id}`} className="flex items-center justify-between gap-3 rounded-2xl border p-3"><div className="flex min-w-0 items-center gap-3"><FlowerThumbnail flower={flower} size="sm" /><div className="min-w-0"><p className="font-medium break-words">{flower.name}</p><Badge className={`${groupBadgeClass(flower.group)} mt-1`}>{flower.group}</Badge></div></div><Dialog open={flowerEditDialogOpenId === `flower-${flower.id}`} onOpenChange={(open) => setFlowerEditDialogOpenId(open ? `flower-${flower.id}` : null)}><DialogTrigger asChild><Button variant="outline" size="sm">Sửa hoa</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Sửa hoa</DialogTitle></DialogHeader><EditFlowerForm flower={flower} uploadingIcon={uploadingFlowerIconId === String(flower.id)} onUploadIcon={(file) => uploadFlowerIcon(flower.id, file)} onSave={async (payload) => { const result = await renameFlower(flower.id, payload); if (result?.ok) setFlowerEditDialogOpenId(null); return result; }} /></DialogContent></Dialog></div>)}</div></ScrollArea></div></div></CardContent></Card></div></TabsContent> : null}
+using (true);</pre></div></CardContent></Card><Card className="rounded-[28px]"><CardHeader><CardTitle>Quản lý tài khoản cập nhật</CardTitle></CardHeader><CardContent className="space-y-4"><div className="space-y-4 rounded-3xl border p-4"><p className="text-sm text-slate-600">Tạo liên kết email - nickname - thành viên. Một email-nickname có thể chỉnh sửa nhiều thành viên. Nickname là duy nhất và được dùng để đăng nhập.</p><div className="rounded-2xl border bg-amber-50 px-4 py-3 text-sm text-amber-800"><p className="font-semibold">Mật khẩu tạo thủ công trong Supabase Auth</p><p className="mt-1">Web này hiện chỉ quản lý liên kết <span className="font-semibold">email - nickname - thành viên</span>. Mật khẩu chưa tạo trực tiếp trong web. Sau khi lưu liên kết ở đây, hãy vào <span className="font-semibold">Supabase Authentication &gt; Users</span> để tạo user bằng đúng email đó và đặt mật khẩu thủ công.</p></div><div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-slate-50 px-4 py-3 text-sm text-slate-600"><span>{editingAccountEmail ? `Đang sửa tài khoản: ${editingAccountEmail}` : "Đang ở chế độ tạo tài khoản cập nhật mới"}</span>{editingAccountEmail ? <Button type="button" variant="outline" size="sm" onClick={() => { setEditingAccountEmail(""); setPermissionEmailInput(""); setPermissionNicknameInput(""); setPermissionRoleInput("member_editor"); setPermissionMemberIds([]); setPermissionMemberSearch(""); setAccountPermissionMessage("Đã thoát chế độ sửa tài khoản."); }}>Huỷ sửa</Button> : null}</div><div className="grid gap-4 lg:grid-cols-[1fr_1fr_220px]"><div className="space-y-2"><Label>Email tài khoản</Label><Input value={permissionEmailInput} onChange={(e) => setPermissionEmailInput(e.target.value)} placeholder="email@example.com" /></div><div className="space-y-2"><Label>Nickname đăng nhập</Label><Input value={permissionNicknameInput} onChange={(e) => setPermissionNicknameInput(e.target.value)} placeholder="nickname duy nhất" /></div><div className="space-y-2"><Label>Vai trò</Label><Select value={permissionRoleInput} onValueChange={setPermissionRoleInput}><SelectContent><SelectItem value="member_editor">Tài khoản cập nhật</SelectItem></SelectContent></Select></div></div><div className="space-y-2"><Label>Chọn nhiều thành viên được phép chỉnh sửa</Label><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={permissionMemberSearch} onChange={(e) => setPermissionMemberSearch(e.target.value)} placeholder="Tìm thành viên..." className="pl-9" /></div><div className="grid gap-4 lg:grid-cols-[1fr_260px]"><ScrollArea className="h-[260px] rounded-3xl border p-3 pr-2"><div className="space-y-2.5">{members.filter((member) => !permissionMemberSearch.trim() || member.name.toLowerCase().includes(permissionMemberSearch.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name, "vi")).map((member) => { const checked = permissionMemberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return <label key={`permission-member-${member.id}`} className="flex cursor-pointer items-start gap-2.5 rounded-2xl border p-3 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => setPermissionMemberIds((prev) => prev.includes(String(member.id)) ? prev.filter((id) => id !== String(member.id)) : [...prev, String(member.id)])} /><div className="flex-1"><div className="flex items-start justify-between gap-2"><div><p className="text-[13px] font-medium leading-snug">{member.name}</p></div>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div></label>; })}</div></ScrollArea><div className="space-y-3 rounded-3xl border p-4"><div className="flex items-center justify-between gap-2"><Label>Đã chọn</Label><Badge variant="secondary">{permissionMemberIds.length} thành viên</Badge></div><div className="flex flex-wrap gap-2">{permissionMemberIds.length === 0 ? <span className="text-sm text-slate-400">Chưa chọn thành viên nào.</span> : permissionMemberIds.map((memberId) => { const member = memberById.get(String(memberId)); const memberTitle = titleByMemberId.get(String(memberId)); return <div key={`permission-picked-${memberId}`} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[12px]"><span>{member?.name || memberId}</span>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div><Button disabled={savingAccountPermission} onClick={async () => { const email = String(permissionEmailInput || "").trim().toLowerCase(); const nickname = String(permissionNicknameInput || "").trim(); if (!email) return setAccountPermissionMessage("Vui lòng nhập email tài khoản."); if (!nickname) return setAccountPermissionMessage("Vui lòng nhập nickname đăng nhập."); if (permissionMemberIds.length === 0) return setAccountPermissionMessage("Vui lòng chọn ít nhất 1 thành viên được phép cập nhật."); setSavingAccountPermission(true); const existingConflict = accountIdentities.find((item) => item.nickname.trim().toLowerCase() === nickname.trim().toLowerCase() && item.email !== email); if (existingConflict) { setSavingAccountPermission(false); return setAccountPermissionMessage("Nickname này đã được dùng cho tài khoản khác."); } const identityUpsert = await supabase.from("account_identities").upsert([{ email, nickname, role: permissionRoleInput }], { onConflict: "email" }); if (identityUpsert.error) { setSavingAccountPermission(false); return setAccountPermissionMessage(`Không lưu được email-nickname: ${identityUpsert.error.message}`); } const deleteOld = await supabase.from("account_member_permissions").delete().eq("account_email", email); if (deleteOld.error) { setSavingAccountPermission(false); return setAccountPermissionMessage(`Không cập nhật được danh sách thành viên: ${deleteOld.error.message}`); } const insertRows = await supabase.from("account_member_permissions").insert(permissionMemberIds.map((memberId) => ({ account_email: email, member_id: memberId }))); setSavingAccountPermission(false); if (insertRows.error) return setAccountPermissionMessage(`Không lưu được thành viên được phép cập nhật: ${insertRows.error.message}`); await logAction({ actionType: "update_account_identity", actorName: user?.email || "Quản trị hội", targetType: "account_identity", targetName: nickname, details: `${email} • ${permissionMemberIds.length} thành viên` }); setAccountPermissionMessage(editingAccountEmail ? "Đã cập nhật tài khoản cập nhật. Hãy kiểm tra user và mật khẩu thủ công trong Supabase Auth nếu cần." : "Đã lưu liên kết email - nickname - thành viên. Tiếp theo hãy tạo user/mật khẩu thủ công trong Supabase Auth bằng đúng email này."); setEditingAccountEmail(""); setPermissionEmailInput(""); setPermissionNicknameInput(""); setPermissionMemberIds([]); setPermissionMemberSearch(""); await loadAccountPermissionsData(); }}>{savingAccountPermission ? "Đang lưu..." : editingAccountEmail ? "Cập nhật tài khoản" : "Lưu liên kết"}</Button></div></div></div>{accountPermissionMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{accountPermissionMessage}</div> : null}<div className="rounded-2xl border bg-slate-50 p-4 text-sm text-slate-600 space-y-3"><p>Nếu dùng mô hình mới, cần có 2 bảng trong Supabase:</p><pre className="overflow-x-auto rounded-xl border bg-white p-3 text-xs text-slate-700">create table if not exists public.account_identities (
+  id bigint generated by default as identity primary key,
+  email text unique not null,
+  nickname text unique not null,
+  role text not null default 'member_editor'
+);
+
+create table if not exists public.account_member_permissions (
+  id bigint generated by default as identity primary key,
+  account_email text not null,
+  member_id bigint not null
+);</pre><div className="rounded-2xl border bg-white p-3 text-xs text-slate-700 space-y-2"><p className="font-semibold text-slate-900">Quy trình tạo tài khoản tạm thời an toàn</p><ol className="list-decimal pl-4 space-y-1"><li>Lưu liên kết <span className="font-semibold">email - nickname - thành viên</span> ở form phía trên.</li><li>Vào <span className="font-semibold">Supabase Authentication &gt; Users</span>.</li><li>Tạo user thủ công bằng đúng email vừa lưu.</li><li>Đặt mật khẩu thủ công cho user đó.</li><li>Người dùng đăng nhập trên web bằng <span className="font-semibold">nickname + mật khẩu</span>.</li></ol></div></div><div className="space-y-3">{accountIdentities.length === 0 ? <SectionEmpty>Chưa có tài khoản cập nhật nào được cấp quyền.</SectionEmpty> : accountIdentities.map((identity) => { const linkedMemberIds = accountMemberPermissions.filter((row) => row.accountEmail === identity.email).map((row) => String(row.memberId)); return <div key={identity.id} className="flex flex-col gap-3 rounded-2xl border p-4"><div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="font-semibold text-slate-900">{identity.nickname}</p><p className="text-sm text-slate-500">{identity.email}</p></div><div className="flex flex-wrap gap-2"><Badge variant="secondary">{linkedMemberIds.length} thành viên</Badge><Button variant="outline" onClick={() => { setEditingAccountEmail(identity.email); setPermissionEmailInput(identity.email); setPermissionNicknameInput(identity.nickname); setPermissionRoleInput(identity.role || "member_editor"); setPermissionMemberIds(linkedMemberIds); setPermissionMemberSearch(""); setAccountPermissionMessage(`Đã nạp dữ liệu tài khoản ${identity.nickname} để chỉnh sửa ở form phía trên.`); window.requestAnimationFrame(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }); }}>Sửa</Button><Button variant="outline" onClick={async () => { const deletePermissions = await supabase.from("account_member_permissions").delete().eq("account_email", identity.email); if (deletePermissions.error) return setAccountPermissionMessage(`Không xoá được quyền thành viên: ${deletePermissions.error.message}`); const deleteIdentity = await supabase.from("account_identities").delete().eq("email", identity.email); if (deleteIdentity.error) return setAccountPermissionMessage(`Không xoá được email-nickname: ${deleteIdentity.error.message}`); await logAction({ actionType: "remove_account_identity", actorName: user?.email || "Quản trị hội", targetType: "account_identity", targetName: identity.nickname || identity.email, details: "Xoá liên kết email-nickname-thành viên" }); setAccountPermissionMessage("Đã xoá tài khoản cập nhật."); await loadAccountPermissionsData(); }}>Xoá</Button></div></div><div className="flex flex-wrap gap-2">{linkedMemberIds.length === 0 ? <span className="text-sm text-slate-400">Chưa liên kết thành viên nào.</span> : linkedMemberIds.map((memberId) => { const member = memberById.get(String(memberId)); const memberTitle = titleByMemberId.get(String(memberId)); return <div key={`${identity.id}-${memberId}`} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[12px]"><span>{member?.name || memberId}</span>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div></div>; })}</div></div></CardContent></Card><Card className="rounded-[28px]"><CardHeader><CardTitle>Thêm và quản lý hoa</CardTitle></CardHeader><CardContent className="space-y-4"><div className="grid gap-4 xl:grid-cols-[320px_1fr]"><div className="space-y-4 rounded-3xl border p-4"><div className="space-y-2"><Label>Tên hoa mới</Label><Input value={newFlowerName} onChange={(e) => setNewFlowerName(e.target.value)} placeholder="Nhập tên hoa..." /></div><div className="space-y-2"><Label>Nhóm hoa</Label><Select value={newFlowerGroup} onValueChange={setNewFlowerGroup}><SelectContent>{FLOWER_GROUPS.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Icon URL</Label><Input value={newFlowerIconUrl} onChange={(e) => setNewFlowerIconUrl(e.target.value)} placeholder="https://..." /></div><Button className="w-full" onClick={addFlowerToDatabase} disabled={savingFlower}>{savingFlower ? "Đang thêm..." : "Thêm hoa mới"}</Button>{flowerCreateMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{flowerCreateMessage}</div> : null}</div><div className="rounded-3xl border p-4"><div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px]"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={flowerManageSearch} onChange={(e) => setFlowerManageSearch(e.target.value)} placeholder="Tìm hoa..." className="pl-9" /></div><Select value={flowerManageGroupFilter} onValueChange={setFlowerManageGroupFilter}><SelectContent><SelectItem value="all">Tất cả nhóm</SelectItem>{FLOWER_GROUPS.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select></div><ScrollArea className="h-[520px] pr-3"><div className="space-y-3">{filteredManageFlowers.map((flower) => <div key={`admin-manage-${flower.id}`} className="flex items-center justify-between gap-3 rounded-2xl border p-3"><div className="flex min-w-0 items-center gap-3"><FlowerThumbnail flower={flower} size="sm" /><div className="min-w-0"><p className="font-medium break-words">{flower.name}</p><Badge className={`${groupBadgeClass(flower.group)} mt-1`}>{flower.group}</Badge></div></div><Dialog open={flowerEditDialogOpenId === `flower-${flower.id}`} onOpenChange={(open) => setFlowerEditDialogOpenId(open ? `flower-${flower.id}` : null)}><DialogTrigger asChild><Button variant="outline" size="sm">Sửa hoa</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>Sửa hoa</DialogTitle></DialogHeader><EditFlowerForm flower={flower} uploadingIcon={uploadingFlowerIconId === String(flower.id)} onUploadIcon={(file) => uploadFlowerIcon(flower.id, file)} onSave={async (payload) => { const result = await renameFlower(flower.id, payload); if (result?.ok) setFlowerEditDialogOpenId(null); return result; }} /></DialogContent></Dialog></div>)}</div></ScrollArea></div></div></CardContent></Card></div></TabsContent> : null}
 
           <TabsContent value="history"><Card className="rounded-[28px]"><CardHeader><CardTitle>Lịch sử cập nhật</CardTitle></CardHeader><CardContent>{!historyLoaded ? <p className="text-sm text-slate-600">Đang tải lịch sử...</p> : historyEntries.length === 0 ? <SectionEmpty>Chưa có lịch sử thao tác.</SectionEmpty> : <div className="space-y-3">{historyEntries.map((log) => <div key={log.id} className="rounded-3xl border p-4"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{log.targetName || "-"}</p>{log.memberTitle?.name ? <Badge className={titleBadgeClass(log.memberTitle.name)}>{log.memberTitle.name}</Badge> : null}{log.summaryText ? <span className="text-sm text-slate-500">• {log.summaryText}</span> : null}</div>{log.flowerItems.length > 0 ? <div className="mt-3 flex flex-wrap gap-2">{log.flowerItems.map((item, index) => <div key={`${log.id}-${item.name}-${index}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2"><FlowerThumbnail flower={item.flower} size="sm" /><span className="text-sm font-medium">{item.name}</span>{item.flower ? <Badge className={groupBadgeClass(item.flower.group)}>{item.flower.group}</Badge> : null}</div>)}</div> : <p className="mt-2 text-sm text-slate-600">{log.details || "-"}</p>}<div className="mt-2 text-xs text-slate-500">{log.createdAt ? new Date(log.createdAt).toLocaleString("vi-VN") : "-"} • {log.actorName || "Hệ thống"}</div></div>)}</div>}</CardContent></Card></TabsContent>
 
-          <TabsContent value="spirithunt"><div className="space-y-4">{isAdmin ? <div className="grid gap-4 md:grid-cols-2"><Card className="rounded-[24px]"><CardHeader><CardTitle className="text-base">Thành viên còn 1 quest</CardTitle></CardHeader><CardContent className="space-y-3"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={oneQuestMemberSearch} onChange={(e) => setOneQuestMemberSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="pl-9" /></div><ScrollArea className="h-[220px] pr-2"><div className="space-y-2.5">{filteredOneQuestMembers.map((member) => { const checked = oneQuestMemberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return <label key={`one-quest-${member.id}`} className="flex cursor-pointer items-start gap-2.5 rounded-2xl border p-3 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleOneQuestMember(member.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-2"><div><p className="text-[13px] font-medium leading-snug">{member.name}</p></div>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div></label>; })}</div></ScrollArea><div className="rounded-2xl border bg-slate-50 p-3 text-[12px] text-slate-600"><div className="mb-2">Đã chọn: <span className="font-semibold text-slate-900">{oneQuestMembers.length}</span> thành viên</div><div className="flex flex-wrap gap-2">{oneQuestMembers.length === 0 ? <span className="text-slate-400">Chưa có thành viên nào.</span> : oneQuestMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <div key={`one-quest-picked-${member.id}`} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[12px]"><span>{member.name}</span>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div></div></CardContent></Card><Card className="rounded-[24px]"><CardHeader><CardTitle className="text-base">Thành viên hoàn thành</CardTitle></CardHeader><CardContent className="space-y-3"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={completedMemberSearch} onChange={(e) => setCompletedMemberSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="pl-9" /></div><ScrollArea className="h-[220px] pr-2"><div className="space-y-2.5">{filteredCompletedMembers.map((member) => { const checked = completedMemberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return <label key={`completed-${member.id}`} className="flex cursor-pointer items-start gap-2.5 rounded-2xl border p-3 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleCompletedMember(member.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-2"><div><p className="text-[13px] font-medium leading-snug">{member.name}</p></div>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div></label>; })}</div></ScrollArea><div className="rounded-2xl border bg-slate-50 p-3 text-[12px] text-slate-600"><div className="mb-2">Đã chọn: <span className="font-semibold text-slate-900">{completedMembers.length}</span> thành viên</div><div className="flex flex-wrap gap-2">{completedMembers.length === 0 ? <span className="text-slate-400">Chưa có thành viên nào.</span> : completedMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <div key={`completed-picked-${member.id}`} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[12px]"><span>{member.name}</span>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div></div></CardContent></Card></div> : null}<Card className="rounded-[28px]"><CardHeader className="space-y-3"><div className="flex items-center justify-between gap-3"><CardTitle>Ưu tiên đua hội</CardTitle>{isAdmin ? <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" onClick={rebuildPriorityRaceFromHighestQuality} disabled={savingPriorityRace}>{savingPriorityRace ? "Đang cập nhật..." : "Cập nhật"}</Button><Button onClick={savePriorityRace} disabled={savingPriorityRace}>{savingPriorityRace ? "Đang lưu..." : "Lưu"}</Button></div> : null}</div>{priorityRaceMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{priorityRaceMessage}</div> : null}</CardHeader><CardContent className="space-y-4">{isAdmin ? <><div className="space-y-2"><Label>Chọn thành viên ưu tiên</Label><Dialog open={priorityRaceMemberPickerOpen} onOpenChange={setPriorityRaceMemberPickerOpen}><DialogTrigger asChild><Button variant="outline" className="w-full justify-start">{priorityRaceMember ? priorityRaceMember.name : "Chọn thành viên"}</Button></DialogTrigger><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>Chọn thành viên ưu tiên</DialogTitle></DialogHeader><div className="space-y-3"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={priorityRaceMemberSearch} onChange={(e) => setPriorityRaceMemberSearch(e.target.value)} placeholder="Gõ tên thành viên..." className="pl-9" /></div><ScrollArea className="h-[320px] pr-3"><div className="space-y-2">{filteredPriorityRaceMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <button key={member.id} type="button" onClick={() => { setPriorityRaceForm({ memberId: String(member.id), flowerIds: [] }); setPriorityRaceFlowerSearch(""); setPriorityRaceSelectedFlowerSearch(""); setPriorityRaceGroupFilter("all"); setPriorityRaceMemberPickerOpen(false); }} className="flex w-full items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 text-left hover:bg-slate-50"><span className="break-words font-medium">{member.name}</span>{hasTitleName(memberTitle) ? <Badge className={titleBadgeClass(memberTitle.name)}>{memberTitle.name}</Badge> : null}</button>; })}</div></ScrollArea></div></DialogContent></Dialog></div>{priorityRaceMember ? <><div className="space-y-3"><Label>Chọn hoa trong bộ sưu tập của {priorityRaceMember.name}</Label><div className="grid gap-3 md:grid-cols-[1fr_180px]"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={priorityRaceFlowerSearch} onChange={(e) => setPriorityRaceFlowerSearch(e.target.value)} placeholder="Tìm hoa đang sở hữu..." className="pl-9" /></div><Select value={priorityRaceGroupFilter} onValueChange={setPriorityRaceGroupFilter}><SelectContent><SelectItem value="all">Tất cả nhóm</SelectItem>{MEMBER_FLOWER_GROUP_ORDER.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select></div><ScrollArea className="h-[220px] pr-3"><div className="space-y-3">{filteredPriorityRaceAvailableFlowers.map((flower) => { const checked = priorityRaceForm.flowerIds.includes(String(flower.id)); return <label key={`priority-race-${flower.id}`} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => togglePriorityRaceFlower(flower.id)} /><FlowerThumbnail flower={flower} size="sm" /><div className="min-w-0 flex-1"><p className="font-medium break-words">{flower.name}</p></div><Badge className={groupBadgeClass(flower.group)}>{flower.group}</Badge></label>; })}</div></ScrollArea></div><div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between"><Label>Đang chọn</Label><Badge variant="secondary">{priorityRaceSelectedFlowers.length} hoa</Badge></div><div className="relative mb-3"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={priorityRaceSelectedFlowerSearch} onChange={(e) => setPriorityRaceSelectedFlowerSearch(e.target.value)} placeholder="Tìm trong hoa đang chọn..." className="pl-9" /></div><div className="flex flex-wrap gap-2">{filteredPriorityRaceSelectedFlowers.length === 0 ? <SectionEmpty>Chưa có hoa nào đang chọn.</SectionEmpty> : filteredPriorityRaceSelectedFlowers.map((flower) => <div key={`selected-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2 text-sm"><FlowerThumbnail flower={flower} size="sm" /><span>{flower.name}</span><Badge className={groupBadgeClass(flower.group)}>{flower.group}</Badge></div>)}</div>{(() => { const existingEntry = priorityRaceEntries.find((entry) => String(entry.memberId) === String(priorityRaceMember.id)); if (!existingEntry || existingEntry.flowerIds.length === 0) return null; return <div className="mt-3 rounded-2xl border bg-white p-3 text-sm text-slate-600">Người này hiện đã có <span className="font-semibold text-slate-900">{existingEntry.flowerIds.length}</span> hoa trong danh sách bên dưới. Khi bấm lưu sẽ cộng dồn thêm, không thay thế.</div>; })()}</div></> : <SectionEmpty>Hãy chọn một thành viên để chọn hoa ưu tiên.</SectionEmpty>}</> : null}<div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between gap-3"><Label className="text-[12px]">Danh sách ưu tiên đua hội đã lưu</Label><div className="relative w-full max-w-xs"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={priorityRaceListSearch} onChange={(e) => setPriorityRaceListSearch(e.target.value)} placeholder="Tìm trong danh sách..." className="h-9 pl-9 text-[12px]" /></div></div><div className="space-y-3">{filteredPriorityRaceEntries.length === 0 ? <SectionEmpty>Chưa có dòng ưu tiên đua hội nào được lưu.</SectionEmpty> : filteredPriorityRaceEntries.map((entry) => { const memberTitle = entry.member ? titleByMemberId.get(String(entry.member.id)) : null; return <div key={entry.id} className="rounded-2xl border bg-white p-4 space-y-3"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className={cn("text-[13px] font-semibold", oneQuestMemberIdSet.has(String(entry.member?.id || entry.memberId)) ? "text-red-600" : "text-slate-900")}>{entry.member?.name || "Không rõ thành viên"}</span>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div>{isAdmin ? <div className="flex items-center gap-2"><Badge variant="secondary" className="text-[10px]">{priorityRaceListSearch.trim() ? `${entry.flowersForEntry.length}/${entry.totalFlowersForEntry} hoa` : `${entry.flowersForEntry.length} hoa`}</Badge><Button type="button" variant="outline" size="sm" className="h-7 rounded-xl px-2 text-[10px]" onClick={() => addNextPriorityRaceGroup(entry.id)} disabled={savingPriorityRace}>Thêm phẩm</Button><Button type="button" variant="outline" size="sm" className="h-7 rounded-xl px-2 text-[10px]" onClick={() => removePriorityRaceEntry(entry.id)} disabled={savingPriorityRace}>Xoá</Button></div> : null}</div><div className="flex flex-wrap gap-2">{entry.flowersForEntry.map((flower) => <div key={`${entry.id}-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-2.5 py-1.5 text-[12px]"><FlowerThumbnail flower={flower} size="sm" /><span className="text-[12px]">{flower.name}</span><Badge className={`${groupBadgeClass(flower.group)} text-[10px]`}>{flower.group}</Badge>{isAdmin ? <Button type="button" variant="outline" size="sm" className="h-6 rounded-full px-2 text-[10px]" onClick={() => removePriorityRaceFlowerFromEntry(entry.id, flower.id)} disabled={savingPriorityRace}>Gỡ</Button> : null}</div>)}</div></div>; })}</div></div></CardContent></Card>{(isAdmin || isManager) ? <Card className="rounded-[28px]"><CardHeader><CardTitle>Thành viên đua 2 phẩm</CardTitle></CardHeader><CardContent className="space-y-3"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={twoGroupMemberSearch} onChange={(e) => setTwoGroupMemberSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="pl-9" /></div><ScrollArea className="h-[220px] pr-2"><div className="space-y-2.5">{filteredTwoGroupMembers.map((member) => { const checked = twoGroupMemberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return <label key={`two-group-${member.id}`} className="flex cursor-pointer items-start gap-2.5 rounded-2xl border p-3 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleTwoGroupMember(member.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-2"><div><p className="text-[13px] font-medium leading-snug">{member.name}</p></div>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div></label>; })}</div></ScrollArea><div className="rounded-2xl border bg-slate-50 p-3 text-[12px] text-slate-600"><div className="mb-2">Đã chọn: <span className="font-semibold text-slate-900">{twoGroupMembers.length}</span> thành viên</div><div className="flex flex-wrap gap-2">{twoGroupMembers.length === 0 ? <span className="text-slate-400">Chưa có thành viên nào.</span> : twoGroupMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <div key={`two-group-picked-${member.id}`} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[12px]"><span>{member.name}</span>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div></div><div className="rounded-2xl border bg-slate-50 p-3 text-[12px] text-slate-600">Khi thành viên được chọn ở đây, box Ưu tiên đua hội sẽ luôn giữ 2 phẩm: phẩm cao nhất đang có và phẩm liền dưới. Bấm Cập nhật lại vẫn giữ 2 phẩm.</div></CardContent></Card> : null}<Card className="rounded-[28px]"><CardHeader className="space-y-3"><div className="flex items-center justify-between gap-3"><CardTitle>Săn hoa linh</CardTitle>{isAdmin ? <Button onClick={saveSpiritHuntSlots} disabled={savingSpiritHunt}>{savingSpiritHunt ? "Đang lưu..." : "Lưu"}</Button> : null}</div>{spiritHuntMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{spiritHuntMessage}</div> : null}</CardHeader><CardContent><div className="grid gap-4 xl:grid-cols-2">{spiritHuntSlots.map((slot) => { const selectedMembers = slot.memberIds.map((id) => memberById.get(String(id))).filter(Boolean); const memberSearchValue = spiritHuntMemberSearch[slot.slotKey] || ""; const filteredSlotMembers = members.filter((member) => member.name.toLowerCase().includes(memberSearchValue.trim().toLowerCase())); return <Card key={slot.slotKey} className="rounded-[22px] border shadow-none"><CardHeader className="space-y-2 pb-3 text-[75%]">{isAdmin ? <div className="grid gap-2 sm:grid-cols-2"><div className="space-y-1.5"><Label className="text-[11px]">Tên khung</Label><Input value={slot.title} onChange={(e) => updateSpiritHuntSlot(slot.slotKey, () => ({ title: e.target.value }))} className="h-9 text-[12px]" /></div><div className="space-y-1.5"><Label className="text-[11px]">Khung giờ</Label><Input value={slot.timeLabel} onChange={(e) => updateSpiritHuntSlot(slot.slotKey, () => ({ timeLabel: e.target.value }))} className="h-9 text-[12px]" /></div></div> : <div><CardTitle className="text-base">{slot.title}</CardTitle><p className="text-[12px] text-slate-500">{slot.timeLabel || "Chưa đặt giờ"}</p></div>}</CardHeader><CardContent className="space-y-3 pt-0 text-[75%]">{isAdmin ? <><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={memberSearchValue} onChange={(e) => setSpiritHuntMemberSearch((prev) => ({ ...prev, [slot.slotKey]: e.target.value }))} placeholder="Tìm thành viên..." className="h-9 pl-9 text-[12px]" /></div><ScrollArea className="h-[170px] pr-2"><div className="space-y-2.5">{filteredSlotMembers.map((member) => { const checked = slot.memberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return <label key={`${slot.slotKey}-${member.id}`} className="flex cursor-pointer items-start gap-2.5 rounded-2xl border p-3 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleSpiritHuntMember(slot.slotKey, member.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-2"><div><p className="text-[12px] font-medium leading-snug">{member.name}</p></div>{memberTitle?.name ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div></label>; })}</div></ScrollArea><div className="rounded-2xl border bg-slate-50 p-3 text-[12px] text-slate-600 space-y-2.5"><div>Đã chọn: <span className="font-semibold text-slate-900">{selectedMembers.length}</span> thành viên</div><div className="flex flex-wrap gap-2">{selectedMembers.length === 0 ? <span className="text-slate-400">Chưa chọn thành viên nào.</span> : selectedMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <div key={`selected-spirit-${slot.slotKey}-${member.id}`} className="inline-flex max-w-full items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[12px]"><span className="break-words">{member.name}</span>{memberTitle?.name ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div></div></> : <div className="flex flex-wrap gap-2">{selectedMembers.length === 0 ? <SectionEmpty>Chưa có thành viên nào ở khung này.</SectionEmpty> : selectedMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <div key={`${slot.slotKey}-${member.id}`} className="inline-flex items-center gap-2 rounded-full border bg-slate-50 px-3 py-1.5 text-[12px]"><span>{member.name}</span>{memberTitle?.name ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div>}</CardContent></Card>; })}</div></CardContent></Card></div></TabsContent>
+          <TabsContent value="spirithunt"><div className="space-y-4"><Card className="rounded-[28px]"><CardHeader className="space-y-3"><div className="flex items-center justify-between gap-3"><CardTitle>Ưu tiên đua hội</CardTitle>{isAdmin ? (<div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" onClick={rebuildPriorityRaceFromHighestQuality} disabled={savingPriorityRace}>{savingPriorityRace ? "Đang cập nhật..." : "Cập nhật"}</Button><Button onClick={savePriorityRace} disabled={savingPriorityRace}>{savingPriorityRace ? "Đang lưu..." : "Lưu"}</Button></div>) : null}</div>{priorityRaceMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{priorityRaceMessage}</div> : null}</CardHeader><CardContent className="space-y-4">{isAdmin ? (<><div className="space-y-2"><Label>Chọn thành viên ưu tiên</Label><Dialog open={priorityRaceMemberPickerOpen} onOpenChange={setPriorityRaceMemberPickerOpen}><DialogTrigger asChild><Button variant="outline" className="w-full justify-start">{priorityRaceMember ? priorityRaceMember.name : "Chọn thành viên"}</Button></DialogTrigger><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>Chọn thành viên ưu tiên</DialogTitle></DialogHeader><div className="space-y-3"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={priorityRaceMemberSearch} onChange={(e) => setPriorityRaceMemberSearch(e.target.value)} placeholder="Gõ tên thành viên..." className="pl-9" /></div><ScrollArea className="h-[320px] pr-3"><div className="space-y-2">{filteredPriorityRaceMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return (<button key={member.id} type="button" onClick={() => { setPriorityRaceForm({ memberId: String(member.id), flowerIds: [] }); setPriorityRaceFlowerSearch(""); setPriorityRaceSelectedFlowerSearch(""); setPriorityRaceGroupFilter("all"); setPriorityRaceMemberPickerOpen(false); }} className="flex w-full items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 text-left hover:bg-slate-50"><span className="break-words font-medium">{member.name}</span>{hasTitleName(memberTitle) ? <Badge className={titleBadgeClass(memberTitle.name)}>{memberTitle.name}</Badge> : null}</button>); })}</div></ScrollArea></div></DialogContent></Dialog></div>{priorityRaceMember ? (<><div className="space-y-3"><Label>Chọn hoa trong bộ sưu tập của {priorityRaceMember.name}</Label><div className="grid gap-3 md:grid-cols-[1fr_180px]"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={priorityRaceFlowerSearch} onChange={(e) => setPriorityRaceFlowerSearch(e.target.value)} placeholder="Tìm hoa đang sở hữu..." className="pl-9" /></div><Select value={priorityRaceGroupFilter} onValueChange={setPriorityRaceGroupFilter}><SelectContent><SelectItem value="all">Tất cả nhóm</SelectItem>{MEMBER_FLOWER_GROUP_ORDER.map((group) => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent></Select></div><ScrollArea className="h-[220px] pr-3"><div className="space-y-3">{filteredPriorityRaceAvailableFlowers.map((flower) => { const checked = priorityRaceForm.flowerIds.includes(String(flower.id)); return (<label key={`priority-race-${flower.id}`} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => togglePriorityRaceFlower(flower.id)} /><FlowerThumbnail flower={flower} size="sm" /><div className="min-w-0 flex-1"><p className="font-medium break-words">{flower.name}</p></div><Badge className={groupBadgeClass(flower.group)}>{flower.group}</Badge></label>); })}</div></ScrollArea></div><div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between"><Label>Đang chọn</Label><Badge variant="secondary">{priorityRaceSelectedFlowers.length} hoa</Badge></div><div className="relative mb-3"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={priorityRaceSelectedFlowerSearch} onChange={(e) => setPriorityRaceSelectedFlowerSearch(e.target.value)} placeholder="Tìm trong hoa đang chọn..." className="pl-9" /></div><div className="flex flex-wrap gap-2">{filteredPriorityRaceSelectedFlowers.length === 0 ? (<SectionEmpty>Chưa có hoa nào đang chọn.</SectionEmpty>) : (filteredPriorityRaceSelectedFlowers.map((flower) => (<div key={`selected-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2 text-sm"><FlowerThumbnail flower={flower} size="sm" /><span>{flower.name}</span><Badge className={groupBadgeClass(flower.group)}>{flower.group}</Badge></div>)))}</div>{(() => { const existingEntry = priorityRaceEntries.find((entry) => String(entry.memberId) === String(priorityRaceMember.id)); if (!existingEntry || existingEntry.flowerIds.length === 0) return null; return <div className="mt-3 rounded-2xl border bg-white p-3 text-sm text-slate-600">Người này hiện đã có <span className="font-semibold text-slate-900">{existingEntry.flowerIds.length}</span> hoa trong danh sách bên dưới. Khi bấm lưu sẽ cộng dồn thêm, không thay thế.</div>; })()}</div></>) : (<SectionEmpty>Hãy chọn một thành viên để chọn hoa ưu tiên.</SectionEmpty>)}</>) : null}<div className="rounded-3xl border p-4"><div className="mb-3 flex items-center justify-between gap-3"><Label className="text-[12px]">Danh sách ưu tiên đua hội đã lưu</Label><div className="relative w-full max-w-xs"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={priorityRaceListSearch} onChange={(e) => setPriorityRaceListSearch(e.target.value)} placeholder="Tìm trong danh sách..." className="h-9 pl-9 text-[12px]" /></div></div><div className="space-y-3">{filteredPriorityRaceEntries.length === 0 ? (<SectionEmpty>Chưa có dòng ưu tiên đua hội nào được lưu.</SectionEmpty>) : (filteredPriorityRaceEntries.map((entry) => { const memberTitle = entry.member ? titleByMemberId.get(String(entry.member.id)) : null; return (<div key={entry.id} className="space-y-3 rounded-2xl border bg-white p-4"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className={cn("text-[13px] font-semibold", oneQuestMemberIdSet.has(String(entry.member?.id || entry.memberId)) ? "text-red-600" : "text-slate-900")}>{entry.member?.name || "Không rõ thành viên"}</span>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div>{isAdmin ? (<div className="flex items-center gap-2"><Badge variant="secondary" className="text-[10px]">{priorityRaceListSearch.trim() ? `${entry.flowersForEntry.length}/${entry.totalFlowersForEntry} hoa` : `${entry.flowersForEntry.length} hoa`}</Badge><Button type="button" variant="outline" size="sm" className="h-7 rounded-xl px-2 text-[10px]" onClick={() => addNextPriorityRaceGroup(entry.id)} disabled={savingPriorityRace}>Thêm phẩm</Button><Button type="button" variant="outline" size="sm" className="h-7 rounded-xl px-2 text-[10px]" onClick={() => removePriorityRaceEntry(entry.id)} disabled={savingPriorityRace}>Xoá</Button></div>) : null}</div><div className="flex flex-wrap gap-2">{entry.flowersForEntry.map((flower) => (<div key={`${entry.id}-${flower.id}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-2.5 py-1.5 text-[12px]"><FlowerThumbnail flower={flower} size="sm" /><span className="text-[12px]">{flower.name}</span><Badge className={`${groupBadgeClass(flower.group)} text-[10px]`}>{flower.group}</Badge>{isAdmin ? <Button type="button" variant="outline" size="sm" className="h-6 rounded-full px-2 text-[10px]" onClick={() => removePriorityRaceFlowerFromEntry(entry.id, flower.id)} disabled={savingPriorityRace}>Gỡ</Button> : null}</div>))}</div></div>); }))}</div></div></CardContent></Card>{isAdmin ? (<div className="grid gap-4 md:grid-cols-2"><Card className="rounded-[24px]"><CardHeader><div className="flex items-center justify-between gap-3"><CardTitle className="text-base">Thành viên còn 1 quest</CardTitle><Button type="button" variant="outline" size="sm" className="h-8 rounded-xl px-3 text-[11px]" onClick={clearOneQuestMembers} disabled={oneQuestMembers.length === 0}>Clear</Button></div></CardHeader><CardContent className="space-y-3"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={oneQuestMemberSearch} onChange={(e) => setOneQuestMemberSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="pl-9" /></div><ScrollArea className="h-[220px] pr-2"><div className="space-y-2.5">{filteredOneQuestMembers.map((member) => { const checked = oneQuestMemberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return (<label key={`one-quest-${member.id}`} className="flex cursor-pointer items-start gap-2.5 rounded-2xl border p-3 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleOneQuestMember(member.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-2"><div><p className="text-[13px] font-medium leading-snug">{member.name}</p></div>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div></label>); })}</div></ScrollArea><div className="rounded-2xl border bg-slate-50 p-3 text-[12px] text-slate-600"><div className="mb-2">Đã chọn: <span className="font-semibold text-slate-900">{oneQuestMembers.length}</span> thành viên</div><div className="flex flex-wrap gap-2">{oneQuestMembers.length === 0 ? <span className="text-slate-400">Chưa có thành viên nào.</span> : oneQuestMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <div key={`one-quest-picked-${member.id}`} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[12px]"><span>{member.name}</span>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div></div></CardContent></Card><Card className="rounded-[24px]"><CardHeader><div className="flex items-center justify-between gap-3"><CardTitle className="text-base">Thành viên hoàn thành</CardTitle><Button type="button" variant="outline" size="sm" className="h-8 rounded-xl px-3 text-[11px]" onClick={clearCompletedMembers} disabled={completedMembers.length === 0}>Clear</Button></div></CardHeader><CardContent className="space-y-3"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={completedMemberSearch} onChange={(e) => setCompletedMemberSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="pl-9" /></div><ScrollArea className="h-[220px] pr-2"><div className="space-y-2.5">{filteredCompletedMembers.map((member) => { const checked = completedMemberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return (<label key={`completed-${member.id}`} className="flex cursor-pointer items-start gap-2.5 rounded-2xl border p-3 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleCompletedMember(member.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-2"><div><p className="text-[13px] font-medium leading-snug">{member.name}</p></div>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div></label>); })}</div></ScrollArea><div className="rounded-2xl border bg-slate-50 p-3 text-[12px] text-slate-600"><div className="mb-2">Đã chọn: <span className="font-semibold text-slate-900">{completedMembers.length}</span> thành viên</div><div className="flex flex-wrap gap-2">{completedMembers.length === 0 ? <span className="text-slate-400">Chưa có thành viên nào.</span> : completedMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <div key={`completed-picked-${member.id}`} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[12px]"><span>{member.name}</span>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div></div></CardContent></Card></div>) : null}{(isAdmin || isManager) ? (<Card className="rounded-[28px]"><CardHeader><div className="flex items-center justify-between gap-3"><CardTitle>Thành viên đua 2 phẩm</CardTitle><Button type="button" variant="outline" size="sm" className="h-8 rounded-xl px-3 text-[11px]" onClick={clearTwoGroupMembers} disabled={twoGroupMembers.length === 0}>Clear</Button></div></CardHeader><CardContent className="space-y-3"><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={twoGroupMemberSearch} onChange={(e) => setTwoGroupMemberSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="pl-9" /></div><ScrollArea className="h-[220px] pr-2"><div className="space-y-2.5">{filteredTwoGroupMembers.map((member) => { const checked = twoGroupMemberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return (<label key={`two-group-${member.id}`} className="flex cursor-pointer items-start gap-2.5 rounded-2xl border p-3 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleTwoGroupMember(member.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-2"><div><p className="text-[13px] font-medium leading-snug">{member.name}</p></div>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div></label>); })}</div></ScrollArea><div className="rounded-2xl border bg-slate-50 p-3 text-[12px] text-slate-600"><div className="mb-2">Đã chọn: <span className="font-semibold text-slate-900">{twoGroupMembers.length}</span> thành viên</div><div className="flex flex-wrap gap-2">{twoGroupMembers.length === 0 ? <span className="text-slate-400">Chưa có thành viên nào.</span> : twoGroupMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <div key={`two-group-picked-${member.id}`} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[12px]"><span>{member.name}</span>{hasTitleName(memberTitle) ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div></div><div className="rounded-2xl border bg-slate-50 p-3 text-[12px] text-slate-600">Khi thành viên được chọn ở đây, box Ưu tiên đua hội sẽ luôn giữ 2 phẩm: phẩm cao nhất đang có và phẩm liền dưới. Bấm Cập nhật lại vẫn giữ 2 phẩm.</div></CardContent></Card>) : null}<Card className="rounded-[28px]"><CardHeader className="space-y-3"><div className="flex items-center justify-between gap-3"><CardTitle>Săn hoa linh</CardTitle>{isAdmin ? <Button onClick={saveSpiritHuntSlots} disabled={savingSpiritHunt}>{savingSpiritHunt ? "Đang lưu..." : "Lưu"}</Button> : null}</div>{spiritHuntMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{spiritHuntMessage}</div> : null}</CardHeader><CardContent><div className="grid gap-4 xl:grid-cols-2">{spiritHuntSlots.map((slot) => { const selectedMembers = slot.memberIds.map((id) => memberById.get(String(id))).filter(Boolean); const memberSearchValue = spiritHuntMemberSearch[slot.slotKey] || ""; const filteredSlotMembers = members.filter((member) => member.name.toLowerCase().includes(memberSearchValue.trim().toLowerCase())); return (<Card key={slot.slotKey} className="rounded-[22px] border shadow-none"><CardHeader className="space-y-2 pb-3 text-[75%]">{isAdmin ? (<div className="grid gap-2 sm:grid-cols-2"><div className="space-y-1.5"><Label className="text-[11px]">Tên khung</Label><Input value={slot.title} onChange={(e) => updateSpiritHuntSlot(slot.slotKey, () => ({ title: e.target.value }))} className="h-9 text-[12px]" /></div><div className="space-y-1.5"><Label className="text-[11px]">Khung giờ</Label><Input value={slot.timeLabel} onChange={(e) => updateSpiritHuntSlot(slot.slotKey, () => ({ timeLabel: e.target.value }))} className="h-9 text-[12px]" /></div></div>) : (<div><CardTitle className="text-base">{slot.title}</CardTitle><p className="text-[12px] text-slate-500">{slot.timeLabel || "Chưa đặt giờ"}</p></div>)}</CardHeader><CardContent className="space-y-3 pt-0 text-[75%]">{isAdmin ? (<><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={memberSearchValue} onChange={(e) => setSpiritHuntMemberSearch((prev) => ({ ...prev, [slot.slotKey]: e.target.value }))} placeholder="Tìm thành viên..." className="h-9 pl-9 text-[12px]" /></div><ScrollArea className="h-[170px] pr-2"><div className="space-y-2.5">{filteredSlotMembers.map((member) => { const checked = slot.memberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return (<label key={`${slot.slotKey}-${member.id}`} className="flex cursor-pointer items-start gap-2.5 rounded-2xl border p-3 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleSpiritHuntMember(slot.slotKey, member.id)} /><div className="flex-1"><div className="flex items-start justify-between gap-2"><div><p className="text-[12px] font-medium leading-snug">{member.name}</p></div>{memberTitle?.name ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div></div></label>); })}</div></ScrollArea><div className="space-y-2.5 rounded-2xl border bg-slate-50 p-3 text-[12px] text-slate-600"><div>Đã chọn: <span className="font-semibold text-slate-900">{selectedMembers.length}</span> thành viên</div><div className="flex flex-wrap gap-2">{selectedMembers.length === 0 ? <span className="text-slate-400">Chưa chọn thành viên nào.</span> : selectedMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <div key={`selected-spirit-${slot.slotKey}-${member.id}`} className="inline-flex max-w-full items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-[12px]"><span className="break-words">{member.name}</span>{memberTitle?.name ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div></div></>) : (<div className="flex flex-wrap gap-2">{selectedMembers.length === 0 ? <SectionEmpty>Chưa có thành viên nào ở khung này.</SectionEmpty> : selectedMembers.map((member) => { const memberTitle = titleByMemberId.get(String(member.id)); return <div key={`${slot.slotKey}-${member.id}`} className="inline-flex items-center gap-2 rounded-full border bg-slate-50 px-3 py-1.5 text-[12px]"><span>{member.name}</span>{memberTitle?.name ? <Badge className={`${titleBadgeClass(memberTitle.name)} text-[10px]`}>{memberTitle.name}</Badge> : null}</div>; })}</div>)}</CardContent></Card>); })}</div></CardContent></Card></div></TabsContent>
         </TabsProvider>
       </div>
     </div>

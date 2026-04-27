@@ -14,6 +14,7 @@ const SUPER_ADMIN_EMAILS = ["lehuuhung133132@gmail.com"];
 const MANAGER_EMAILS = ["tranduytunghp160992@gmail.com"];
 const FLOWER_ICON_BUCKET = "flower-icons";
 const SUPABASE_STORAGE_KEY_PREFIX = "sb-";
+const ACCOUNT_PROFILE_STORAGE_KEY = "selina-account-profile";
 const DEFAULT_SPIRIT_HUNT_SLOTS = [
   { slotKey: "slot_1", title: "Khung giờ 1", timeLabel: "12:00 - 13:00", memberIds: [] },
   { slotKey: "slot_2", title: "Khung giờ 2", timeLabel: "20:00 - 21:00", memberIds: [] },
@@ -376,6 +377,40 @@ function clearSupabaseAuthStorage() {
     keys.forEach((key) => window.localStorage.removeItem(key));
   } catch {}
 }
+function saveAccountProfileToStorage(profile) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!profile) {
+      window.localStorage.removeItem(ACCOUNT_PROFILE_STORAGE_KEY);
+      return;
+    }
+    window.localStorage.setItem(ACCOUNT_PROFILE_STORAGE_KEY, JSON.stringify({
+      id: String(profile.id || ""),
+      email: String(profile.email || "").toLowerCase(),
+      nickname: String(profile.nickname || ""),
+      role: String(profile.role || "member_editor"),
+      memberIds: Array.isArray(profile.memberIds) ? profile.memberIds.map(String) : [],
+    }));
+  } catch {}
+}
+function loadAccountProfileFromStorage() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(ACCOUNT_PROFILE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      id: String(parsed.id || ""),
+      email: String(parsed.email || "").toLowerCase(),
+      nickname: String(parsed.nickname || ""),
+      role: String(parsed.role || "member_editor"),
+      memberIds: Array.isArray(parsed.memberIds) ? parsed.memberIds.map(String) : [],
+    };
+  } catch {
+    return null;
+  }
+}
 async function getSafeCurrentUser() {
   try {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -700,13 +735,19 @@ export default function HoaHoiGameCanvasApp() {
       if (result.user?.email) {
         const normalizedEmail = String(result.user.email).toLowerCase();
         if (!ADMIN_EMAILS.map((item) => item.toLowerCase()).includes(normalizedEmail)) {
-          const profile = await getAccountAccessProfileForEmail(normalizedEmail);
-          if (active) setCurrentAccountProfile(profile);
+          const cachedProfile = loadAccountProfileFromStorage();
+          const profile = cachedProfile?.email === normalizedEmail ? cachedProfile : await getAccountAccessProfileForEmail(normalizedEmail);
+          if (active) {
+            setCurrentAccountProfile(profile);
+            saveAccountProfileToStorage(profile);
+          }
         } else {
           setCurrentAccountProfile(null);
+          saveAccountProfileToStorage(null);
         }
       } else {
         setCurrentAccountProfile(null);
+        saveAccountProfileToStorage(null);
       }
       if (result.message) setLoginMessage(result.message);
       if (result.shouldRetry && attempt < 3) retryTimer = window.setTimeout(() => initAuth(attempt + 1), 500 + attempt * 300);
@@ -718,13 +759,19 @@ export default function HoaHoiGameCanvasApp() {
       if (session?.user?.email) {
         const normalizedEmail = String(session.user.email).toLowerCase();
         if (!ADMIN_EMAILS.map((item) => item.toLowerCase()).includes(normalizedEmail)) {
-          const profile = await getAccountAccessProfileForEmail(normalizedEmail);
-          if (active) setCurrentAccountProfile(profile);
+          const cachedProfile = loadAccountProfileFromStorage();
+          const profile = cachedProfile?.email === normalizedEmail ? cachedProfile : await getAccountAccessProfileForEmail(normalizedEmail);
+          if (active) {
+            setCurrentAccountProfile(profile);
+            saveAccountProfileToStorage(profile);
+          }
         } else {
           setCurrentAccountProfile(null);
+          saveAccountProfileToStorage(null);
         }
       } else {
         setCurrentAccountProfile(null);
+        saveAccountProfileToStorage(null);
       }
       if (session?.user) setLoginMessage("");
     });
@@ -816,9 +863,9 @@ export default function HoaHoiGameCanvasApp() {
   }
   async function loadAccountPermissionsData() {
     const [identitiesRes, permissionRowsRes, legacyRes] = await Promise.all([
-      supabase.from("account_identities").select("id, email, nickname, role").order("nickname", { ascending: true }),
-      supabase.from("account_member_permissions").select("id, account_email, member_id").order("account_email", { ascending: true }),
-      supabase.from("account_permissions").select("id, email, role, member_id").order("email", { ascending: true }),
+      supabasePublic.from("account_identities").select("id, email, nickname, role").order("nickname", { ascending: true }),
+      supabasePublic.from("account_member_permissions").select("id, account_email, member_id").order("account_email", { ascending: true }),
+      supabasePublic.from("account_permissions").select("id, email, role, member_id").order("email", { ascending: true }),
     ]);
     if (!identitiesRes.error && !permissionRowsRes.error) {
       setAccountIdentities((identitiesRes.data || []).map((row) => ({ id: String(row.id), email: String(row.email || "").toLowerCase(), nickname: String(row.nickname || ""), role: row.role || "member_editor" })));
@@ -845,9 +892,9 @@ export default function HoaHoiGameCanvasApp() {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     if (!normalizedEmail) return null;
     const [identityRes, permissionsRes, legacyRes] = await Promise.all([
-      supabase.from("account_identities").select("id, email, nickname, role").eq("email", normalizedEmail).maybeSingle(),
-      supabase.from("account_member_permissions").select("id, account_email, member_id").eq("account_email", normalizedEmail),
-      supabase.from("account_permissions").select("id, email, role, member_id").eq("email", normalizedEmail),
+      supabasePublic.from("account_identities").select("id, email, nickname, role").eq("email", normalizedEmail).maybeSingle(),
+      supabasePublic.from("account_member_permissions").select("id, account_email, member_id").eq("account_email", normalizedEmail),
+      supabasePublic.from("account_permissions").select("id, email, role, member_id").eq("email", normalizedEmail),
     ]);
     if (!identityRes.error && identityRes.data) {
       return { id: String(identityRes.data.id), email: String(identityRes.data.email || "").toLowerCase(), nickname: String(identityRes.data.nickname || ""), role: identityRes.data.role || "member_editor", memberIds: (permissionsRes.data || []).map((row) => String(row.member_id)).filter(Boolean) };
@@ -861,7 +908,7 @@ export default function HoaHoiGameCanvasApp() {
   async function getAccountIdentityByNickname(rawNickname) {
     const nickname = String(rawNickname || "").trim();
     if (!nickname) return null;
-    const { data, error } = await supabase.from("account_identities").select("id, email, nickname, role").ilike("nickname", nickname).maybeSingle();
+    const { data, error } = await supabasePublic.from("account_identities").select("id, email, nickname, role").ilike("nickname", nickname).maybeSingle();
     if (error || !data) return null;
     return { id: String(data.id), email: String(data.email || "").toLowerCase(), nickname: String(data.nickname || ""), role: data.role || "member_editor" };
   }
@@ -1316,6 +1363,7 @@ export default function HoaHoiGameCanvasApp() {
         return setLoginMessage("Tài khoản này không có quyền truy cập chức năng quản trị/cập nhật.");
       }
       setCurrentAccountProfile(allowedAdmin ? null : profile);
+      saveAccountProfileToStorage(allowedAdmin ? null : profile);
       setUser(data.user || null);
       setLoginPassword("");
       setAdminDialogOpen(false);
@@ -1331,6 +1379,7 @@ export default function HoaHoiGameCanvasApp() {
     try { await supabase.auth.signOut({ scope: "local" }); } catch {}
     setUser(null);
     setCurrentAccountProfile(null);
+    saveAccountProfileToStorage(null);
     setLoginMessage("");
     setLoginPassword("");
     setLoginNickname("");

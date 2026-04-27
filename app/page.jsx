@@ -701,8 +701,9 @@ export default function HoaHoiGameCanvasApp() {
   const isAdminRef = useRef(false);
 
   const userEmail = useMemo(() => user?.email?.toLowerCase() || "", [user]);
-  const isAdmin = useMemo(() => ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail), [userEmail]);
+  const isAdmin = useMemo(() => ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail) || currentAccountProfile?.role === "admin", [userEmail, currentAccountProfile]);
   const isSuperAdmin = useMemo(() => SUPER_ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail), [userEmail]);
+  const canAccessAdminPanel = useMemo(() => isAdmin, [isAdmin]);
   const isManager = useMemo(() => MANAGER_EMAILS.map((x) => x.toLowerCase()).includes(userEmail) || currentAccountProfile?.role === "manager", [userEmail, currentAccountProfile]);
   const adminButtonLabel = useMemo(() => {
     if (isAdmin) return "Admin";
@@ -1021,7 +1022,7 @@ export default function HoaHoiGameCanvasApp() {
     if (needPriorityRace && !priorityRaceLoaded) loadPriorityRaceData().catch((e) => setPageMessage(e.message));
     if (activeTab === "addflower" && !artVasesLoaded) loadArtVasesData().catch((e) => setPageMessage(e.message));
     if (!statCardAssetsLoaded) loadStatCardAssetsData().catch((e) => setPageMessage(e.message));
-    if (activeTab === "adminpanel" && isSuperAdmin && !accountPermissionsLoaded) loadAccountPermissionsData().catch((e) => setPageMessage(e.message));
+    if (activeTab === "adminpanel" && canAccessAdminPanel && !accountPermissionsLoaded) loadAccountPermissionsData().catch((e) => setPageMessage(e.message));
   }, [activeTab, isAdmin, titlesLoaded, historyLoaded, spiritHuntLoaded, priorityRaceLoaded, accountPermissionsLoaded, artVasesLoaded, statCardAssetsLoaded, isSuperAdmin]);
 
   const memberById = useMemo(() => new Map(members.map((m) => [String(m.id), m])), [members]);
@@ -1390,7 +1391,8 @@ export default function HoaHoiGameCanvasApp() {
       if (error) return setLoginMessage(`Đăng nhập thất bại: ${error.message}`);
       const email = data.user?.email?.toLowerCase() || "";
       const profile = await getAccountAccessProfileForEmail(email);
-      const allowedAdmin = ADMIN_EMAILS.map((item) => item.toLowerCase()).includes(email);
+      const hardcodedAdmin = ADMIN_EMAILS.map((item) => item.toLowerCase()).includes(email);
+      const allowedAdmin = hardcodedAdmin || profile?.role === "admin";
       const allowedManager = profile?.role === "manager";
       const allowedEditor = profile?.role === "member_editor" && Array.isArray(profile?.memberIds) && profile.memberIds.length > 0;
       if (!allowedAdmin && !allowedManager && !allowedEditor) {
@@ -1399,8 +1401,8 @@ export default function HoaHoiGameCanvasApp() {
         setCurrentAccountProfile(null);
         return setLoginMessage("Tài khoản này không có quyền truy cập chức năng quản trị/cập nhật.");
       }
-      setCurrentAccountProfile(allowedAdmin ? null : profile);
-      saveAccountProfileToStorage(allowedAdmin ? null : profile);
+      setCurrentAccountProfile(hardcodedAdmin ? null : profile);
+      saveAccountProfileToStorage(hardcodedAdmin ? null : profile);
       setUser(data.user || null);
       setLoginPassword("");
       setAdminDialogOpen(false);
@@ -1933,7 +1935,7 @@ export default function HoaHoiGameCanvasApp() {
     { value: "addflower", label: "Hoa nghệ thuật" },
     { value: "history", label: "Lịch sử" },
     { value: "spirithunt", label: "Hoa linh/Đấu hội" },
-    ...(isSuperAdmin ? [{ value: "adminpanel", label: "Quản trị" }] : []),
+    ...(canAccessAdminPanel ? [{ value: "adminpanel", label: "Quản trị" }] : []),
   ];
 
   if (loading) {
@@ -1989,6 +1991,7 @@ export default function HoaHoiGameCanvasApp() {
                   <SelectContent>
                     <SelectItem value="member_editor">Tài khoản cập nhật</SelectItem>
                     <SelectItem value="manager">Tài khoản Manager</SelectItem>
+                    <SelectItem value="admin">Tài khoản Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2088,8 +2091,8 @@ export default function HoaHoiGameCanvasApp() {
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold text-slate-900">{identity.nickname}</p>
-                        <Badge className={identity.role === "manager" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}>
-                          {identity.role === "manager" ? "Tài khoản Manager" : "Tài khoản cập nhật"}
+                        <Badge className={identity.role === "admin" ? "border-rose-200 bg-rose-50 text-rose-700" : identity.role === "manager" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}>
+                          {identity.role === "admin" ? "Tài khoản Admin" : identity.role === "manager" ? "Tài khoản Manager" : "Tài khoản cập nhật"}
                         </Badge>
                       </div>
                       <p className="text-sm text-slate-500">{identity.email}</p>
@@ -2212,7 +2215,7 @@ export default function HoaHoiGameCanvasApp() {
       <Card className="rounded-[28px]">
         <CardHeader>
           <CardTitle>Ảnh đầu trang và 4 ô thống kê</CardTitle>
-          <p className="mt-1 text-sm text-slate-500">Chỉ tài khoản admin chính nhìn thấy phần quản trị này. Ảnh sau khi lưu sẽ hiển thị cho tất cả mọi người ngoài trang chính.</p>
+          <p className="mt-1 text-sm text-slate-500">Chỉ tài khoản admin nhìn thấy phần quản trị này. Ảnh sau khi lưu sẽ hiển thị cho tất cả mọi người ngoài trang chính.</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -2336,7 +2339,7 @@ export default function HoaHoiGameCanvasApp() {
 
           {canManageTitles ? <TabsContent value="titlemanagement"><div className="space-y-4"><Card className="rounded-[28px]"><CardHeader><CardTitle>Quản lý chức danh</CardTitle></CardHeader><CardContent>{!titleFeatureAvailable ? <SectionEmpty>Supabase chưa có bảng titles và member_titles.</SectionEmpty> : <div className="grid gap-4 lg:grid-cols-[300px_1fr_360px]"><div className="rounded-3xl border p-4 space-y-4"><div className="space-y-2"><Label>Thêm chức danh mới</Label><Input value={newTitleName} onChange={(e) => setNewTitleName(e.target.value)} placeholder="Ví dụ: Trưởng nhóm" /></div><Button className="w-full" onClick={addTitleToDatabase} disabled={savingTitle}><PlusIcon className="mr-2 h-4 w-4" />Thêm chức danh</Button><div className="space-y-2"><Label>Chọn chức danh để trao</Label><Select value={selectedTitleId} onValueChange={setSelectedTitleId}><SelectContent><SelectItem value="none">-- Chọn chức danh --</SelectItem>{titles.map((title) => <SelectItem key={title.id} value={String(title.id)}>{title.name}</SelectItem>)}</SelectContent></Select></div><div className="relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={titleMemberSearch} onChange={(e) => setTitleMemberSearch(e.target.value)} placeholder="Tìm tên thành viên..." className="pl-9" /></div><Button className="w-full" onClick={saveTitleAssignments} disabled={savingTitle}>Trao chức danh cho thành viên đã chọn</Button>{titleMessage ? <div className="rounded-2xl border bg-slate-50 p-3 text-sm text-slate-700">{titleMessage}</div> : null}</div><div className="rounded-3xl border p-4"><ScrollArea className="h-[720px] pr-3"><div className="space-y-3">{filteredTitleMembers.map((member) => { const checked = selectedTitleMemberIds.includes(String(member.id)); const memberTitle = titleByMemberId.get(String(member.id)); return <label key={member.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:bg-slate-50"><Checkbox checked={checked} onCheckedChange={() => toggleTitleMember(member.id)} /><div className="flex-1"><p className="font-medium">{member.name}</p><p className="text-sm text-slate-500">{memberTitle?.name || "Chưa có chức danh"}</p></div></label>; })}</div></ScrollArea></div><div className="rounded-3xl border p-4"><div className="mb-3 relative"><div className="pointer-events-none absolute left-3 top-3 text-slate-400"><SearchIcon /></div><Input value={titleManageSearch} onChange={(e) => setTitleManageSearch(e.target.value)} placeholder="Tìm chức danh..." className="pl-9" /></div><ScrollArea className="h-[720px] pr-3"><div className="space-y-4">{filteredTitles.map((title) => { const assignedMembers = membersByTitleId.get(String(title.id)) || []; return <div key={title.id} className="rounded-3xl border p-3"><div className="mb-3 flex items-center justify-between"><Badge className={titleBadgeClass(title.name)}>{title.name}</Badge><span className="text-sm font-semibold">{assignedMembers.length} người</span></div><div className="space-y-2">{assignedMembers.length === 0 ? <SectionEmpty>Chưa có thành viên nào</SectionEmpty> : assignedMembers.map((member) => <div key={`${title.id}-${member.id}`} className="flex items-center justify-between gap-3 rounded-2xl border p-2"><span className="text-sm font-medium break-words">{member.name}</span><Button variant="outline" size="sm" onClick={() => removeTitleFromMember(title.id, member.id)}>Gỡ</Button></div>)}</div></div>; })}</div></ScrollArea></div></div>}</CardContent></Card></div></TabsContent> : null}
 
-          {isSuperAdmin ? <TabsContent value="adminpanel">{adminPanelContent}</TabsContent> : null}
+          {canAccessAdminPanel ? <TabsContent value="adminpanel">{adminPanelContent}</TabsContent> : null}
 
           <TabsContent value="history"><Card className="rounded-[28px]"><CardHeader><CardTitle>Lịch sử cập nhật</CardTitle></CardHeader><CardContent>{!historyLoaded ? <p className="text-sm text-slate-600">Đang tải lịch sử...</p> : visibleHistoryEntries.length === 0 ? <SectionEmpty>Chưa có lịch sử thao tác.</SectionEmpty> : <div className="space-y-3">{visibleHistoryEntries.map((log) => <div key={log.id} className="rounded-3xl border p-4"><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{log.targetName || "-"}</p>{log.memberTitle?.name ? <Badge className={titleBadgeClass(log.memberTitle.name)}>{log.memberTitle.name}</Badge> : null}{log.summaryText ? <span className="text-sm text-slate-500">• {log.summaryText}</span> : null}</div>{log.flowerItems.length > 0 ? <div className="mt-3 flex flex-wrap gap-2">{log.flowerItems.map((item, index) => <div key={`${log.id}-${item.name}-${index}`} className="inline-flex items-center gap-2 rounded-2xl border bg-slate-50 px-3 py-2"><FlowerThumbnail flower={item.flower} size="sm" /><span className="text-sm font-medium">{item.name}</span>{item.flower ? <Badge className={groupBadgeClass(item.flower.group)}>{item.flower.group}</Badge> : null}</div>)}</div> : log.targetType === "account_identity" ? <div className="mt-3 rounded-2xl border bg-slate-50 p-3 text-sm text-slate-600"><div className="font-medium text-slate-900">{log.targetName || "Tài khoản cập nhật"}</div><div className="mt-1">{log.details || "-"}</div></div> : <p className="mt-2 text-sm text-slate-600">{log.details || "-"}</p>}<div className="mt-2 text-xs text-slate-500">{log.createdAt ? new Date(log.createdAt).toLocaleString("vi-VN") : "-"} • {log.actorName || "Hệ thống"}</div></div>)}</div>}</CardContent></Card></TabsContent>
 

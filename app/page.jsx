@@ -1553,11 +1553,11 @@ export default function HoaHoiGameCanvasApp() {
         : "";
     } else if (highestGroup === "Vàng") {
       allowedGroups = ["Vàng"];
-      pageModeDescription = "Gợi ý các trang có số lượng hoa vàng chưa sở hữu nhiều nhất đến ít nhất.";
+      pageModeDescription = "";
     } else if (highestGroup === "Đỏ") {
       allowedGroups = ["Vàng", "Tím"];
       message = "Bạn hiện đã sở hữu Hoa đỏ - phẩm Tiên nên việc sở hữu hoa vàng hay tím không có nhiều ý nghĩa cho đấu hội. Vì vậy tôi sẽ gợi ý cho bạn các hoa ít người sở hữu nhé";
-      pageModeDescription = "Gợi ý các trang có số lượng hoa chưa sở hữu nhiều nhất và có số lượng thành viên hội sở hữu ít nhất.";
+      pageModeDescription = "";
     } else {
       allowedGroups = highestGroup ? [highestGroup] : ["Lục", "Lam", "Tím", "Vàng"];
       pageModeDescription = "Gợi ý các trang có số lượng hoa chưa sở hữu nhiều nhất.";

@@ -1190,7 +1190,19 @@ export default function HoaHoiGameCanvasApp() {
     const owned = groupOwnedCounts[group] || 0;
     return { group, total, owned, percent: total ? Math.round((owned / total) * 100) : 0 };
   }), [flowers, groupOwnedCounts]);
-  const missingFlowers = useMemo(() => flowers.filter((f) => !activeOwnersByFlower.get(String(f.id))?.length), [flowers, activeOwnersByFlower]);
+  const missingFlowers = useMemo(() => {
+    const groupOrder = MEMBER_FLOWER_GROUP_ORDER.reduce((acc, group, index) => {
+      acc[group] = index;
+      return acc;
+    }, {});
+    return flowers
+      .filter((f) => !activeOwnersByFlower.get(String(f.id))?.length)
+      .sort((a, b) => {
+        const byGroup = (groupOrder[a.group] ?? 99) - (groupOrder[b.group] ?? 99);
+        if (byGroup !== 0) return byGroup;
+        return a.name.localeCompare(b.name, "vi");
+      });
+  }, [flowers, activeOwnersByFlower]);
   const rareFlowers = useMemo(() => [...flowers].filter((f) => { const count = activeOwnersByFlower.get(String(f.id))?.length || 0; return count >= 1 && count <= 3; }).sort((a, b) => { const aCount = activeOwnersByFlower.get(String(a.id))?.length || 0; const bCount = activeOwnersByFlower.get(String(b.id))?.length || 0; if (aCount !== bCount) return aCount - bCount; return a.name.localeCompare(b.name, "vi"); }), [flowers, activeOwnersByFlower]);
   const filteredMissingFlowers = useMemo(() => missingFlowers.filter((f) => dashboardMissingGroupFilter === "all" || f.group === dashboardMissingGroupFilter), [missingFlowers, dashboardMissingGroupFilter]);
   const filteredRareFlowers = useMemo(() => rareFlowers.filter((f) => dashboardRareGroupFilter === "all" || f.group === dashboardRareGroupFilter), [rareFlowers, dashboardRareGroupFilter]);

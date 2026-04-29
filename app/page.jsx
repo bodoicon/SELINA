@@ -754,6 +754,7 @@ export default function HoaHoiGameCanvasApp() {
 
   const activeTabRef = useRef("dashboard");
   const isAdminRef = useRef(false);
+  const realtimeRefreshTimerRef = useRef(null);
 
   const userEmail = useMemo(() => user?.email?.toLowerCase() || "", [user]);
   const isAdmin = useMemo(() => ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail) || currentAccountProfile?.role === "admin", [userEmail, currentAccountProfile]);
@@ -1096,8 +1097,41 @@ export default function HoaHoiGameCanvasApp() {
   async function refreshCoreDataSilently(extra = {}) {
     await loadAllData({ silent: true, includeTitles: extra.includeTitles ?? titlesLoaded, includeHistory: extra.includeHistory ?? historyLoaded, includeSpiritHunt: extra.includeSpiritHunt ?? spiritHuntLoaded, includePriorityRace: extra.includePriorityRace ?? priorityRaceLoaded });
   }
+  function queueRealtimeRefresh(extra = {}) {
+    if (realtimeRefreshTimerRef.current) window.clearTimeout(realtimeRefreshTimerRef.current);
+    realtimeRefreshTimerRef.current = window.setTimeout(() => {
+      refreshCoreDataSilently(extra);
+    }, 120);
+  }
 
   useEffect(() => { loadAllData({ includeTitles: shouldLoadTitlesForTab(activeTabRef.current, isAdminRef.current), includeHistory: shouldLoadHistoryForTab(activeTabRef.current), includeSpiritHunt: shouldLoadSpiritHuntForTab(activeTabRef.current), includePriorityRace: shouldLoadPriorityRaceForTab(activeTabRef.current) }); }, []);
+  useEffect(() => {
+    const channel = supabase
+      .channel("selina-realtime-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "member_flowers" }, () => {
+        queueRealtimeRefresh({ includeHistory: historyLoaded, includeTitles: titlesLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "members" }, () => {
+        queueRealtimeRefresh({ includeHistory: historyLoaded, includeTitles: titlesLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "flowers" }, () => {
+        queueRealtimeRefresh({ includeHistory: historyLoaded, includeTitles: titlesLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "member_titles" }, () => {
+        queueRealtimeRefresh({ includeTitles: true, includeHistory: historyLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "titles" }, () => {
+        queueRealtimeRefresh({ includeTitles: true, includeHistory: historyLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "action_logs" }, () => {
+        if (historyLoaded) queueRealtimeRefresh({ includeHistory: true, includeTitles: titlesLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+      })
+      .subscribe();
+    return () => {
+      if (realtimeRefreshTimerRef.current) window.clearTimeout(realtimeRefreshTimerRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [historyLoaded, titlesLoaded, spiritHuntLoaded, priorityRaceLoaded]);
   useEffect(() => {
     const needTitles = shouldLoadTitlesForTab(activeTab, isAdmin);
     const needHistory = shouldLoadHistoryForTab(activeTab);
@@ -1364,8 +1398,8 @@ export default function HoaHoiGameCanvasApp() {
         isClone,
       };
     }).filter(Boolean).sort((a, b) => {
-      if (a.ownedTotalCount !== b.ownedTotalCount) return a.ownedTotalCount - b.ownedTotalCount;
       if (a.highestGroupRank !== b.highestGroupRank) return a.highestGroupRank - b.highestGroupRank;
+      if (a.ownedTotalCount !== b.ownedTotalCount) return a.ownedTotalCount - b.ownedTotalCount;
       if (a.flowerCount !== b.flowerCount) return a.flowerCount - b.flowerCount;
       return a.memberName.localeCompare(b.memberName, "vi");
     }).map(({ id, memberId, flowerIds, isClone, ownedTotalCount, highestGroupRank, flowerCount, memberName }) => ({ id, memberId, flowerIds, isClone, ownedTotalCount, highestGroupRank, flowerCount, memberName }));

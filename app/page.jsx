@@ -772,10 +772,17 @@ export default function HoaHoiGameCanvasApp() {
   const supabaseSyncChannelRef = useRef(null);
 
   const userEmail = useMemo(() => user?.email?.toLowerCase() || "", [user]);
-  const isAdmin = useMemo(() => ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail) || currentAccountProfile?.role === "admin", [userEmail, currentAccountProfile]);
+  const accountRole = useMemo(() => {
+    if (!user) return "guest";
+    if (ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail) || currentAccountProfile?.role === "admin") return "admin";
+    if (MANAGER_EMAILS.map((x) => x.toLowerCase()).includes(userEmail) || currentAccountProfile?.role === "manager") return "manager";
+    if (currentAccountProfile?.role === "member_editor" && Array.isArray(currentAccountProfile?.memberIds) && currentAccountProfile.memberIds.length > 0) return "member_editor";
+    return "guest";
+  }, [user, userEmail, currentAccountProfile]);
+  const isAdmin = accountRole === "admin";
   const isSuperAdmin = useMemo(() => SUPER_ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail), [userEmail]);
-  const canAccessAdminPanel = useMemo(() => isAdmin, [isAdmin]);
-  const isManager = useMemo(() => MANAGER_EMAILS.map((x) => x.toLowerCase()).includes(userEmail) || currentAccountProfile?.role === "manager", [userEmail, currentAccountProfile]);
+  const canAccessAdminPanel = isAdmin;
+  const isManager = accountRole === "manager";
   const adminButtonLabel = useMemo(() => {
     if (isAdmin) return "Admin";
     if (isManager) return "Manager";
@@ -789,8 +796,8 @@ export default function HoaHoiGameCanvasApp() {
   const canManageTitles = useMemo(() => isAdmin || isManager, [isAdmin, isManager]);
   const canManageSpiritHunt = useMemo(() => isAdmin || isManager, [isAdmin, isManager]);
   const canManagePriorityRace = useMemo(() => isAdmin || isManager, [isAdmin, isManager]);
-  const isRestrictedEditor = useMemo(() => !isAdmin && !isManager && currentAccountProfile?.role === "member_editor" && Array.isArray(currentAccountProfile?.memberIds) && currentAccountProfile.memberIds.length > 0, [isAdmin, isManager, currentAccountProfile]);
-  const canAccessOwnershipUpdate = useMemo(() => isAdmin || isManager || isRestrictedEditor, [isAdmin, isManager, isRestrictedEditor]);
+  const isRestrictedEditor = accountRole === "member_editor";
+  const canAccessOwnershipUpdate = isAdmin || isManager || isRestrictedEditor;
   const restrictedMemberIds = useMemo(() => Array.isArray(currentAccountProfile?.memberIds) ? currentAccountProfile.memberIds.map(String) : [], [currentAccountProfile]);
 
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
@@ -1923,7 +1930,7 @@ export default function HoaHoiGameCanvasApp() {
         await supabase.auth.signOut({ scope: "local" });
         setUser(null);
         setCurrentAccountProfile(null);
-        return setLoginMessage("Tài khoản này không có quyền truy cập chức năng quản trị/cập nhật.");
+        return setLoginMessage("Tài khoản này chưa được phân quyền. Guest không cần đăng nhập và chỉ có quyền xem/tra cứu.");
       }
       setCurrentAccountProfile(hardcodedAdmin ? null : profile);
       saveAccountProfileToStorage(hardcodedAdmin ? null : profile);
@@ -2127,7 +2134,7 @@ export default function HoaHoiGameCanvasApp() {
   function updateSpiritHuntSlot(slotKey, updater) { setSpiritHuntSlots((prev) => prev.map((slot) => (slot.slotKey === slotKey ? { ...slot, ...updater(slot) } : slot))); }
   function toggleSpiritHuntMember(slotKey, memberId) { updateSpiritHuntSlot(slotKey, (slot) => ({ memberIds: slot.memberIds.includes(String(memberId)) ? slot.memberIds.filter((id) => id !== String(memberId)) : [...slot.memberIds, String(memberId)] })); }
   async function saveSpiritHuntSlots() {
-    if (!isAdmin) return;
+    if (!canManageSpiritHunt) return;
     setSavingSpiritHunt(true);
     const payload = spiritHuntSlots.map((slot) => ({ slot_key: slot.slotKey, title: String(slot.title || "").trim() || slot.title, time_label: String(slot.timeLabel || "").trim(), member_ids: slot.memberIds.map(String) }));
     const { error } = await supabase.from("spirit_hunt_slots").upsert(payload, { onConflict: "slot_key" });
@@ -2320,7 +2327,7 @@ export default function HoaHoiGameCanvasApp() {
     }
   }
   async function uploadFlowerIcon(flowerId, file) {
-    if (!isAdmin || !file || !flowerId) return { ok: false, message: "Thiếu dữ liệu tải icon." };
+    if (!canManageFlowers || !file || !flowerId) return { ok: false, message: "Thiếu dữ liệu tải icon." };
     setUploadingFlowerIconId(String(flowerId));
     try {
       const extension = String(file.name || "png").split(".").pop()?.toLowerCase() || "png";
@@ -2416,7 +2423,7 @@ export default function HoaHoiGameCanvasApp() {
   }
   function toggleArtPriorityVarOwner(owner) { setArtPriorityVarOwners((prev) => prev.includes(String(owner)) ? prev.filter((item) => item !== String(owner)) : [...prev, String(owner)]); }
   async function toggleOneQuestMember(memberId) {
-    if (!isAdmin) return;
+    if (!canManagePriorityRace) return;
     const id = String(memberId);
     const nextOneQuest = oneQuestMemberIds.includes(id) ? oneQuestMemberIds.filter((item) => String(item) !== id) : [...oneQuestMemberIds, id];
     const nextCompleted = completedMemberIds.filter((item) => String(item) !== id);
@@ -2427,7 +2434,7 @@ export default function HoaHoiGameCanvasApp() {
     broadcastOwnershipRefresh("priority_race_meta_changed");
   }
   async function toggleCompletedMember(memberId) {
-    if (!isAdmin) return;
+    if (!canManagePriorityRace) return;
     const id = String(memberId);
     const isRemoving = completedMemberIds.includes(id);
     const nextCompleted = isRemoving ? completedMemberIds.filter((item) => String(item) !== id) : [...completedMemberIds, id];
@@ -2453,14 +2460,14 @@ export default function HoaHoiGameCanvasApp() {
     broadcastOwnershipRefresh("priority_race_meta_changed");
   }
   async function clearOneQuestMembers() {
-    if (!isAdmin) return;
+    if (!canManagePriorityRace) return;
     const { error } = await persistPriorityRaceConfig(priorityRaceEntries, [], completedMemberIds, twoGroupMemberIds);
     if (error) return setPriorityRaceMessage(`Không xoá được danh sách còn 1 quest: ${error.message}`);
     setOneQuestMemberIds([]);
     broadcastOwnershipRefresh("priority_race_meta_changed");
   }
   async function clearCompletedMembers() {
-    if (!isAdmin) return;
+    if (!canManagePriorityRace) return;
     const { error } = await persistPriorityRaceConfig(priorityRaceEntries, oneQuestMemberIds, [], twoGroupMemberIds);
     if (error) return setPriorityRaceMessage(`Không xoá được danh sách hoàn thành: ${error.message}`);
     setCompletedMemberIds([]);
@@ -2652,7 +2659,7 @@ export default function HoaHoiGameCanvasApp() {
                       const nickname = String(permissionNicknameInput || "").trim();
                       if (!email) return setAccountPermissionMessage("Vui lòng nhập email tài khoản.");
                       if (!nickname) return setAccountPermissionMessage("Vui lòng nhập nickname đăng nhập.");
-                      if (permissionMemberIds.length === 0) return setAccountPermissionMessage("Vui lòng chọn ít nhất 1 thành viên được phép cập nhật.");
+                      if (permissionRoleInput === "member_editor" && permissionMemberIds.length === 0) return setAccountPermissionMessage("Tài khoản cập nhật cần chọn ít nhất 1 thành viên được phép cập nhật.");
                       setSavingAccountPermission(true);
                       const existingConflict = accountIdentities.find((item) => item.nickname.trim().toLowerCase() === nickname.trim().toLowerCase() && item.email !== email);
                       if (existingConflict) {
@@ -2669,11 +2676,14 @@ export default function HoaHoiGameCanvasApp() {
                         setSavingAccountPermission(false);
                         return setAccountPermissionMessage(`Không cập nhật được danh sách thành viên: ${deleteOld.error.message}`);
                       }
-                      const insertRows = await supabase.from("account_member_permissions").insert(permissionMemberIds.map((memberId) => ({ account_email: email, member_id: memberId })));
+                      let insertRows = { error: null };
+                      if (permissionRoleInput === "member_editor" && permissionMemberIds.length > 0) {
+                        insertRows = await supabase.from("account_member_permissions").insert(permissionMemberIds.map((memberId) => ({ account_email: email, member_id: memberId })));
+                      }
                       setSavingAccountPermission(false);
                       if (insertRows.error) return setAccountPermissionMessage(`Không lưu được thành viên được phép cập nhật: ${insertRows.error.message}`);
-                      await logAction({ actionType: editingAccountEmail ? "update_account_identity" : "create_account_identity", actorName: user?.email || "Quản trị hội", targetType: "account_identity", targetName: nickname, details: `${email} • ${permissionMemberIds.length} thành viên` });
-                      setAccountPermissionMessage(editingAccountEmail ? "Đã cập nhật tài khoản cập nhật. Hãy kiểm tra user và mật khẩu thủ công trong Supabase Auth nếu cần." : "Đã lưu liên kết email - nickname - thành viên. Tiếp theo hãy tạo user/mật khẩu thủ công trong Supabase Auth bằng đúng email này.");
+                      await logAction({ actionType: editingAccountEmail ? "update_account_identity" : "create_account_identity", actorName: user?.email || "Quản trị hội", targetType: "account_identity", targetName: nickname, details: `${email} • ${permissionRoleInput === "member_editor" ? `${permissionMemberIds.length} thành viên` : permissionRoleInput === "manager" ? "Tài khoản Manager" : "Tài khoản Admin"}` });
+                      setAccountPermissionMessage(editingAccountEmail ? "Đã cập nhật phân quyền tài khoản. Hãy kiểm tra user và mật khẩu thủ công trong Supabase Auth nếu cần." : "Đã lưu phân quyền tài khoản. Tiếp theo hãy tạo user/mật khẩu thủ công trong Supabase Auth bằng đúng email này.");
                       setEditingAccountEmail("");
                       setPermissionEmailInput("");
                       setPermissionNicknameInput("");

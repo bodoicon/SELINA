@@ -755,6 +755,7 @@ export default function HoaHoiGameCanvasApp() {
   const activeTabRef = useRef("dashboard");
   const isAdminRef = useRef(false);
   const realtimeRefreshTimerRef = useRef(null);
+  const syncBroadcastChannelRef = useRef(null);
 
   const userEmail = useMemo(() => user?.email?.toLowerCase() || "", [user]);
   const isAdmin = useMemo(() => ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail) || currentAccountProfile?.role === "admin", [userEmail, currentAccountProfile]);
@@ -1098,13 +1099,64 @@ export default function HoaHoiGameCanvasApp() {
     await loadAllData({ silent: true, includeTitles: extra.includeTitles ?? titlesLoaded, includeHistory: extra.includeHistory ?? historyLoaded, includeSpiritHunt: extra.includeSpiritHunt ?? spiritHuntLoaded, includePriorityRace: extra.includePriorityRace ?? priorityRaceLoaded });
   }
   function queueRealtimeRefresh(extra = {}) {
+    if (typeof window === "undefined") return;
     if (realtimeRefreshTimerRef.current) window.clearTimeout(realtimeRefreshTimerRef.current);
     realtimeRefreshTimerRef.current = window.setTimeout(() => {
       refreshCoreDataSilently(extra);
     }, 120);
   }
+  function broadcastOwnershipRefresh(reason = "ownership_changed") {
+    if (typeof window === "undefined") return;
+    const payload = {
+      type: "selina_sync",
+      reason,
+      at: Date.now(),
+      includeTitles: true,
+      includeHistory: historyLoaded,
+      includeSpiritHunt: spiritHuntLoaded,
+      includePriorityRace: priorityRaceLoaded,
+    };
+    try {
+      syncBroadcastChannelRef.current?.postMessage(payload);
+    } catch {}
+    try {
+      window.localStorage.setItem("selina-sync-event", JSON.stringify(payload));
+    } catch {}
+  }
 
   useEffect(() => { loadAllData({ includeTitles: shouldLoadTitlesForTab(activeTabRef.current, isAdminRef.current), includeHistory: shouldLoadHistoryForTab(activeTabRef.current), includeSpiritHunt: shouldLoadSpiritHuntForTab(activeTabRef.current), includePriorityRace: shouldLoadPriorityRaceForTab(activeTabRef.current) }); }, []);
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel("selina-sync");
+    syncBroadcastChannelRef.current = channel;
+    channel.onmessage = (event) => {
+      if (event?.data?.type !== "selina_sync") return;
+      queueRealtimeRefresh({
+        includeTitles: true,
+        includeHistory: historyLoaded,
+        includeSpiritHunt: spiritHuntLoaded,
+        includePriorityRace: priorityRaceLoaded,
+      });
+    };
+    return () => {
+      channel.close();
+      syncBroadcastChannelRef.current = null;
+    };
+  }, [historyLoaded, spiritHuntLoaded, priorityRaceLoaded]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onStorage = (event) => {
+      if (event.key !== "selina-sync-event" || !event.newValue) return;
+      queueRealtimeRefresh({
+        includeTitles: true,
+        includeHistory: historyLoaded,
+        includeSpiritHunt: spiritHuntLoaded,
+        includePriorityRace: priorityRaceLoaded,
+      });
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [historyLoaded, spiritHuntLoaded, priorityRaceLoaded]);
   useEffect(() => {
     const channel = supabase
       .channel("selina-realtime-sync")
@@ -1894,7 +1946,8 @@ export default function HoaHoiGameCanvasApp() {
     setSelectedExistingMemberId("none");
     setNewMemberName("");
     setUpdateMessage(`Đã cập nhật ${additions.length} loại hoa mới cho ${member.name}.`);
-    await refreshCoreDataSilently();
+    await refreshCoreDataSilently({ includeTitles: true, includeHistory: historyLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+    broadcastOwnershipRefresh("ownership_added");
   }
   async function removeOwnershipFromMember() {
     if (!canAccessOwnershipUpdate || !selectedExistingMember) return;
@@ -1907,14 +1960,16 @@ export default function HoaHoiGameCanvasApp() {
     await logAction({ actionType: "remove_ownership", actorName: user?.email || "Quản trị hội", targetType: "member", targetName: selectedExistingMember.name, details: `Gỡ ${removedFlowerIds.length} hoa: ${removedFlowerIds.map((id) => flowerById.get(id)?.name || id).join(", ")}` });
     setSelectedRemovalFlowerIds([]);
     setUpdateMessage(`Đã gỡ ${removedFlowerIds.length} loại hoa khỏi ${selectedExistingMember.name}.`);
-    await refreshCoreDataSilently();
+    await refreshCoreDataSilently({ includeTitles: true, includeHistory: historyLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+    broadcastOwnershipRefresh("ownership_removed");
   }
   async function renameMember(memberId, payload) {
     const trimmed = String(payload?.name || "").trim();
     if (!trimmed) return { ok: false, message: "Tên thành viên không được để trống." };
     const { error } = await supabase.from("members").update({ name: trimmed, birth_year: payload?.birthYear ?? null, gender: payload?.gender || null, left_guild: Boolean(payload?.leftGuild), show_in_lookup: Boolean(payload?.showInLookup) }).eq("id", memberId);
     if (error) return { ok: false, message: `Không sửa được thông tin thành viên: ${error.message}` };
-    await refreshCoreDataSilently();
+    await refreshCoreDataSilently({ includeTitles: true, includeHistory: historyLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+    broadcastOwnershipRefresh("member_changed");
     return { ok: true, message: "Đã cập nhật thông tin thành viên." };
   }
   async function restoreFormerMember(member) {
@@ -1930,14 +1985,16 @@ export default function HoaHoiGameCanvasApp() {
     const { error } = await supabase.from("members").update({ show_in_lookup: nextValue }).eq("id", member.id);
     if (error) return;
     await logAction({ actionType: "toggle_former_member_lookup", actorName: user?.email || "Quản trị hội", targetType: "member", targetName: member.name, details: nextValue ? "Bật danh sách hoa cho mục tra cứu" : "Tắt danh sách hoa cho mục tra cứu" });
-    await refreshCoreDataSilently();
+    await refreshCoreDataSilently({ includeTitles: true, includeHistory: historyLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+    broadcastOwnershipRefresh("member_changed");
   }
   async function renameFlower(flowerId, payload) {
     const trimmedName = String(payload?.name || "").trim();
     if (!trimmedName || !payload?.group) return { ok: false, message: "Tên hoa và nhóm hoa không được để trống." };
     const { error } = await supabase.from("flowers").update({ name: trimmedName, group_name: payload.group, icon_url: payload.iconUrl?.trim() || null }).eq("id", flowerId);
     if (error) return { ok: false, message: `Không sửa được hoa: ${error.message}` };
-    await refreshCoreDataSilently();
+    await refreshCoreDataSilently({ includeTitles: true, includeHistory: historyLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
+    broadcastOwnershipRefresh("flower_changed");
     return { ok: true, message: "Đã cập nhật thông tin hoa." };
   }
   function toggleTitleMember(memberId) { setSelectedTitleMemberIds((prev) => prev.includes(String(memberId)) ? prev.filter((id) => id !== String(memberId)) : [...prev, String(memberId)]); }

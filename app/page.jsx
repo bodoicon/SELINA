@@ -756,6 +756,7 @@ export default function HoaHoiGameCanvasApp() {
   const isAdminRef = useRef(false);
   const realtimeRefreshTimerRef = useRef(null);
   const syncBroadcastChannelRef = useRef(null);
+  const supabaseSyncChannelRef = useRef(null);
 
   const userEmail = useMemo(() => user?.email?.toLowerCase() || "", [user]);
   const isAdmin = useMemo(() => ADMIN_EMAILS.map((x) => x.toLowerCase()).includes(userEmail) || currentAccountProfile?.role === "admin", [userEmail, currentAccountProfile]);
@@ -1122,6 +1123,9 @@ export default function HoaHoiGameCanvasApp() {
     try {
       window.localStorage.setItem("selina-sync-event", JSON.stringify(payload));
     } catch {}
+    try {
+      supabaseSyncChannelRef.current?.send({ type: "broadcast", event: "sync", payload });
+    } catch {}
   }
 
   useEffect(() => { loadAllData({ includeTitles: shouldLoadTitlesForTab(activeTabRef.current, isAdminRef.current), includeHistory: shouldLoadHistoryForTab(activeTabRef.current), includeSpiritHunt: shouldLoadSpiritHuntForTab(activeTabRef.current), includePriorityRace: shouldLoadPriorityRaceForTab(activeTabRef.current) }); }, []);
@@ -1156,6 +1160,25 @@ export default function HoaHoiGameCanvasApp() {
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
+  }, [historyLoaded, spiritHuntLoaded, priorityRaceLoaded]);
+  useEffect(() => {
+    const channel = supabase
+      .channel("selina-cross-device-sync", { config: { broadcast: { self: false } } })
+      .on("broadcast", { event: "sync" }, ({ payload }) => {
+        if (payload?.type !== "selina_sync") return;
+        queueRealtimeRefresh({
+          includeTitles: true,
+          includeHistory: historyLoaded,
+          includeSpiritHunt: spiritHuntLoaded,
+          includePriorityRace: priorityRaceLoaded,
+        });
+      })
+      .subscribe();
+    supabaseSyncChannelRef.current = channel;
+    return () => {
+      if (supabaseSyncChannelRef.current === channel) supabaseSyncChannelRef.current = null;
+      supabase.removeChannel(channel);
+    };
   }, [historyLoaded, spiritHuntLoaded, priorityRaceLoaded]);
   useEffect(() => {
     const channel = supabase

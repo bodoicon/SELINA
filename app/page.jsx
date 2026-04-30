@@ -237,18 +237,23 @@ function DialogTitle({ children, className = "" }) {
 }
 function Select({ value, onValueChange, children }) {
   const options = [];
+  const labelToText = (label) => React.Children.toArray(label).map((item) => {
+    if (typeof item === "string" || typeof item === "number") return String(item);
+    if (React.isValidElement(item)) return labelToText(item.props?.children);
+    return "";
+  }).join("").trim();
   React.Children.forEach(children, (child) => {
     if (React.isValidElement(child) && child.type === SelectContent) {
       React.Children.forEach(child.props.children, (item) => {
         if (React.isValidElement(item) && item.type === SelectItem) {
-          options.push({ value: item.props.value, label: item.props.children });
+          options.push({ value: item.props.value, label: labelToText(item.props.children) || String(item.props.value) });
         }
       });
     }
   });
   return (
     <select className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm" value={value} onChange={(e) => onValueChange?.(e.target.value)}>
-      {options.map((option) => <option key={option.value} value={option.value}>{typeof option.label === "string" ? option.label : String(option.value)}</option>)}
+      {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
     </select>
   );
 }
@@ -1273,7 +1278,7 @@ export default function HoaHoiGameCanvasApp() {
     if (needHistory && !historyLoaded) loadHistoryData().catch((e) => setPageMessage(e.message));
     if (needSpiritHunt && !spiritHuntLoaded) loadSpiritHuntData().catch((e) => setPageMessage(e.message));
     if (needPriorityRace && !priorityRaceLoaded) loadPriorityRaceData().catch((e) => setPageMessage(e.message));
-    if (activeTab === "addflower" && !artVasesLoaded) loadArtVasesData().catch((e) => setPageMessage(e.message));
+    if ((activeTab === "addflower" || activeTab === "adminpanel") && !artVasesLoaded) loadArtVasesData().catch((e) => setPageMessage(e.message));
     if (activeTab === "gardenpackage" && !gardenPackageLoaded) loadGardenPackageData().catch((e) => setPageMessage(e.message));
     if (!statCardAssetsLoaded) loadStatCardAssetsData().catch((e) => setPageMessage(e.message));
     if (activeTab === "adminpanel" && canAccessAdminPanel && !accountPermissionsLoaded) loadAccountPermissionsData().catch((e) => setPageMessage(e.message));

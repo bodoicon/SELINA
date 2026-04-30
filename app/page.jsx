@@ -1201,6 +1201,9 @@ export default function HoaHoiGameCanvasApp() {
       .on("postgres_changes", { event: "*", schema: "public", table: "action_logs" }, () => {
         if (historyLoaded) queueRealtimeRefresh({ includeHistory: true, includeTitles: titlesLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: priorityRaceLoaded });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "priority_race_config" }, () => {
+        queueRealtimeRefresh({ includeTitles: true, includeHistory: historyLoaded, includeSpiritHunt: spiritHuntLoaded, includePriorityRace: true });
+      })
       .subscribe();
     return () => {
       if (realtimeRefreshTimerRef.current) window.clearTimeout(realtimeRefreshTimerRef.current);
@@ -2352,10 +2355,11 @@ export default function HoaHoiGameCanvasApp() {
     const id = String(memberId);
     const nextOneQuest = oneQuestMemberIds.includes(id) ? oneQuestMemberIds.filter((item) => String(item) !== id) : [...oneQuestMemberIds, id];
     const nextCompleted = completedMemberIds.filter((item) => String(item) !== id);
-    const { error } = await persistPriorityRaceConfig(priorityRaceEntries, nextOneQuest, nextCompleted);
+    const { error } = await persistPriorityRaceConfig(priorityRaceEntries, nextOneQuest, nextCompleted, twoGroupMemberIds);
     if (error) return setPriorityRaceMessage(`Không lưu được danh sách còn 1 quest: ${error.message}`);
     setOneQuestMemberIds(nextOneQuest);
     setCompletedMemberIds(nextCompleted);
+    broadcastOwnershipRefresh("priority_race_meta_changed");
   }
   async function toggleCompletedMember(memberId) {
     if (!isAdmin) return;
@@ -2371,6 +2375,7 @@ export default function HoaHoiGameCanvasApp() {
     setOneQuestMemberIds(nextOneQuest);
     setTwoGroupMemberIds(nextTwoGroup);
     setPriorityRaceEntries(nextEntries);
+    broadcastOwnershipRefresh("priority_race_meta_changed");
     if (!isRemoving && String(priorityRaceForm.memberId) === id) setPriorityRaceForm(DEFAULT_PRIORITY_RACE_FORM);
   }
   async function toggleTwoGroupMember(memberId) {
@@ -2380,24 +2385,28 @@ export default function HoaHoiGameCanvasApp() {
     const { error } = await persistPriorityRaceConfig(priorityRaceEntries, oneQuestMemberIds, completedMemberIds, nextTwoGroup);
     if (error) return setPriorityRaceMessage(`Không lưu được danh sách đua 2 phẩm: ${error.message}`);
     setTwoGroupMemberIds(nextTwoGroup);
+    broadcastOwnershipRefresh("priority_race_meta_changed");
   }
   async function clearOneQuestMembers() {
     if (!isAdmin) return;
     const { error } = await persistPriorityRaceConfig(priorityRaceEntries, [], completedMemberIds, twoGroupMemberIds);
     if (error) return setPriorityRaceMessage(`Không xoá được danh sách còn 1 quest: ${error.message}`);
     setOneQuestMemberIds([]);
+    broadcastOwnershipRefresh("priority_race_meta_changed");
   }
   async function clearCompletedMembers() {
     if (!isAdmin) return;
     const { error } = await persistPriorityRaceConfig(priorityRaceEntries, oneQuestMemberIds, [], twoGroupMemberIds);
     if (error) return setPriorityRaceMessage(`Không xoá được danh sách hoàn thành: ${error.message}`);
     setCompletedMemberIds([]);
+    broadcastOwnershipRefresh("priority_race_meta_changed");
   }
   async function clearTwoGroupMembers() {
     if (!(isAdmin || isManager)) return;
     const { error } = await persistPriorityRaceConfig(priorityRaceEntries, oneQuestMemberIds, completedMemberIds, []);
     if (error) return setPriorityRaceMessage(`Không xoá được danh sách đua 2 phẩm: ${error.message}`);
     setTwoGroupMemberIds([]);
+    broadcastOwnershipRefresh("priority_race_meta_changed");
   }
 
   const visibleTabs = [

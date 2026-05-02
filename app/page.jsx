@@ -1,5 +1,12 @@
 "use client";
 
+import { Be_Vietnam_Pro } from "next/font/google";
+
+const beVietnam = Be_Vietnam_Pro({
+  subsets: ["vietnamese"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+});
+
 export default function Page() {
   const goToVip = () => {
     window.location.href = "https://www.quanlyhoihoa.vip/selina";
@@ -7,6 +14,7 @@ export default function Page() {
 
   return (
     <main
+      className={beVietnam.className}
       style={{
         minHeight: "100vh",
         width: "100%",
@@ -19,8 +27,6 @@ export default function Page() {
         color: "white",
         overflow: "hidden",
         position: "relative",
-        fontFamily:
-          "Arial, Helvetica, sans-serif",
       }}
     >
       <div
@@ -50,11 +56,11 @@ export default function Page() {
           position: "relative",
           zIndex: 1,
           width: "100%",
-          maxWidth: "820px",
-          padding: "42px 28px",
+          maxWidth: "880px",
+          padding: "48px 34px",
           borderRadius: "32px",
           textAlign: "center",
-          background: "rgba(15, 23, 42, 0.72)",
+          background: "rgba(15, 23, 42, 0.74)",
           border: "1px solid rgba(255,255,255,0.18)",
           boxShadow:
             "0 30px 90px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.16)",
@@ -64,7 +70,7 @@ export default function Page() {
         <div
           style={{
             fontSize: "42px",
-            marginBottom: "18px",
+            marginBottom: "20px",
           }}
         >
           🌸
@@ -73,15 +79,15 @@ export default function Page() {
         <h1
           style={{
             margin: 0,
-            fontSize: "clamp(28px, 5vw, 52px)",
-            lineHeight: 1.22,
+            fontSize: "clamp(30px, 4.7vw, 58px)",
+            lineHeight: 1.18,
             fontWeight: 900,
-            letterSpacing: "-0.03em",
+            letterSpacing: "-0.045em",
             background:
               "linear-gradient(90deg, #fff7ed, #fde68a, #f9a8d4, #c4b5fd)",
             WebkitBackgroundClip: "text",
             color: "transparent",
-            textShadow: "0 0 28px rgba(244,114,182,0.18)",
+            textShadow: "0 0 28px rgba(244,114,182,0.14)",
           }}
         >
           Web quản lý hoa của Hội SELINA đã chuyển sang phiên bản VIP PRO MAX
@@ -89,9 +95,10 @@ export default function Page() {
 
         <p
           style={{
-            margin: "20px auto 30px",
-            maxWidth: "560px",
+            margin: "24px auto 32px",
+            maxWidth: "620px",
             fontSize: "18px",
+            fontWeight: 600,
             lineHeight: 1.6,
             color: "rgba(255,255,255,0.82)",
           }}
@@ -104,10 +111,11 @@ export default function Page() {
           style={{
             border: "none",
             cursor: "pointer",
-            padding: "18px 34px",
+            padding: "18px 38px",
             borderRadius: "999px",
             fontSize: "22px",
-            fontWeight: 900,
+            fontWeight: 800,
+            letterSpacing: "-0.01em",
             color: "white",
             background:
               "linear-gradient(135deg, #ec4899, #f97316, #facc15)",
